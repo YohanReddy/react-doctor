@@ -69,5 +69,21 @@ export const KNIP_TOTAL_ATTEMPTS = 6;
 
 export const PROXY_OUTPUT_MAX_BYTES = 50 * 1024 * 1024;
 
+export const CDP_CONNECT_TIMEOUT_MS = 10_000;
+
+export const SNAPSHOT_TIMEOUT_DEFAULT_MS = 30_000;
+
+export const DEFAULT_VIEWPORT_WIDTH_PX = 1280;
+
+export const DEFAULT_VIEWPORT_HEIGHT_PX = 720;
+
+export const SIGTERM_GRACE_PERIOD_MS = 2_000;
+
+export const SIGTERM_POLL_INTERVAL_MS = 50;
+
+export const SESSION_DIR_NAME = ".react-doctor";
+
+export const SESSION_FILE_NAME = "browser.json";
+
 export const buildNoReactDependencyError = (directory: string): string =>
   `No React dependency found in ${directory}/package.json. Add "react" to dependencies (or peerDependencies) and re-run.`;

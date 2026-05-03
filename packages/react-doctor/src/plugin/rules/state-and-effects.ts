@@ -2,6 +2,7 @@ import {
   CASCADING_SET_STATE_THRESHOLD,
   EFFECT_HOOK_NAMES,
   HOOKS_WITH_DEPS,
+  MUTATING_ARRAY_METHODS,
   RELATED_USE_STATE_THRESHOLD,
   TRIVIAL_INITIALIZER_NAMES,
 } from "../constants.js";
@@ -940,6 +941,202 @@ export const rerenderDeferReadsHook: Rule = {
         context.report({
           node: binding.declarator,
           message: `${binding.hookName}() return is only read inside event handlers — defer the read into the handler (e.g. \`new URL(window.location.href).searchParams\`) so the component doesn't re-render on every URL change`,
+        });
+      }
+    };
+
+    return {
+      FunctionDeclaration(node: EsTreeNode) {
+        if (!node.id?.name || !isUppercaseName(node.id.name)) return;
+        checkComponent(node.body);
+      },
+      VariableDeclarator(node: EsTreeNode) {
+        if (!isComponentAssignment(node)) return;
+        checkComponent(node.init?.body);
+      },
+    };
+  },
+};
+
+// HACK: walk a MemberExpression chain (computed or not) down to the
+// underlying root identifier, so `state.nested.items.push(x)` and
+// `items[0]` both report against `state` / `items` respectively.
+// Returns null if the chain bottoms out at anything other than a plain
+// Identifier (e.g. a call expression, `this`, etc.).
+const getMemberRootName = (node: EsTreeNode | undefined): string | null => {
+  let cursor: EsTreeNode | undefined = node;
+  while (cursor?.type === "MemberExpression") {
+    cursor = cursor.object;
+  }
+  return cursor?.type === "Identifier" ? cursor.name : null;
+};
+
+// HACK: walks the component AST while tracking which state names are
+// SHADOWED in the current scope by a nested function's params or
+// var/let/const declarations. Without this, a handler that locally
+// re-binds the state name (e.g. `const items = raw.split(",")` then
+// `items.push(x)`) gets falsely flagged. We don't do real scope
+// analysis (would need eslint-utils' ScopeManager) — just lexical
+// param + top-level binding collection per function, which covers the
+// >99% of real-world shadowing cases without false positives.
+const collectFunctionLocalBindings = (functionNode: EsTreeNode): Set<string> => {
+  const localBindings = new Set<string>();
+  for (const param of functionNode.params ?? []) {
+    collectPatternNames(param, localBindings);
+  }
+  if (functionNode.body?.type === "BlockStatement") {
+    for (const statement of functionNode.body.body ?? []) {
+      if (statement.type !== "VariableDeclaration") continue;
+      for (const declarator of statement.declarations ?? []) {
+        collectPatternNames(declarator.id, localBindings);
+      }
+    }
+  }
+  return localBindings;
+};
+
+const isFunctionLikeNode = (node: EsTreeNode): boolean =>
+  node.type === "FunctionDeclaration" ||
+  node.type === "FunctionExpression" ||
+  node.type === "ArrowFunctionExpression";
+
+const walkComponentRespectingShadows = (
+  node: EsTreeNode,
+  shadowedStateNames: ReadonlySet<string>,
+  visit: (child: EsTreeNode, currentlyShadowed: ReadonlySet<string>) => void,
+): void => {
+  if (!node || typeof node !== "object") return;
+
+  let nextShadowedStateNames = shadowedStateNames;
+  if (isFunctionLikeNode(node)) {
+    const localBindings = collectFunctionLocalBindings(node);
+    if (localBindings.size > 0) {
+      const merged = new Set(shadowedStateNames);
+      for (const localName of localBindings) merged.add(localName);
+      nextShadowedStateNames = merged;
+    }
+  }
+
+  visit(node, shadowedStateNames);
+
+  for (const key of Object.keys(node)) {
+    if (key === "parent") continue;
+    const child = node[key];
+    if (Array.isArray(child)) {
+      for (const item of child) {
+        if (item && typeof item === "object" && item.type) {
+          walkComponentRespectingShadows(item, nextShadowedStateNames, visit);
+        }
+      }
+    } else if (child && typeof child === "object" && child.type) {
+      walkComponentRespectingShadows(child, nextShadowedStateNames, visit);
+    }
+  }
+};
+
+export const noDirectStateMutation: Rule = {
+  create: (context: RuleContext) => {
+    const checkComponent = (componentBody: EsTreeNode | null | undefined): void => {
+      if (!componentBody || componentBody.type !== "BlockStatement") return;
+      const bindings = collectUseStateBindings(componentBody);
+      if (bindings.length === 0) return;
+
+      const stateValueToSetter = new Map<string, string>(
+        bindings.map((binding) => [binding.valueName, binding.setterName] as const),
+      );
+
+      walkComponentRespectingShadows(
+        componentBody,
+        new Set(),
+        (child: EsTreeNode, currentlyShadowed: ReadonlySet<string>) => {
+          if (child.type === "AssignmentExpression") {
+            if (child.left?.type !== "MemberExpression") return;
+            const rootName = getMemberRootName(child.left);
+            if (!rootName || !stateValueToSetter.has(rootName)) return;
+            if (currentlyShadowed.has(rootName)) return;
+            const setterName = stateValueToSetter.get(rootName);
+            context.report({
+              node: child,
+              message: `Direct property assignment on useState value "${rootName}" — call ${setterName} with a new value; React only re-renders on a new reference`,
+            });
+            return;
+          }
+
+          if (child.type === "CallExpression") {
+            const callee = child.callee;
+            if (callee?.type !== "MemberExpression") return;
+            if (callee.property?.type !== "Identifier") return;
+            const methodName = callee.property.name;
+            if (!MUTATING_ARRAY_METHODS.has(methodName)) return;
+            const rootName = getMemberRootName(callee.object);
+            if (!rootName || !stateValueToSetter.has(rootName)) return;
+            if (currentlyShadowed.has(rootName)) return;
+            const setterName = stateValueToSetter.get(rootName);
+            context.report({
+              node: child,
+              message: `In-place mutation of useState value "${rootName}" via .${methodName}() — call ${setterName} with a new array; React only re-renders on a new reference`,
+            });
+          }
+        },
+      );
+    };
+
+    return {
+      FunctionDeclaration(node: EsTreeNode) {
+        if (!node.id?.name || !isUppercaseName(node.id.name)) return;
+        checkComponent(node.body);
+      },
+      VariableDeclarator(node: EsTreeNode) {
+        if (!isComponentAssignment(node)) return;
+        checkComponent(node.init?.body);
+      },
+    };
+  },
+};
+
+// HACK: an UNCONDITIONAL setter call at a component's render path
+// triggers an infinite re-render loop ("Maximum update depth exceeded").
+// We only flag the obvious shape — `setX(...)` as a top-level
+// ExpressionStatement directly inside the component body — to avoid
+// false positives on the canonical React pattern that conditionally
+// updates state during render to derive from props (see
+// https://react.dev/reference/react/useState#storing-information-from-previous-renders):
+//
+//   if (prevCount !== count) {
+//     setPrevCount(count);  // ← legitimate, reaches a fixed point
+//   }
+//
+// Conditional / loop / try-catch nesting is opaque enough that we'd
+// rather miss the bug than scream at idiomatic code.
+const isUnconditionalSetterCallStatement = (
+  statement: EsTreeNode,
+  setterNames: ReadonlySet<string>,
+): EsTreeNode | null => {
+  if (statement.type !== "ExpressionStatement") return null;
+  const expression = statement.expression;
+  if (expression?.type !== "CallExpression") return null;
+  const callee = expression.callee;
+  if (callee?.type !== "Identifier") return null;
+  if (!setterNames.has(callee.name)) return null;
+  return expression;
+};
+
+export const noSetStateInRender: Rule = {
+  create: (context: RuleContext) => {
+    const checkComponent = (componentBody: EsTreeNode | null | undefined): void => {
+      if (!componentBody || componentBody.type !== "BlockStatement") return;
+      const setterNames = new Set(
+        collectUseStateBindings(componentBody).map((binding) => binding.setterName),
+      );
+      if (setterNames.size === 0) return;
+
+      for (const statement of componentBody.body ?? []) {
+        const setterCall = isUnconditionalSetterCallStatement(statement, setterNames);
+        if (!setterCall) continue;
+        const setterIdentifierName = setterCall.callee.name;
+        context.report({
+          node: setterCall,
+          message: `${setterIdentifierName}() called unconditionally at the top of render — causes an infinite re-render loop. Move into a useEffect or an event handler. (To derive state from props, guard the call: \`if (prev !== prop) ${setterIdentifierName}(prop)\`)`,
         });
       }
     };

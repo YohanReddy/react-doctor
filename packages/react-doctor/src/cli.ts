@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
 import { Command } from "commander";
+import { browser } from "./commands/browser/index.js";
 import { CANONICAL_GITHUB_URL } from "./constants.js";
 import { runInstallSkill } from "./install-skill.js";
 import { scan } from "./scan.js";
@@ -584,6 +585,12 @@ program
     }
   });
 
+program.addCommand(browser);
+
+// HACK: when stdout is piped into a process that closes early (e.g.
+// `react-doctor browser snapshot example.com | head`), Node throws an
+// uncaught EPIPE on the next write. Exit cleanly instead of dumping a
+// stack trace.
 process.stdout.on("error", (error: NodeJS.ErrnoException) => {
   if (error.code === "EPIPE") process.exit(0);
 });

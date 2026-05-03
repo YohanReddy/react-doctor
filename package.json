@@ -25,11 +25,11 @@
     "release": "pnpm build && changeset publish"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.30.0",
-    "@types/node": "^22",
+    "@changesets/cli": "^2.31.0",
+    "@types/node": "^25.6.0",
     "@voidzero-dev/vite-plus-core": "^0.1.15",
-    "turbo": "^2.9.3",
-    "typescript": "^6.0.2",
+    "turbo": "^2.9.7",
+    "typescript": "^6.0.3",
     "vite-plus": "^0.1.15"
   },
   "engines": {

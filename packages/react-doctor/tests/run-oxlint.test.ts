@@ -153,6 +153,18 @@ describe("runOxlint", () => {
         ruleSource: "rules/state-and-effects.ts",
         severity: "error",
       },
+      "no-direct-state-mutation": {
+        fixture: "state-issues.tsx",
+        ruleSource: "rules/state-and-effects.ts",
+        severity: "warning",
+        category: "State & Effects",
+      },
+      "no-set-state-in-render": {
+        fixture: "state-issues.tsx",
+        ruleSource: "rules/state-and-effects.ts",
+        severity: "warning",
+        category: "State & Effects",
+      },
     },
     () => basicReactDiagnostics,
   );
@@ -490,6 +502,12 @@ describe("runOxlint", () => {
       "no-prevent-default": {
         fixture: "correctness-issues.tsx",
         ruleSource: "rules/correctness.ts",
+      },
+      "no-uncontrolled-input": {
+        fixture: "state-issues.tsx",
+        ruleSource: "rules/correctness.ts",
+        severity: "warning",
+        category: "Correctness",
       },
     },
     () => basicReactDiagnostics,

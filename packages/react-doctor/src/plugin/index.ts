@@ -39,6 +39,7 @@ import {
   noArrayIndexAsKey,
   noPolymorphicChildren,
   noPreventDefault,
+  noUncontrolledInput,
   renderingConditionalRender,
   renderingSvgPrecision,
 } from "./rules/correctness.js";
@@ -98,6 +99,16 @@ import {
   rerenderMemoWithDefaultValue,
   rerenderTransitionsScroll,
 } from "./rules/performance.js";
+import {
+  noBoldHeading,
+  noDefaultTailwindPalette,
+  noEmDashInJsxText,
+  noRedundantPaddingAxes,
+  noRedundantSizeAxes,
+  noSpaceOnFlexChildren,
+  noThreePeriodEllipsis,
+  noVagueButtonLabel,
+} from "./rules/react-ui.js";
 import {
   rnAnimateLayoutProperty,
   rnAnimationReactionAsDerived,
@@ -164,10 +175,12 @@ import {
   noCascadingSetState,
   noDerivedStateEffect,
   noDerivedUseState,
+  noDirectStateMutation,
   noEffectEventHandler,
   noEffectEventInDeps,
   noFetchInEffect,
   noPropCallbackInEffect,
+  noSetStateInRender,
   preferUseReducer,
   rerenderDependencies,
   rerenderDeferReadsHook,
@@ -188,6 +201,8 @@ const plugin: RulePlugin = {
     "no-effect-event-in-deps": noEffectEventInDeps,
     "no-prop-callback-in-effect": noPropCallbackInEffect,
     "no-derived-useState": noDerivedUseState,
+    "no-direct-state-mutation": noDirectStateMutation,
+    "no-set-state-in-render": noSetStateInRender,
     "prefer-useReducer": preferUseReducer,
     "rerender-lazy-state-init": rerenderLazyStateInit,
     "rerender-functional-setstate": rerenderFunctionalSetstate,
@@ -243,6 +258,7 @@ const plugin: RulePlugin = {
     "rendering-conditional-render": renderingConditionalRender,
     "rendering-svg-precision": renderingSvgPrecision,
     "no-prevent-default": noPreventDefault,
+    "no-uncontrolled-input": noUncontrolledInput,
     "no-document-start-view-transition": noDocumentStartViewTransition,
     "no-flush-sync": noFlushSync,
 
@@ -352,6 +368,15 @@ const plugin: RulePlugin = {
     "no-disabled-zoom": noDisabledZoom,
     "no-outline-none": noOutlineNone,
     "no-long-transition-duration": noLongTransitionDuration,
+
+    "design-no-bold-heading": noBoldHeading,
+    "design-no-redundant-padding-axes": noRedundantPaddingAxes,
+    "design-no-redundant-size-axes": noRedundantSizeAxes,
+    "design-no-space-on-flex-children": noSpaceOnFlexChildren,
+    "design-no-em-dash-in-jsx-text": noEmDashInJsxText,
+    "design-no-three-period-ellipsis": noThreePeriodEllipsis,
+    "design-no-default-tailwind-palette": noDefaultTailwindPalette,
+    "design-no-vague-button-label": noVagueButtonLabel,
   },
 };
 

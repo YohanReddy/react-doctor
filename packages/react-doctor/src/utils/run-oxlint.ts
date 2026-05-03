@@ -34,6 +34,8 @@ const RULE_CATEGORY_MAP: Record<string, string> = {
   "react-doctor/no-effect-event-in-deps": "State & Effects",
   "react-doctor/no-prop-callback-in-effect": "State & Effects",
   "react-doctor/no-derived-useState": "State & Effects",
+  "react-doctor/no-direct-state-mutation": "State & Effects",
+  "react-doctor/no-set-state-in-render": "State & Effects",
   "react-doctor/prefer-useReducer": "State & Effects",
   "react-doctor/rerender-lazy-state-init": "Performance",
   "react-doctor/rerender-functional-setstate": "Performance",
@@ -88,6 +90,7 @@ const RULE_CATEGORY_MAP: Record<string, string> = {
   "react-doctor/rendering-conditional-render": "Correctness",
   "react-doctor/rendering-svg-precision": "Performance",
   "react-doctor/no-prevent-default": "Correctness",
+  "react-doctor/no-uncontrolled-input": "Correctness",
   "react-doctor/no-document-start-view-transition": "Correctness",
   "react-doctor/no-flush-sync": "Performance",
   "react-doctor/nextjs-no-img-element": "Next.js",
@@ -141,6 +144,15 @@ const RULE_CATEGORY_MAP: Record<string, string> = {
   "react-doctor/no-disabled-zoom": "Accessibility",
   "react-doctor/no-outline-none": "Accessibility",
   "react-doctor/no-long-transition-duration": "Performance",
+
+  "react-doctor/design-no-bold-heading": "Architecture",
+  "react-doctor/design-no-redundant-padding-axes": "Architecture",
+  "react-doctor/design-no-redundant-size-axes": "Architecture",
+  "react-doctor/design-no-space-on-flex-children": "Architecture",
+  "react-doctor/design-no-em-dash-in-jsx-text": "Architecture",
+  "react-doctor/design-no-three-period-ellipsis": "Architecture",
+  "react-doctor/design-no-default-tailwind-palette": "Architecture",
+  "react-doctor/design-no-vague-button-label": "Accessibility",
 
   "react-doctor/js-flatmap-filter": "Performance",
   "react-doctor/js-combine-iterations": "Performance",
@@ -212,6 +224,10 @@ const RULE_HELP_MAP: Record<string, string> = {
     "Move the conditional logic into onClick, onChange, or onSubmit handlers directly",
   "no-derived-useState":
     "Remove useState and compute the value inline: `const value = transform(propName)`",
+  "no-direct-state-mutation":
+    "Replace the mutation with a setter call that produces a new reference: `setItems([...items, newItem])`, `setItems(items.filter(x => x !== target))`, `setItems(items.toSorted(...))`. React only re-renders on a new reference, so in-place updates are silently dropped",
+  "no-set-state-in-render":
+    "Move the setter call into a `useEffect`, an event handler, or replace the state with a value computed during render. Calling a setter at render time triggers another render, which calls the setter again — an infinite loop",
   "prefer-useReducer":
     "Group related state: `const [state, dispatch] = useReducer(reducer, { field1, field2, ... })`",
   "rerender-lazy-state-init":
@@ -359,12 +375,31 @@ const RULE_HELP_MAP: Record<string, string> = {
   "no-long-transition-duration":
     "Keep UI transitions under 1s — 100-150ms for instant feedback, 200-300ms for state changes, 300-500ms for layout changes. Use longer durations only for page-load hero animations",
 
+  "design-no-bold-heading":
+    "Use `font-semibold` (600) or `font-medium` (500) on headings — 700+ crushes letter counter shapes at display sizes",
+  "design-no-redundant-padding-axes":
+    "Collapse `px-N py-N` to `p-N` when both axes match. Keep them split only when one axis varies at a breakpoint (`py-2 md:py-3`)",
+  "design-no-redundant-size-axes":
+    "Collapse `w-N h-N` to `size-N` (Tailwind v3.4+) when both axes match",
+  "design-no-space-on-flex-children":
+    "Use `gap-*` on the flex/grid parent. `space-x-*` / `space-y-*` produce phantom gaps when a sibling is conditionally rendered, lose vertical spacing on wrapped lines, and don't mirror in RTL",
+  "design-no-em-dash-in-jsx-text":
+    "Replace em dashes in JSX text with commas, colons, semicolons, periods, or parentheses — em dashes read as model-output filler",
+  "design-no-three-period-ellipsis":
+    'Use the typographic ellipsis "…" (or `&hellip;`) instead of three periods — pairs with action-with-followup labels ("Rename…", "Loading…")',
+  "design-no-default-tailwind-palette":
+    "Replace `indigo-*` / `gray-*` / `slate-*` with project tokens, your brand color, or a less-default neutral (`zinc`, `neutral`, `stone`)",
+  "design-no-vague-button-label":
+    'Name the action: "Save changes" instead of "Continue", "Send invite" instead of "Submit", "Delete account" instead of "OK". The label IS the button\'s accessible name',
+
   "no-array-index-as-key":
     "Use a stable unique identifier: `key={item.id}` or `key={item.slug}` — index keys break on reorder/filter",
   "rendering-conditional-render":
     "Change to `{items.length > 0 && <List />}` or use a ternary: `{items.length ? <List /> : null}`",
   "no-prevent-default":
     "Use `<form action={serverAction}>` (works without JS) or `<button>` instead of `<a>` with preventDefault",
+  "no-uncontrolled-input":
+    'Pass an explicit initial value to `useState` (e.g. `useState("")` instead of `useState()`), add `onChange` (or `readOnly` to opt out) when you supply `value`, and drop `defaultValue` on controlled inputs — React ignores it',
 
   "nextjs-no-img-element":
     "`import Image from 'next/image'` — provides automatic WebP/AVIF, lazy loading, and responsive srcset",

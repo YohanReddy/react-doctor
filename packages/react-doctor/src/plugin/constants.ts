@@ -312,6 +312,23 @@ export const MUTATION_METHOD_NAMES = new Set([
   "append",
 ]);
 
+// In-place Array.prototype mutators. These are the canonical "mutating"
+// methods used to flag direct mutation of useState values (e.g. an
+// `items` from `useState([])` that gets `.push()`ed). The immutable
+// counterparts (toSorted/toReversed/toSpliced/with) are intentionally
+// excluded; those return a new array.
+export const MUTATING_ARRAY_METHODS = new Set([
+  "push",
+  "pop",
+  "shift",
+  "unshift",
+  "splice",
+  "sort",
+  "reverse",
+  "fill",
+  "copyWithin",
+]);
+
 export const MUTATING_HTTP_METHODS = new Set(["POST", "PUT", "DELETE", "PATCH"]);
 
 export const MUTATING_ROUTE_SEGMENTS = new Set([
@@ -430,3 +447,66 @@ export const TINY_TEXT_THRESHOLD_PX = 12;
 export const WIDE_TRACKING_THRESHOLD_EM = 0.05;
 
 export const LONG_TRANSITION_DURATION_THRESHOLD_MS = 1000;
+
+export const HEAVY_HEADING_FONT_WEIGHT_MIN = 700;
+
+export const HEADING_TAG_NAMES = new Set(["h1", "h2", "h3", "h4", "h5", "h6"]);
+
+export const HEAVY_HEADING_TAILWIND_WEIGHTS = new Set([
+  "font-bold",
+  "font-extrabold",
+  "font-black",
+]);
+
+export const TAILWIND_DEFAULT_PALETTE_NAMES = ["indigo", "gray", "slate"];
+
+export const TAILWIND_PALETTE_UTILITY_PREFIXES = [
+  "text",
+  "bg",
+  "border",
+  "ring",
+  "fill",
+  "stroke",
+  "from",
+  "to",
+  "via",
+  "decoration",
+  "divide",
+  "outline",
+  "placeholder",
+  "caret",
+  "accent",
+  "shadow",
+];
+
+export const VAGUE_BUTTON_LABELS = new Set([
+  "continue",
+  "submit",
+  "ok",
+  "okay",
+  "click here",
+  "here",
+  "yes",
+  "no",
+  "go",
+  "done",
+]);
+
+export const ELLIPSIS_EXCLUDED_TAG_NAMES = new Set(["code", "pre", "kbd", "samp", "var", "tt"]);
+
+export const EM_DASH_CHARACTER = "\u2014";
+
+export const PADDING_HORIZONTAL_AXIS_PATTERN =
+  /(?:^|\s)(-?)px-(\d+(?:\.\d+)?|\[[^\]]+\])(?:$|\s|:)/g;
+
+export const PADDING_VERTICAL_AXIS_PATTERN = /(?:^|\s)(-?)py-(\d+(?:\.\d+)?|\[[^\]]+\])(?:$|\s|:)/g;
+
+export const SIZE_WIDTH_AXIS_PATTERN = /(?:^|\s)(-?)w-(\d+(?:\.\d+)?|\[[^\]]+\])(?:$|\s|:)/g;
+
+export const SIZE_HEIGHT_AXIS_PATTERN = /(?:^|\s)(-?)h-(\d+(?:\.\d+)?|\[[^\]]+\])(?:$|\s|:)/g;
+
+export const FLEX_OR_GRID_DISPLAY_TOKENS = new Set(["flex", "inline-flex", "grid", "inline-grid"]);
+
+export const SPACE_AXIS_PATTERN = /(?:^|\s)(?:-)?space-(x|y)-(\d+(?:\.\d+)?|\[[^\]]+\])/;
+
+export const TRAILING_THREE_PERIOD_ELLIPSIS_PATTERN = /[A-Za-z]\.\.\./;
