@@ -6,11 +6,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   ERROR_PREVIEW_LENGTH_CHARS,
-  JSX_FILE_PATTERN,
   PROXY_OUTPUT_MAX_BYTES,
+  SOURCE_FILE_PATTERN,
 } from "../constants.js";
 import { batchIncludePaths } from "./batch-include-paths.js";
 import { collectIgnorePatterns } from "./collect-ignore-patterns.js";
+import { detectUserLintConfigPaths } from "./detect-user-lint-config.js";
 import { ALL_REACT_DOCTOR_RULE_KEYS, createOxlintConfig } from "../oxlint-config.js";
 import type { CleanedDiagnostic, Diagnostic, Framework, OxlintOutput } from "../types.js";
 import { neutralizeDisableDirectives } from "./neutralize-disable-directives.js";
@@ -24,6 +25,21 @@ const PLUGIN_CATEGORY_MAP: Record<string, string> = {
   "react-doctor": "Other",
   "jsx-a11y": "Accessibility",
   knip: "Dead Code",
+  // Plugins users commonly enable in their own oxlint / eslint config
+  // and that react-doctor folds into the scan via `extends`. Sensible
+  // defaults so adopted-rule diagnostics don't all collapse into the
+  // generic "Other" bucket in the output grouping.
+  eslint: "Correctness",
+  oxc: "Correctness",
+  typescript: "Correctness",
+  unicorn: "Correctness",
+  import: "Bundle Size",
+  promise: "Correctness",
+  n: "Correctness",
+  node: "Correctness",
+  vitest: "Correctness",
+  jest: "Correctness",
+  nextjs: "Next.js",
 };
 
 const RULE_CATEGORY_MAP: Record<string, string> = {
@@ -750,8 +766,16 @@ const parseOxlintOutput = (stdout: string): Diagnostic[] => {
   }
   const output = parsed;
 
+  // HACK: oxlint reports diagnostics for every JS/TS extension it
+  // scanned (`.ts`, `.tsx`, `.js`, `.jsx`). The previous filter only
+  // kept `.tsx` / `.jsx` — fine when react-doctor's curated rules were
+  // the only sources (they're React-specific anyway), but adopted
+  // user rules like `eslint/no-debugger` or `unicorn/*` typically
+  // fire on plain `.ts` / `.js` files; dropping those silently
+  // erased their score impact. SOURCE_FILE_PATTERN matches the same
+  // extensions we count as source files everywhere else.
   return output.diagnostics
-    .filter((diagnostic) => diagnostic.code && JSX_FILE_PATTERN.test(diagnostic.filename))
+    .filter((diagnostic) => diagnostic.code && SOURCE_FILE_PATTERN.test(diagnostic.filename))
     .map((diagnostic) => {
       const { plugin, rule } = parseRuleCode(diagnostic.code);
       const primaryLabel = diagnostic.labels[0];
@@ -800,6 +824,14 @@ interface RunOxlintOptions {
    * so react-doctor sees through every prior suppression (audit mode).
    */
   respectInlineDisables?: boolean;
+  /**
+   * When `true` (default), detect the user's existing JSON oxlint /
+   * eslint config at `rootDirectory` and merge its rules into the
+   * generated scan config via oxlint's `extends` field. Diagnostics
+   * from those rules then count toward the react-doctor score.
+   * Set `false` to scan only react-doctor's curated rule set.
+   */
+  adoptExistingLintConfig?: boolean;
 }
 
 let didValidateRuleRegistration = false;
@@ -843,6 +875,7 @@ export const runOxlint = async (options: RunOxlintOptions): Promise<Diagnostic[]
     nodeBinaryPath = process.execPath,
     customRulesOnly = false,
     respectInlineDisables = true,
+    adoptExistingLintConfig = true,
   } = options;
 
   validateRuleRegistration();
@@ -854,12 +887,26 @@ export const runOxlint = async (options: RunOxlintOptions): Promise<Diagnostic[]
   const configDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "react-doctor-oxlintrc-"));
   const configPath = path.join(configDirectory, "oxlintrc.json");
   const pluginPath = resolvePluginPath();
+  // HACK: pass user lint configs to oxlint as absolute paths. oxlint's
+  // docs say `extends` is "resolved relative to the configuration file
+  // that declares extends," but a literal `path.relative(configDir, ...)`
+  // breaks when the OS resolves symlinked tmp dirs (e.g. macOS's
+  // `/var/folders/.../T/...` actually lives under `/private/var/...`,
+  // so a `../../../...` walk from the symlink view doesn't equal the
+  // same walk from the canonical view and oxlint's NotFound errors
+  // out). Absolute paths sidestep the whole symlink dance — oxlint
+  // accepts them and they're stable across runtimes. We skip extends
+  // entirely under `customRulesOnly` because that mode opts out of
+  // every rule outside the react-doctor plugin.
+  const extendsPaths =
+    adoptExistingLintConfig && !customRulesOnly ? detectUserLintConfigPaths(rootDirectory) : [];
   const config = createOxlintConfig({
     pluginPath,
     framework,
     hasReactCompiler,
     hasTanStackQuery,
     customRulesOnly,
+    extendsPaths,
   });
   // HACK: only neutralize disable comments in audit mode. Default
   // behavior respects the user's existing `// eslint-disable*` /
@@ -869,13 +916,6 @@ export const runOxlint = async (options: RunOxlintOptions): Promise<Diagnostic[]
     : neutralizeDisableDirectives(rootDirectory, includePaths);
 
   try {
-    const fileHandle = fs.openSync(configPath, "wx", 0o600);
-    try {
-      fs.writeFileSync(fileHandle, JSON.stringify(config));
-    } finally {
-      fs.closeSync(fileHandle);
-    }
-
     const oxlintBinary = resolveOxlintBinary();
     const baseArgs = [oxlintBinary, "-c", configPath, "--format", "json"];
 
@@ -903,14 +943,57 @@ export const runOxlint = async (options: RunOxlintOptions): Promise<Diagnostic[]
     const fileBatches =
       includePaths !== undefined ? batchIncludePaths(baseArgs, includePaths) : [["."]];
 
-    const allDiagnostics: Diagnostic[] = [];
-    for (const batch of fileBatches) {
-      const batchArgs = [...baseArgs, ...batch];
-      const stdout = await spawnOxlint(batchArgs, rootDirectory, nodeBinaryPath);
-      allDiagnostics.push(...parseOxlintOutput(stdout));
-    }
+    const writeOxlintConfig = (configToWrite: ReturnType<typeof createOxlintConfig>): void => {
+      // HACK: fs.rm + open(wx) (instead of plain open(w)) so we keep
+      // the original "fail if a stale file exists at this exact path"
+      // safety net while still allowing the retry-without-extends
+      // fallback below to overwrite our own config in place.
+      fs.rmSync(configPath, { force: true });
+      const fileHandle = fs.openSync(configPath, "wx", 0o600);
+      try {
+        fs.writeFileSync(fileHandle, JSON.stringify(configToWrite));
+      } finally {
+        fs.closeSync(fileHandle);
+      }
+    };
 
-    return allDiagnostics;
+    const spawnLintBatches = async (): Promise<Diagnostic[]> => {
+      const allDiagnostics: Diagnostic[] = [];
+      for (const batch of fileBatches) {
+        const batchArgs = [...baseArgs, ...batch];
+        const stdout = await spawnOxlint(batchArgs, rootDirectory, nodeBinaryPath);
+        allDiagnostics.push(...parseOxlintOutput(stdout));
+      }
+      return allDiagnostics;
+    };
+
+    writeOxlintConfig(config);
+    try {
+      return await spawnLintBatches();
+    } catch (error) {
+      // HACK: if the user's adopted lint config is the reason oxlint
+      // crashed (broken JSON, missing plugin, unknown rule), failing
+      // the entire lint pass would leave the user with a 100/100
+      // score off zero diagnostics — a worse outcome than running our
+      // curated rules without their extras. Retry once without
+      // `extends`, surface why on stderr so the user can fix their
+      // config, and keep the scan useful in the meantime.
+      if (extendsPaths.length === 0) throw error;
+      const reason = error instanceof Error ? error.message : String(error);
+      process.stderr.write(
+        `[react-doctor] could not adopt existing lint config (${reason.split("\n")[0]}); retrying without extends. Set "adoptExistingLintConfig": false to silence.\n`,
+      );
+      const fallbackConfig = createOxlintConfig({
+        pluginPath,
+        framework,
+        hasReactCompiler,
+        hasTanStackQuery,
+        customRulesOnly,
+        extendsPaths: [],
+      });
+      writeOxlintConfig(fallbackConfig);
+      return await spawnLintBatches();
+    }
   } finally {
     restoreDisableDirectives();
     fs.rmSync(configDirectory, { recursive: true, force: true });

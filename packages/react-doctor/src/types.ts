@@ -212,6 +212,31 @@ export interface ReactDoctorConfig {
    * of historical hide-comments.
    */
   respectInlineDisables?: boolean;
+  /**
+   * Whether to merge the user's existing JSON oxlint / eslint config
+   * (`.oxlintrc.json` or `.eslintrc.json`) into the generated scan via
+   * oxlint's `extends` field, so diagnostics from those rules count
+   * toward the react-doctor score. Default: `true`.
+   *
+   * Detection runs at the scanned directory and walks up to the
+   * nearest project boundary (`.git` directory or monorepo root).
+   * The first match wins, with `.oxlintrc.json` preferred over
+   * `.eslintrc.json`.
+   *
+   * Only JSON-format configs are supported because oxlint's `extends`
+   * cannot evaluate JS/TS configs. Flat configs (`eslint.config.js`),
+   * legacy JS configs (`.eslintrc.js`), and TypeScript oxlint configs
+   * (`oxlint.config.ts`) are silently skipped.
+   *
+   * Category-level enables in the user's config (`"categories": { ... }`)
+   * are NOT honored — react-doctor explicitly disables every oxlint
+   * category to keep the scan scoped to its curated rule surface, and
+   * local config wins over `extends`. Use rule-level severities to
+   * fold rules into the score.
+   *
+   * Set to `false` to scan only react-doctor's curated rule set.
+   */
+  adoptExistingLintConfig?: boolean;
 }
 
 export type JsonReportMode = "full" | "diff" | "staged";

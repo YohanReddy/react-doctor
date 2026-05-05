@@ -237,21 +237,54 @@ If you want React Doctor to ignore those inline suppressions and audit your code
 
 This only neutralizes the inline `// eslint-disable*` / `// oxlint-disable*` comments — the file-level ignore lists above are always honored, even in audit mode, because they typically point at vendored or generated code that genuinely shouldn't be linted.
 
+### Adopting your existing oxlint / eslint rules
+
+If your project already has a JSON-format oxlint or eslint config (`.oxlintrc.json` or `.eslintrc.json`), React Doctor merges it into the same scan via oxlint's `extends` field. Diagnostics from your existing rules count toward the React Doctor score alongside the curated React Doctor rule set — no separate `oxlint` / `eslint` invocation needed.
+
+```json
+{
+  "rules": {
+    "no-debugger": "error",
+    "no-empty": "warn"
+  }
+}
+```
+
+Detection runs at the project root and walks up to the nearest project boundary (`.git` directory or monorepo root), so a single `.oxlintrc.json` at the top of a monorepo is picked up by every workspace package below it. The first match wins (`.oxlintrc.json` is preferred over `.eslintrc.json`).
+
+Behavior notes you may run into:
+
+- Only JSON-format configs are pulled in. oxlint's `extends` cannot evaluate JS or TS, so flat configs (`eslint.config.js`), legacy JS configs (`.eslintrc.js` / `.eslintrc.cjs`), and TypeScript oxlint configs (`oxlint.config.ts`) are silently skipped.
+- Rule-level severities (`"rules": { "no-debugger": "error" }`) flow through. Category-level enables (`"categories": { "correctness": "error" }`) do **not** — React Doctor explicitly disables every oxlint category to keep the rule set scoped to its curated surface, so your category opinions are dropped. Rewrite them as explicit `rules:` entries if you want them to count.
+- Plugins from your config are unioned in, so `"plugins": ["unicorn"]` + `"rules": { "unicorn/no-array-for-each": "error" }` works.
+- If oxlint can't load your config (broken JSON, missing plugin, unknown rule name), React Doctor logs the reason on stderr and retries once without `extends` so the scan still produces a useful score off the curated rule set.
+
+To opt out completely, set:
+
+```jsonc
+{ "adoptExistingLintConfig": false }
+```
+
+`customRulesOnly: true` also implies `adoptExistingLintConfig: false` — that mode runs only the `react-doctor/*` plugin and ignores every external rule, including your own.
+
+> **Upgrading from an earlier version?** This feature is on by default. Projects with an existing `.oxlintrc.json` / `.eslintrc.json` will see new diagnostics flow into the score, and the score may drop. Set `"adoptExistingLintConfig": false` if you want to preserve the old behavior.
+
 ### Config options
 
-| Key                     | Type                             | Default  | Description                                                                                                                                                                                                                                          |
-| ----------------------- | -------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ignore.rules`          | `string[]`                       | `[]`     | Rules to suppress, using the `plugin/rule` format shown in diagnostic output (e.g. `react/no-danger`, `knip/exports`, `knip/types`)                                                                                                                  |
-| `ignore.files`          | `string[]`                       | `[]`     | File paths to exclude, supports glob patterns (`src/generated/**`, `**/*.test.tsx`)                                                                                                                                                                  |
-| `lint`                  | `boolean`                        | `true`   | Enable/disable lint checks (same as `--no-lint`)                                                                                                                                                                                                     |
-| `deadCode`              | `boolean`                        | `true`   | Enable/disable dead code detection (same as `--no-dead-code`)                                                                                                                                                                                        |
-| `verbose`               | `boolean`                        | `false`  | Show file details per rule (same as `--verbose`)                                                                                                                                                                                                     |
-| `diff`                  | `boolean \| string`              | —        | Force diff mode (`true`) or pin a base branch (`"main"`). Set to `false` to disable auto-detection.                                                                                                                                                  |
-| `failOn`                | `"error" \| "warning" \| "none"` | `"none"` | Exit with error code on diagnostics of the given severity or above                                                                                                                                                                                   |
-| `customRulesOnly`       | `boolean`                        | `false`  | Disable built-in react/jsx-a11y/compiler rules, keeping only `react-doctor/*` plugin rules                                                                                                                                                           |
-| `share`                 | `boolean`                        | `true`   | Show the share-your-results URL after scanning                                                                                                                                                                                                       |
-| `textComponents`        | `string[]`                       | `[]`     | React Native only. Component names whose children should not trigger `rn-no-raw-text` (e.g. `["MyText", "Label.Bold"]`)                                                                                                                              |
-| `respectInlineDisables` | `boolean`                        | `true`   | Respect inline `// eslint-disable*` / `// oxlint-disable*` comments. Set `false` for audit mode. File-level ignores (`.gitignore`, `.eslintignore`, `.oxlintignore`, `.prettierignore`, `.gitattributes` linguist annotations) are always respected. |
+| Key                       | Type                             | Default  | Description                                                                                                                                                                                                                                                                                                                                |
+| ------------------------- | -------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ignore.rules`            | `string[]`                       | `[]`     | Rules to suppress, using the `plugin/rule` format shown in diagnostic output (e.g. `react/no-danger`, `knip/exports`, `knip/types`)                                                                                                                                                                                                        |
+| `ignore.files`            | `string[]`                       | `[]`     | File paths to exclude, supports glob patterns (`src/generated/**`, `**/*.test.tsx`)                                                                                                                                                                                                                                                        |
+| `lint`                    | `boolean`                        | `true`   | Enable/disable lint checks (same as `--no-lint`)                                                                                                                                                                                                                                                                                           |
+| `deadCode`                | `boolean`                        | `true`   | Enable/disable dead code detection (same as `--no-dead-code`)                                                                                                                                                                                                                                                                              |
+| `verbose`                 | `boolean`                        | `false`  | Show file details per rule (same as `--verbose`)                                                                                                                                                                                                                                                                                           |
+| `diff`                    | `boolean \| string`              | —        | Force diff mode (`true`) or pin a base branch (`"main"`). Set to `false` to disable auto-detection.                                                                                                                                                                                                                                        |
+| `failOn`                  | `"error" \| "warning" \| "none"` | `"none"` | Exit with error code on diagnostics of the given severity or above                                                                                                                                                                                                                                                                         |
+| `customRulesOnly`         | `boolean`                        | `false`  | Disable built-in react/jsx-a11y/compiler rules, keeping only `react-doctor/*` plugin rules                                                                                                                                                                                                                                                 |
+| `share`                   | `boolean`                        | `true`   | Show the share-your-results URL after scanning                                                                                                                                                                                                                                                                                             |
+| `textComponents`          | `string[]`                       | `[]`     | React Native only. Component names whose children should not trigger `rn-no-raw-text` (e.g. `["MyText", "Label.Bold"]`)                                                                                                                                                                                                                    |
+| `respectInlineDisables`   | `boolean`                        | `true`   | Respect inline `// eslint-disable*` / `// oxlint-disable*` comments. Set `false` for audit mode. File-level ignores (`.gitignore`, `.eslintignore`, `.oxlintignore`, `.prettierignore`, `.gitattributes` linguist annotations) are always respected.                                                                                       |
+| `adoptExistingLintConfig` | `boolean`                        | `true`   | Merge the project's existing JSON oxlint / eslint config (`.oxlintrc.json` or `.eslintrc.json`, walking up to the nearest project boundary) into the scan via oxlint's `extends`. Diagnostics from those rules count toward the score. Flat / JS / TS configs are skipped; category-level enables don't apply (use rule-level severities). |
 
 CLI flags always override config values.
 

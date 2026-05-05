@@ -424,6 +424,7 @@ interface ResolvedScanOptions {
   customRulesOnly: boolean;
   share: boolean;
   respectInlineDisables: boolean;
+  adoptExistingLintConfig: boolean;
 }
 
 const mergeScanOptions = (
@@ -441,6 +442,7 @@ const mergeScanOptions = (
   share: userConfig?.share ?? true,
   respectInlineDisables:
     inputOptions.respectInlineDisables ?? userConfig?.respectInlineDisables ?? true,
+  adoptExistingLintConfig: userConfig?.adoptExistingLintConfig ?? true,
 });
 
 const printProjectDetection = (
@@ -552,6 +554,7 @@ const runScan = async (
             nodeBinaryPath: resolvedNodeBinaryPath,
             customRulesOnly: options.customRulesOnly,
             respectInlineDisables: options.respectInlineDisables,
+            adoptExistingLintConfig: options.adoptExistingLintConfig,
           });
           lintSpinner?.succeed("Running lint checks.");
           return lintDiagnostics;

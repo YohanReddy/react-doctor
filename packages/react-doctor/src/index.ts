@@ -119,6 +119,7 @@ export const diagnose = async (
             customRulesOnly: config?.customRulesOnly ?? false,
             respectInlineDisables:
               options.respectInlineDisables ?? config?.respectInlineDisables ?? true,
+            adoptExistingLintConfig: config?.adoptExistingLintConfig ?? true,
           }),
         runDeadCode: () => runKnip(projectRoot),
       }),

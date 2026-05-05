@@ -10,6 +10,7 @@ const BOOLEAN_FIELD_NAMES = [
   "customRulesOnly",
   "share",
   "respectInlineDisables",
+  "adoptExistingLintConfig",
 ] as const satisfies ReadonlyArray<keyof ReactDoctorConfig>;
 
 // HACK: write to stderr directly so the warning is visible even in

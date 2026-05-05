@@ -93,6 +93,13 @@ interface OxlintConfigOptions {
   hasReactCompiler: boolean;
   hasTanStackQuery: boolean;
   customRulesOnly?: boolean;
+  /**
+   * Absolute paths to extra configs that should be merged into the
+   * generated oxlint config via the `extends` field. Used to fold the
+   * user's existing `.oxlintrc.json` / `.eslintrc.json` rules into the
+   * same scan so those diagnostics factor into the react-doctor score.
+   */
+  extendsPaths?: string[];
 }
 
 interface ReactHooksJsPluginEntry {
@@ -355,6 +362,7 @@ export const createOxlintConfig = ({
   hasReactCompiler,
   hasTanStackQuery,
   customRulesOnly = false,
+  extendsPaths = [],
 }: OxlintConfigOptions) => {
   // HACK: REACT_COMPILER_RULES live under the `react-hooks-js` plugin
   // namespace, which is provided by the (optional peer) eslint-plugin-react-hooks
@@ -375,7 +383,17 @@ export const createOxlintConfig = ({
         reactHooksJsPlugin.availableRuleNames,
       )
     : {};
+  // HACK: oxlint merges configs from first to last, with later entries
+  // overriding earlier ones — and the local config always overrides
+  // every entry in `extends`. So adding the user's existing oxlintrc
+  // path to `extends` adds their `rules` to the union without letting
+  // their config silence anything react-doctor explicitly configures.
+  // Categories the user enables in their own config are blocked by our
+  // local `categories: { ... "off" }` block; that's intentional, since
+  // mass-enabling oxlint categories would balloon the rule set far
+  // beyond the curated react-doctor surface.
   return {
+    ...(extendsPaths.length > 0 ? { extends: extendsPaths } : {}),
     categories: {
       correctness: "off",
       suspicious: "off",

@@ -7,6 +7,11 @@ const FIXTURES_DIRECTORY = path.resolve(import.meta.dirname, "fixtures");
 const BASIC_REACT_DIRECTORY = path.join(FIXTURES_DIRECTORY, "basic-react");
 const NEXTJS_APP_DIRECTORY = path.join(FIXTURES_DIRECTORY, "nextjs-app");
 const TANSTACK_START_APP_DIRECTORY = path.join(FIXTURES_DIRECTORY, "tanstack-start-app");
+const USER_OXLINT_CONFIG_DIRECTORY = path.join(FIXTURES_DIRECTORY, "user-oxlint-config");
+const USER_OXLINT_CONFIG_BROKEN_DIRECTORY = path.join(
+  FIXTURES_DIRECTORY,
+  "user-oxlint-config-broken",
+);
 
 const findDiagnosticsByRule = (diagnostics: Diagnostic[], rule: string): Diagnostic[] =>
   diagnostics.filter((diagnostic) => diagnostic.rule === rule);
@@ -845,6 +850,92 @@ describe("runOxlint", () => {
         (diagnostic) => diagnostic.plugin === "react-doctor",
       );
       expect(reactDoctorDiagnostics.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("adoptExistingLintConfig", () => {
+    const buildAdoptionOptions = (overrides: Partial<Parameters<typeof runOxlint>[0]> = {}) => ({
+      rootDirectory: USER_OXLINT_CONFIG_DIRECTORY,
+      hasTypeScript: true,
+      framework: "unknown" as const,
+      hasReactCompiler: false,
+      hasTanStackQuery: false,
+      ...overrides,
+    });
+
+    it("merges rules from the user's .oxlintrc.json into the scan by default", async () => {
+      const diagnostics = await runOxlint(buildAdoptionOptions());
+
+      const debuggerIssues = diagnostics.filter((diagnostic) => diagnostic.rule === "no-debugger");
+      const emptyBlockIssues = diagnostics.filter((diagnostic) => diagnostic.rule === "no-empty");
+
+      expect(debuggerIssues.length).toBeGreaterThan(0);
+      expect(debuggerIssues[0].severity).toBe("error");
+      expect(emptyBlockIssues.length).toBeGreaterThan(0);
+      expect(emptyBlockIssues[0].severity).toBe("warning");
+    });
+
+    it("reports adopted-rule diagnostics from plain .ts files (not just .tsx / .jsx)", async () => {
+      const diagnostics = await runOxlint(buildAdoptionOptions());
+
+      const debuggerIssuesInTs = diagnostics.filter(
+        (diagnostic) =>
+          diagnostic.rule === "no-debugger" && diagnostic.filePath.endsWith("util.ts"),
+      );
+      expect(debuggerIssuesInTs.length).toBeGreaterThan(0);
+    });
+
+    it("skips the user's .oxlintrc.json when adoptExistingLintConfig is false", async () => {
+      const diagnostics = await runOxlint(buildAdoptionOptions({ adoptExistingLintConfig: false }));
+
+      const debuggerIssues = diagnostics.filter((diagnostic) => diagnostic.rule === "no-debugger");
+      const emptyBlockIssues = diagnostics.filter((diagnostic) => diagnostic.rule === "no-empty");
+
+      expect(debuggerIssues).toHaveLength(0);
+      expect(emptyBlockIssues).toHaveLength(0);
+    });
+
+    it("skips the user's .oxlintrc.json when customRulesOnly is true", async () => {
+      const diagnostics = await runOxlint(buildAdoptionOptions({ customRulesOnly: true }));
+
+      const debuggerIssues = diagnostics.filter((diagnostic) => diagnostic.rule === "no-debugger");
+      expect(debuggerIssues).toHaveLength(0);
+    });
+
+    it("falls back to a curated-rules-only scan when the user's config breaks oxlint", async () => {
+      const stderrChunks: string[] = [];
+      const originalStderrWrite = process.stderr.write.bind(process.stderr);
+      // HACK: capture the retry warning we write to stderr so we can
+      // assert the user-facing message; vitest's spy helpers also work
+      // but a direct override keeps the assertion shape readable.
+      process.stderr.write = ((chunk: string | Uint8Array) => {
+        stderrChunks.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf-8"));
+        return true;
+      }) as typeof process.stderr.write;
+
+      let didResolve = false;
+      try {
+        await runOxlint({
+          rootDirectory: USER_OXLINT_CONFIG_BROKEN_DIRECTORY,
+          hasTypeScript: false,
+          framework: "unknown" as const,
+          hasReactCompiler: false,
+          hasTanStackQuery: false,
+        });
+        didResolve = true;
+      } finally {
+        process.stderr.write = originalStderrWrite;
+      }
+
+      // Resolving (instead of throwing) is the whole point — pre-fix,
+      // a broken `extends` aborted the entire lint pass and the
+      // user's score collapsed onto zero diagnostics with no obvious
+      // reason in the output.
+      expect(didResolve).toBe(true);
+
+      const stderrOutput = stderrChunks.join("");
+      expect(stderrOutput).toContain("could not adopt existing lint config");
+      expect(stderrOutput).toContain("retrying without extends");
     });
   });
 });
