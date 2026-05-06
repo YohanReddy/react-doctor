@@ -42,10 +42,7 @@ export const playwright = new Command()
   .description(
     "Evaluate a Playwright snippet against the active session. The snippet runs as an async function with `page`, `browser`, and `context` in scope. Pass code via --eval or pipe it via stdin. JavaScript only — TypeScript and JSX are not transpiled.",
   )
-  .argument(
-    "[url]",
-    "navigate to this URL before evaluating (optional if a page is already open)",
-  )
+  .argument("[url]", "navigate to this URL before evaluating (optional if a page is already open)")
   .option("-e, --eval <code>", "inline JS code to execute")
   .option(
     "--wait-until <state>",
