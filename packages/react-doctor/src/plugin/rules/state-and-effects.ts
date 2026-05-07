@@ -4,6 +4,7 @@ import {
   HOOKS_WITH_DEPS,
   MUTATING_ARRAY_METHODS,
   RELATED_USE_STATE_THRESHOLD,
+  TRIVIAL_DERIVATION_CALLEE_NAMES,
   TRIVIAL_INITIALIZER_NAMES,
 } from "../constants.js";
 import {
@@ -22,6 +23,55 @@ import {
   walkAst,
 } from "../helpers.js";
 import type { EsTreeNode, Rule, RuleContext } from "../types.js";
+
+// HACK: AST-aware walker for "what reactive values does this expression
+// actually READ?". The plain `walkAst` adds every Identifier it sees,
+// which over-counts in two ways:
+//   - the CALLEE of a CallExpression (`getFilteredTodos(...)`) is a
+//     function reference, almost always module-scoped and stable —
+//     React's exhaustive-deps lint correctly omits these from deps.
+//   - the PROPERTY of a non-computed MemberExpression (`obj.foo`) is
+//     a static identifier, not a separate reactive read; only `obj`
+//     is the reactive value.
+// Without this, `setX(getFilteredTodos(todos, filter))` would treat
+// `getFilteredTodos` as a missing dep and bail before the §2 "expensive
+// derivation" branch could fire.
+const collectValueIdentifierNames = (node: EsTreeNode | null | undefined, into: string[]): void => {
+  if (!node || typeof node !== "object") return;
+  if (node.type === "CallExpression") {
+    if (node.callee?.type === "MemberExpression") {
+      // For `state.method(arg)`, `state` is a reactive read; `method`
+      // is not. Walk the callee object chain only.
+      collectValueIdentifierNames(node.callee.object, into);
+    }
+    for (const argument of node.arguments ?? []) {
+      collectValueIdentifierNames(argument, into);
+    }
+    return;
+  }
+  if (node.type === "MemberExpression") {
+    collectValueIdentifierNames(node.object, into);
+    if (node.computed) collectValueIdentifierNames(node.property, into);
+    return;
+  }
+  if (node.type === "Identifier") {
+    into.push(node.name);
+    return;
+  }
+  for (const key of Object.keys(node)) {
+    if (key === "parent" || key === "type") continue;
+    const child = (node as Record<string, unknown>)[key];
+    if (Array.isArray(child)) {
+      for (const item of child) {
+        if (item && typeof item === "object" && (item as EsTreeNode).type) {
+          collectValueIdentifierNames(item as EsTreeNode, into);
+        }
+      }
+    } else if (child && typeof child === "object" && (child as EsTreeNode).type) {
+      collectValueIdentifierNames(child as EsTreeNode, into);
+    }
+  }
+};
 
 export const noDerivedStateEffect: Rule = {
   create: (context: RuleContext) => ({
@@ -52,16 +102,40 @@ export const noDerivedStateEffect: Rule = {
 
       let allArgumentsDeriveFromDeps = true;
       let hasAnyDependencyReference = false;
+      // §2 of "You Might Not Need an Effect" branches the suggested
+      // fix on whether the derivation is potentially expensive. A
+      // setter argument that contains a user-defined CallExpression
+      // (e.g. `setVisibleTodos(getFilteredTodos(todos, filter))`)
+      // gets the `useMemo` recommendation; pure data shaping like
+      // `firstName + " " + lastName` keeps the cheaper "compute
+      // during render" message.
+      let hasExpensiveDerivation = false;
       for (const statement of statements) {
         const setStateArguments = statement.expression.arguments;
         if (!setStateArguments?.length) continue;
 
-        const referencedIdentifiers: string[] = [];
+        const valueIdentifierNames: string[] = [];
+        collectValueIdentifierNames(setStateArguments[0], valueIdentifierNames);
+
         walkAst(setStateArguments[0], (child: EsTreeNode) => {
-          if (child.type === "Identifier") referencedIdentifiers.push(child.name);
+          if (child.type !== "CallExpression") return;
+          const calleeIdentifierName =
+            child.callee?.type === "Identifier"
+              ? child.callee.name
+              : child.callee?.type === "MemberExpression" &&
+                  child.callee.property?.type === "Identifier"
+                ? child.callee.property.name
+                : null;
+          if (
+            calleeIdentifierName &&
+            !TRIVIAL_DERIVATION_CALLEE_NAMES.has(calleeIdentifierName) &&
+            !isSetterIdentifier(calleeIdentifierName)
+          ) {
+            hasExpensiveDerivation = true;
+          }
         });
 
-        const nonSetterIdentifiers = referencedIdentifiers.filter(
+        const nonSetterIdentifiers = valueIdentifierNames.filter(
           (name) => !isSetterIdentifier(name),
         );
 
@@ -75,14 +149,20 @@ export const noDerivedStateEffect: Rule = {
         }
       }
 
-      if (allArgumentsDeriveFromDeps) {
-        context.report({
-          node,
-          message: hasAnyDependencyReference
-            ? "Derived state in useEffect — compute during render instead"
-            : "State reset in useEffect — use a key prop to reset component state when props change",
-        });
+      if (!allArgumentsDeriveFromDeps) return;
+
+      let message: string;
+      if (!hasAnyDependencyReference) {
+        message =
+          "State reset in useEffect — use a key prop to reset component state when props change";
+      } else if (hasExpensiveDerivation) {
+        message =
+          "Derived state in useEffect — wrap the calculation in useMemo([deps]) (or compute it directly during render if it isn't expensive)";
+      } else {
+        message = "Derived state in useEffect — compute during render instead";
       }
+
+      context.report({ node, message });
     },
   }),
 };

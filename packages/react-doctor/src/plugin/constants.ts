@@ -263,6 +263,26 @@ export const TRIVIAL_INITIALIZER_NAMES = new Set([
   "parseFloat",
 ]);
 
+// Used by `noDerivedStateEffect` to decide whether a derived-state
+// expression is "expensive enough" to recommend `useMemo` over plain
+// inline computation. Coercion / parsing / boundary helpers are cheap
+// and should still get the "compute during render" message.
+export const TRIVIAL_DERIVATION_CALLEE_NAMES = new Set([
+  "Boolean",
+  "String",
+  "Number",
+  "Array",
+  "Object",
+  "parseInt",
+  "parseFloat",
+  "isNaN",
+  "isFinite",
+  "Math",
+  "Date",
+  "BigInt",
+  "Symbol",
+]);
+
 export const SETTER_PATTERN = /^set[A-Z]/;
 export const RENDER_FUNCTION_PATTERN = /^render[A-Z]/;
 export const UPPERCASE_PATTERN = /^[A-Z]/;

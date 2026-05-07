@@ -293,6 +293,101 @@ export const Page = ({ unrelated }: { unrelated: boolean }) => {
   });
 });
 
+describe("no-derived-state-effect (memo-message branch)", () => {
+  it("flags an expensive derivation with a useMemo recommendation", async () => {
+    // https://react.dev/learn/you-might-not-need-an-effect#caching-expensive-calculations
+    const projectDir = setupReactProject(tempRoot, "no-derived-state-effect-memo", {
+      files: {
+        "src/TodoList.tsx": `import { useEffect, useState } from "react";
+
+declare const getFilteredTodos: (todos: string[], filter: string) => string[];
+
+export const TodoList = ({ todos, filter }: { todos: string[]; filter: string }) => {
+  const [visibleTodos, setVisibleTodos] = useState<string[]>([]);
+  useEffect(() => {
+    setVisibleTodos(getFilteredTodos(todos, filter));
+  }, [todos, filter]);
+
+  return <div>{visibleTodos.length}</div>;
+};
+`,
+      },
+    });
+
+    const hits = await collectRuleHits(projectDir, "no-derived-state-effect");
+    expect(hits).toHaveLength(1);
+    expect(hits[0].message).toContain("useMemo");
+  });
+
+  it("keeps the 'compute during render' message for trivial derivations", async () => {
+    // https://react.dev/learn/you-might-not-need-an-effect#updating-state-based-on-props-or-state
+    const projectDir = setupReactProject(tempRoot, "no-derived-state-effect-trivial", {
+      files: {
+        "src/Form.tsx": `import { useEffect, useState } from "react";
+
+export const Form = () => {
+  const [firstName] = useState("Taylor");
+  const [lastName] = useState("Swift");
+  const [fullName, setFullName] = useState("");
+  useEffect(() => {
+    setFullName(firstName + " " + lastName);
+  }, [firstName, lastName]);
+  return <div>{fullName}</div>;
+};
+`,
+      },
+    });
+
+    const hits = await collectRuleHits(projectDir, "no-derived-state-effect");
+    expect(hits).toHaveLength(1);
+    expect(hits[0].message).toContain("compute during render");
+    expect(hits[0].message).not.toContain("useMemo");
+  });
+
+  it("still uses the 'state reset' message when no dep is referenced", async () => {
+    const projectDir = setupReactProject(tempRoot, "no-derived-state-effect-reset", {
+      files: {
+        "src/ProfilePage.tsx": `import { useEffect, useState } from "react";
+
+export const ProfilePage = ({ userId }: { userId: string }) => {
+  const [comment, setComment] = useState("");
+  useEffect(() => {
+    setComment("");
+  }, [userId]);
+  return <textarea value={comment} onChange={(event) => setComment(event.target.value)} />;
+};
+`,
+      },
+    });
+
+    const hits = await collectRuleHits(projectDir, "no-derived-state-effect");
+    expect(hits).toHaveLength(1);
+    expect(hits[0].message).toContain("key prop");
+  });
+
+  it("treats coercion helpers (Number, parseInt) as trivial", async () => {
+    const projectDir = setupReactProject(tempRoot, "no-derived-state-effect-coercion", {
+      files: {
+        "src/Counter.tsx": `import { useEffect, useState } from "react";
+
+export const Counter = ({ raw }: { raw: string }) => {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    setCount(Number(raw));
+  }, [raw]);
+  return <span>{count}</span>;
+};
+`,
+      },
+    });
+
+    const hits = await collectRuleHits(projectDir, "no-derived-state-effect");
+    expect(hits).toHaveLength(1);
+    expect(hits[0].message).toContain("compute during render");
+    expect(hits[0].message).not.toContain("useMemo");
+  });
+});
+
 describe("no-uncontrolled-input", () => {
   it("flags `value` without onChange / readOnly", async () => {
     const projectDir = setupReactProject(tempRoot, "no-uncontrolled-input-no-onchange", {
