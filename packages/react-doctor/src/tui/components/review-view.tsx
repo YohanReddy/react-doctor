@@ -38,24 +38,41 @@ export const ReviewView = ({ state, terminalColumns, terminalRows }: ReviewViewP
         ) : null}
       </Box>
       <Box marginTop={1} flexDirection={isNarrow ? "column" : "row"}>
-        <Box flexDirection="column" width={isNarrow ? "100%" : "42%"}>
-          <DiagnosticList
-            rules={state.groupedRules}
-            selectedIndex={state.selectedRuleIndex}
-            viewportHeight={viewportHeight}
-          />
-        </Box>
-        <Box
-          flexDirection="column"
-          width={isNarrow ? "100%" : "58%"}
-          paddingLeft={isNarrow ? 0 : 1}
-        >
-          <DiagnosticDetail
-            rule={selectedRule}
-            selectedSiteIndex={state.selectedSiteIndex}
-            rootDirectory={state.rootDirectory}
-          />
-        </Box>
+        {isNarrow ? (
+          <>
+            <Box flexDirection="column">
+              <DiagnosticDetail
+                rule={selectedRule}
+                selectedSiteIndex={state.selectedSiteIndex}
+                rootDirectory={state.rootDirectory}
+              />
+            </Box>
+            <Box flexDirection="column" marginTop={1}>
+              <DiagnosticList
+                rules={state.groupedRules}
+                selectedIndex={state.selectedRuleIndex}
+                viewportHeight={viewportHeight}
+              />
+            </Box>
+          </>
+        ) : (
+          <>
+            <Box flexDirection="column" width="42%">
+              <DiagnosticList
+                rules={state.groupedRules}
+                selectedIndex={state.selectedRuleIndex}
+                viewportHeight={viewportHeight}
+              />
+            </Box>
+            <Box flexDirection="column" width="58%" paddingLeft={1}>
+              <DiagnosticDetail
+                rule={selectedRule}
+                selectedSiteIndex={state.selectedSiteIndex}
+                rootDirectory={state.rootDirectory}
+              />
+            </Box>
+          </>
+        )}
       </Box>
     </Box>
   );

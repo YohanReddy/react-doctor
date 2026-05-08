@@ -41,6 +41,8 @@ export const buildInitialState = (rootDirectory: string): AppState => ({
   lastScanStartedAt: null,
   lastScanFinishedAt: null,
   lastScanElapsedMs: null,
+  diagnosticsOutputPath: null,
+  shareUrl: null,
   errorMessage: null,
   exitRequested: false,
   helpVisible: false,
@@ -166,6 +168,8 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
       return { ...state, isWatching: action.watching };
     case "set-view":
       return { ...state, viewMode: action.viewMode };
+    case "set-diagnostics-path":
+      return { ...state, diagnosticsOutputPath: action.path, shareUrl: action.shareUrl };
     case "navigate-rule": {
       if (state.groupedRules.length === 0) return state;
       const nextIndex = clamp(

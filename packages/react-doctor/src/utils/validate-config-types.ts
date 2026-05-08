@@ -1,4 +1,5 @@
 import type { ReactDoctorConfig } from "../types.js";
+import { logger } from "./logger.js";
 
 // Boolean fields where the user might write `"true"` / `"false"` strings
 // in JSON by mistake. We coerce-and-warn rather than silently accept the
@@ -13,11 +14,8 @@ const BOOLEAN_FIELD_NAMES = [
   "adoptExistingLintConfig",
 ] as const satisfies ReadonlyArray<keyof ReactDoctorConfig>;
 
-// HACK: write to stderr directly so the warning is visible even in
-// `--json` mode (where the logger is silenced to keep stdout a single
-// valid JSON document). Same pattern as `coerceDiffValue` in cli.ts.
 const warnConfigField = (message: string): void => {
-  process.stderr.write(`[react-doctor] ${message}\n`);
+  logger.warn(message);
 };
 
 const coerceMaybeBooleanString = (fieldName: string, value: unknown): boolean | undefined => {
