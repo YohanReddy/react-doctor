@@ -1,14 +1,14 @@
-import { Box } from "ink";
-import { NARROW_LAYOUT_BREAKPOINT_COLS, VERY_NARROW_LAYOUT_BREAKPOINT_COLS } from "../constants.js";
+import { Box, Text } from "ink";
+import { VERY_NARROW_LAYOUT_BREAKPOINT_COLS } from "../constants.js";
 import type { AppState } from "../types.js";
-import { computeCategoryBreakdown } from "../utils/category-breakdown.js";
-import { CategoriesTile } from "./categories-tile.js";
+import { moodFromState } from "../utils/mood-from-state.js";
+import { CompactIssueList } from "./compact-issue-list.js";
+import { DoctorFace } from "./doctor-face.js";
 import { ErrorBanner } from "./error-banner.js";
-import { HealthTile } from "./health-tile.js";
-import { ProgressTile } from "./progress-tile.js";
+import { FocusedIssue } from "./focused-issue.js";
+import { InlineProgress } from "./inline-progress.js";
 import { ScanSummaryFooter } from "./scan-summary-footer.js";
-import { TopIssuesTile } from "./top-issues-tile.js";
-import { VitalsTile } from "./vitals-tile.js";
+import { ScoreGauge } from "./score-gauge.js";
 
 interface DashboardViewProps {
   state: AppState;
@@ -17,66 +17,75 @@ interface DashboardViewProps {
 
 const computeScoreBarWidth = (terminalColumns: number): number => {
   if (terminalColumns < VERY_NARROW_LAYOUT_BREAKPOINT_COLS) return 18;
-  if (terminalColumns < NARROW_LAYOUT_BREAKPOINT_COLS) return 22;
-  return 28;
+  if (terminalColumns < 90) return 24;
+  return 30;
 };
 
-const computeCategoriesMaxBars = (terminalRowsAvailable: number): number => {
-  if (terminalRowsAvailable < 8) return 3;
-  if (terminalRowsAvailable < 14) return 4;
-  return 6;
-};
+const NoIssuesNotice = () => (
+  <Box paddingX={1} marginTop={1}>
+    <Text color="green">✓ No issues detected — nice work.</Text>
+  </Box>
+);
 
 export const DashboardView = ({ state, terminalColumns }: DashboardViewProps) => {
   const isInitialScan = state.scanStatus === "scanning" && state.scanCount === 0;
-  const isVeryNarrow = terminalColumns < VERY_NARROW_LAYOUT_BREAKPOINT_COLS;
-  const shouldStack = terminalColumns < NARROW_LAYOUT_BREAKPOINT_COLS;
+  const mood = moodFromState(state);
   const scoreBarWidth = computeScoreBarWidth(terminalColumns);
-  const showScoreHistory = !isVeryNarrow && state.scoreHistory.length > 1;
-  const categoryBreakdown = computeCategoryBreakdown(state.diagnostics);
-  const categoriesMaxBars = computeCategoriesMaxBars(8);
+  const focusedRule = state.groupedRules[0];
 
   if (state.scanStatus === "error" && state.errorMessage) {
     return (
-      <Box flexDirection="column" paddingX={1} flexGrow={1}>
+      <Box flexDirection="column" paddingX={1}>
+        <Box marginBottom={1}>
+          <DoctorFace mood={mood} isAnimating={false} />
+          <Box marginLeft={2} flexDirection="column" justifyContent="center">
+            <ScoreGauge
+              score={state.score?.score ?? null}
+              label={state.score?.label ?? null}
+              previousScore={null}
+              barWidth={scoreBarWidth}
+            />
+          </Box>
+        </Box>
         <ErrorBanner
           message={state.errorMessage}
-          hint="Press r to retry, q to quit. The lint or dead-code stage may have crashed; check the logs."
+          hint="Press r to retry. The lint or dead-code stage may have crashed; check the logs."
         />
-        <Box flexDirection={shouldStack ? "column" : "row"}>
-          <HealthTile state={state} scoreBarWidth={scoreBarWidth} showHistory={false} />
-          {shouldStack ? null : <Box width={1} />}
-          <VitalsTile state={state} />
-        </Box>
-      </Box>
-    );
-  }
-
-  if (isInitialScan) {
-    return (
-      <Box flexDirection="column" paddingX={1} flexGrow={1}>
-        <Box flexDirection={shouldStack ? "column" : "row"}>
-          <HealthTile state={state} scoreBarWidth={scoreBarWidth} showHistory={false} />
-          {shouldStack ? null : <Box width={1} />}
-          <ProgressTile steps={state.steps} />
-        </Box>
-        <ScanSummaryFooter state={state} />
       </Box>
     );
   }
 
   return (
-    <Box flexDirection="column" paddingX={1} flexGrow={1}>
-      <Box flexDirection={shouldStack ? "column" : "row"}>
-        <HealthTile state={state} scoreBarWidth={scoreBarWidth} showHistory={showScoreHistory} />
-        {shouldStack ? null : <Box width={1} />}
-        <VitalsTile state={state} />
+    <Box flexDirection="column" paddingX={1}>
+      <Box>
+        <DoctorFace mood={mood} isAnimating={state.scanStatus === "scanning"} />
+        <Box marginLeft={2} flexDirection="column" justifyContent="center">
+          <ScoreGauge
+            score={state.score?.score ?? null}
+            label={state.score?.label ?? null}
+            previousScore={state.previousScore?.score ?? null}
+            barWidth={scoreBarWidth}
+          />
+        </Box>
       </Box>
-      <Box flexDirection={shouldStack ? "column" : "row"} marginTop={1}>
-        <TopIssuesTile rules={state.groupedRules} />
-        {shouldStack ? null : <Box width={1} />}
-        <CategoriesTile breakdown={categoryBreakdown} maxBars={categoriesMaxBars} />
-      </Box>
+
+      {isInitialScan ? (
+        <Box marginTop={1} marginLeft={2}>
+          <InlineProgress steps={state.steps} />
+        </Box>
+      ) : focusedRule ? (
+        <Box flexDirection="column" marginTop={1}>
+          <FocusedIssue rule={focusedRule} rootDirectory={state.rootDirectory} />
+          {state.groupedRules.length > 1 ? (
+            <Box marginTop={1}>
+              <CompactIssueList rules={state.groupedRules} excludeFirst />
+            </Box>
+          ) : null}
+        </Box>
+      ) : state.scanStatus === "complete" ? (
+        <NoIssuesNotice />
+      ) : null}
+
       <Box marginTop={1}>
         <ScanSummaryFooter state={state} />
       </Box>

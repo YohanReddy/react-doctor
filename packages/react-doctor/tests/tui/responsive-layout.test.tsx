@@ -70,21 +70,18 @@ describe("responsive layout", () => {
     }
   });
 
-  it("hides the score history sparkline at very narrow widths", () => {
-    const stateWithHistory: AppState = {
-      ...populatedState(),
-      scoreHistory: [
-        { score: 60, diagnosticCount: 3, timestamp: 1 },
-        { score: 70, diagnosticCount: 2, timestamp: 2 },
-        { score: 82, diagnosticCount: 2, timestamp: 3 },
-      ],
-    };
-    const wide = render(<DashboardView state={stateWithHistory} terminalColumns={140} />);
-    expect(stripAnsi(wide.lastFrame() ?? "")).toContain("trend");
+  it("shrinks the score bar when the terminal is narrow", () => {
+    const wide = render(<DashboardView state={populatedState()} terminalColumns={140} />);
+    const wideFrame = stripAnsi(wide.lastFrame() ?? "");
+    const wideBarRow = wideFrame.split("\n").find((line) => line.includes("█")) ?? "";
     wide.unmount();
-    const tight = render(<DashboardView state={stateWithHistory} terminalColumns={50} />);
-    expect(stripAnsi(tight.lastFrame() ?? "")).not.toContain("trend");
-    tight.unmount();
+    const narrow = render(<DashboardView state={populatedState()} terminalColumns={50} />);
+    const narrowFrame = stripAnsi(narrow.lastFrame() ?? "");
+    const narrowBarRow = narrowFrame.split("\n").find((line) => line.includes("█")) ?? "";
+    narrow.unmount();
+    const wideBarLength = (wideBarRow.match(/[█░]/g) ?? []).length;
+    const narrowBarLength = (narrowBarRow.match(/[█░]/g) ?? []).length;
+    expect(wideBarLength).toBeGreaterThan(narrowBarLength);
   });
 
   it("stacks the review master/detail panes when the terminal is very narrow", () => {

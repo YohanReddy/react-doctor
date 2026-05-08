@@ -4,7 +4,7 @@ import { render } from "ink-testing-library";
 import { DashboardView } from "../../src/tui/components/dashboard-view.js";
 import { ReviewView } from "../../src/tui/components/review-view.js";
 import { Header } from "../../src/tui/components/header.js";
-import { ProgressChecklist } from "../../src/tui/components/progress-checklist.js";
+import { InlineProgress } from "../../src/tui/components/inline-progress.js";
 import { ScoreGauge } from "../../src/tui/components/score-gauge.js";
 import { DoctorFace } from "../../src/tui/components/doctor-face.js";
 import { buildInitialState } from "../../src/tui/store.js";
@@ -61,11 +61,7 @@ const populatedState = (): AppState => {
     lastScanElapsedMs: 1234,
     scanCount: 1,
     isOffline: false,
-    scoreHistory: [
-      { score: 60, diagnosticCount: 12, timestamp: 1 },
-      { score: 72, diagnosticCount: 9, timestamp: 2 },
-      { score: 78, diagnosticCount: 6, timestamp: 3 },
-    ],
+    scoreHistory: [],
   };
   return populated;
 };
@@ -75,81 +71,53 @@ describe("Ink components render without throwing", () => {
     vi.useRealTimers();
   });
 
-  it("renders the Header with project metadata", () => {
-    const { lastFrame } = render(
-      <Header rootDirectory="/repo" project={SAMPLE_PROJECT} isWatching terminalColumns={120} />,
-    );
+  it("renders the Header showing the project path", () => {
+    const { lastFrame } = render(<Header rootDirectory="/repo/projects/ami" />);
     const frame = lastFrame() ?? "";
-    expect(frame).toContain("React Doctor");
-    expect(frame).toContain("demo");
-    expect(frame).toContain("Next.js");
-    expect(frame).toContain("watching");
+    expect(frame).toContain("/repo/projects/ami");
   });
 
-  it("compacts the Header on narrow terminals", () => {
-    const { lastFrame } = render(
-      <Header
-        rootDirectory="/repo"
-        project={SAMPLE_PROJECT}
-        isWatching={false}
-        terminalColumns={40}
-      />,
-    );
-    const frame = lastFrame() ?? "";
-    expect(frame).toContain("React Doctor");
-    expect(frame).not.toContain("Next.js");
-    expect(frame).not.toContain("React 19");
-  });
-
-  it("renders the DoctorFace without crashing under animation", () => {
-    const { lastFrame, unmount } = render(<DoctorFace mood="great" isAnimating />);
+  it("renders the DoctorFace as a 4-line ASCII box", () => {
+    const { lastFrame, unmount } = render(<DoctorFace mood="great" isAnimating={false} />);
     expect(lastFrame()).toContain("┌─────┐");
+    expect(lastFrame()).toContain("└─────┘");
     unmount();
   });
 
-  it("renders the ScoreGauge with delta, history, and bar segments", () => {
+  it("renders the ScoreGauge with score, label, bar, and delta", () => {
     const { lastFrame } = render(
-      <ScoreGauge
-        score={82}
-        label="Great"
-        previousScore={75}
-        isOffline={false}
-        history={[
-          { score: 60, diagnosticCount: 1, timestamp: 1 },
-          { score: 75, diagnosticCount: 1, timestamp: 2 },
-          { score: 82, diagnosticCount: 1, timestamp: 3 },
-        ]}
-      />,
+      <ScoreGauge score={82} label="Great" previousScore={75} barWidth={24} />,
     );
     const frame = lastFrame() ?? "";
     expect(frame).toContain("/ 100");
     expect(frame).toMatch(/Great/);
-    expect(frame).toContain("trend");
+    expect(frame).toMatch(/▲ 7/);
   });
 
-  it("renders ProgressChecklist with mixed step statuses", () => {
+  it("renders InlineProgress as a single line with the active step and a stage counter", () => {
     const { lastFrame } = render(
-      <ProgressChecklist
+      <InlineProgress
         steps={[
-          { id: "framework", message: "Detecting framework", status: "succeed", detail: "Vite" },
-          { id: "lint", message: "Running lint checks", status: "running" },
+          { id: "framework", message: "Detecting framework", status: "succeed" },
+          { id: "lint", message: "Running lint checks…", status: "running" },
           { id: "score", message: "Calculating score", status: "pending" },
         ]}
       />,
     );
     const frame = lastFrame() ?? "";
-    expect(frame).toContain("Detecting framework");
     expect(frame).toContain("Running lint checks");
+    expect(frame).toContain("(1/");
+    expect(frame).not.toContain("Detecting framework");
   });
 
-  it("renders the dashboard for a populated state", () => {
+  it("renders the focused dashboard for a populated state", () => {
     const { lastFrame, unmount } = render(
       <DashboardView state={populatedState()} terminalColumns={120} />,
     );
     const frame = lastFrame() ?? "";
-    expect(frame).toContain("error");
-    expect(frame).toContain("warning");
-    expect(frame).toMatch(/#1/);
+    expect(frame).toContain("react-doctor/no-fetch-in-effect");
+    expect(frame).toContain("Avoid fetch inside useEffect.");
+    expect(frame).toMatch(/Last scan/);
     unmount();
   });
 

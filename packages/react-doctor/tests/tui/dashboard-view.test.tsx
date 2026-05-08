@@ -4,6 +4,7 @@ import { DashboardView } from "../../src/tui/components/dashboard-view.js";
 import { buildInitialState } from "../../src/tui/store.js";
 import type { AppState, GroupedRule } from "../../src/tui/types.js";
 import type { Diagnostic, ProjectInfo } from "../../src/types.js";
+import { stripAnsi } from "./strip-ansi.js";
 
 const SAMPLE_PROJECT: ProjectInfo = {
   rootDirectory: "/repo",
@@ -16,15 +17,13 @@ const SAMPLE_PROJECT: ProjectInfo = {
   sourceFileCount: 30,
 };
 
-import { stripAnsi } from "./strip-ansi.js";
-
 const buildDiagnostic = (overrides: Partial<Diagnostic> = {}): Diagnostic => ({
   filePath: "/repo/src/App.tsx",
   plugin: "react-doctor",
   rule: "no-fetch-in-effect",
   severity: "error",
   message: "Avoid fetch inside useEffect.",
-  help: "",
+  help: "Use a data-fetching library.",
   line: 14,
   column: 1,
   category: "state-effects",
@@ -33,7 +32,7 @@ const buildDiagnostic = (overrides: Partial<Diagnostic> = {}): Diagnostic => ({
 
 const stateWithDiagnostics = (overrides: Partial<AppState> = {}): AppState => {
   const baseState = buildInitialState("/repo");
-  const rule: GroupedRule = {
+  const fetchRule: GroupedRule = {
     ruleKey: "react-doctor/no-fetch-in-effect",
     plugin: "react-doctor",
     rule: "no-fetch-in-effect",
@@ -43,14 +42,24 @@ const stateWithDiagnostics = (overrides: Partial<AppState> = {}): AppState => {
     help: "Use a data-fetching library.",
     diagnostics: [buildDiagnostic(), buildDiagnostic({ line: 22 })],
   };
+  const arrayRule: GroupedRule = {
+    ruleKey: "react-doctor/no-array-index-as-key",
+    plugin: "react-doctor",
+    rule: "no-array-index-as-key",
+    severity: "warning",
+    category: "performance",
+    message: "Avoid using array index as a React key.",
+    help: "",
+    diagnostics: Array.from({ length: 5 }, () => buildDiagnostic({ severity: "warning" })),
+  };
   return {
     ...baseState,
     project: SAMPLE_PROJECT,
     scanStatus: "complete",
     score: { score: 78, label: "Great" },
-    diagnostics: rule.diagnostics,
-    filteredDiagnostics: rule.diagnostics,
-    groupedRules: [rule],
+    diagnostics: [...fetchRule.diagnostics, ...arrayRule.diagnostics],
+    filteredDiagnostics: [...fetchRule.diagnostics, ...arrayRule.diagnostics],
+    groupedRules: [fetchRule, arrayRule],
     scanCount: 1,
     lastScanElapsedMs: 1500,
     steps: baseState.steps.map((step) => ({ ...step, status: "succeed" as const })),
@@ -59,28 +68,41 @@ const stateWithDiagnostics = (overrides: Partial<AppState> = {}): AppState => {
 };
 
 describe("DashboardView", () => {
-  it("renders the Health and Vitals tiles when a scan has completed", () => {
+  it("focuses on the worst rule with its message, help, and source location after a scan completes", () => {
     const { lastFrame } = render(
       <DashboardView state={stateWithDiagnostics()} terminalColumns={120} />,
     );
     const frame = stripAnsi(lastFrame() ?? "");
-    expect(frame).toContain("Health");
-    expect(frame).toContain("Vitals");
-    expect(frame).toContain("Top issues");
-    expect(frame).toContain("Categories");
+    expect(frame).toContain("react-doctor/no-fetch-in-effect");
+    expect(frame).toContain("2 sites");
+    expect(frame).toContain("Avoid fetch inside useEffect.");
+    expect(frame).toContain("Use a data-fetching library.");
+    expect(frame).toContain("src/App.tsx:14");
+    expect(frame).toContain("+ 1 more site");
   });
 
-  it("hides the live progress checklist after a scan completes (replaced by tiles)", () => {
+  it("lists remaining rules compactly without repeating the focused rule", () => {
     const { lastFrame } = render(
       <DashboardView state={stateWithDiagnostics()} terminalColumns={120} />,
     );
     const frame = stripAnsi(lastFrame() ?? "");
-    expect(frame).not.toContain("Scanning…");
+    expect(frame).toContain("no-array-index-as-key");
+    expect(frame).toContain("5 sites");
+    const fetchOccurrences = frame.split("no-fetch-in-effect").length - 1;
+    expect(fetchOccurrences).toBe(1);
+  });
+
+  it("hides the live progress checklist after a scan completes (replaced by the focused issue)", () => {
+    const { lastFrame } = render(
+      <DashboardView state={stateWithDiagnostics()} terminalColumns={120} />,
+    );
+    const frame = stripAnsi(lastFrame() ?? "");
     expect(frame).not.toContain("Detecting framework");
     expect(frame).not.toContain("Resolving Node runtime");
+    expect(frame).not.toContain("Calculating score");
   });
 
-  it("shows a Scanning… progress tile during the very first scan (before any results)", () => {
+  it("shows a single inline progress line during the very first scan (before any results)", () => {
     const initial = buildInitialState("/repo");
     const scanningState: AppState = {
       ...initial,
@@ -88,27 +110,42 @@ describe("DashboardView", () => {
       scanStatus: "scanning",
       scanCount: 0,
       steps: initial.steps.map((step, stepIndex) =>
-        stepIndex < 2 ? { ...step, status: "succeed" } : step,
+        stepIndex < 2
+          ? { ...step, status: "succeed" }
+          : stepIndex === 2
+            ? { ...step, status: "running" }
+            : step,
       ),
     };
     const { lastFrame } = render(<DashboardView state={scanningState} terminalColumns={120} />);
     const frame = stripAnsi(lastFrame() ?? "");
-    expect(frame).toContain("Scanning…");
-    expect(frame).toContain("Health");
-    expect(frame).not.toContain("Top issues");
-    expect(frame).not.toContain("Vitals");
+    expect(frame).toContain("Detecting language");
+    expect(frame).toContain("(2/");
+    expect(frame).not.toContain("Resolving Node runtime");
+    expect(frame).not.toContain("no-fetch-in-effect");
   });
 
-  it("keeps the dashboard visible during a re-scan and shows a rescanning indicator", () => {
+  it("keeps the focused issue visible during a re-scan and appends a rescanning indicator to the footer", () => {
     const rescanningState = stateWithDiagnostics({ scanStatus: "scanning" });
     const { lastFrame } = render(<DashboardView state={rescanningState} terminalColumns={120} />);
     const frame = stripAnsi(lastFrame() ?? "");
-    expect(frame).toContain("Vitals");
-    expect(frame).toContain("Top issues");
+    expect(frame).toContain("react-doctor/no-fetch-in-effect");
     expect(frame).toContain("rescanning");
   });
 
-  it("shows a prominent error banner when the scan fails", () => {
+  it("shows a friendly empty state when a scan completes with zero issues", () => {
+    const cleanState: AppState = {
+      ...stateWithDiagnostics(),
+      diagnostics: [],
+      filteredDiagnostics: [],
+      groupedRules: [],
+    };
+    const { lastFrame } = render(<DashboardView state={cleanState} terminalColumns={120} />);
+    const frame = stripAnsi(lastFrame() ?? "");
+    expect(frame).toContain("No issues detected");
+  });
+
+  it("renders a prominent error banner when the scan fails", () => {
     const erroredState = stateWithDiagnostics({
       scanStatus: "error",
       errorMessage: "oxlint native binding not found",
@@ -117,29 +154,16 @@ describe("DashboardView", () => {
     const frame = stripAnsi(lastFrame() ?? "");
     expect(frame).toContain("Scan failed");
     expect(frame).toContain("oxlint native binding not found");
-    expect(frame).not.toContain("Top issues");
+    expect(frame).not.toContain("no-fetch-in-effect");
   });
 
-  it("stacks tiles vertically when the terminal is narrower than the breakpoint", () => {
-    const { lastFrame } = render(
-      <DashboardView state={stateWithDiagnostics()} terminalColumns={50} />,
-    );
-    const frame = stripAnsi(lastFrame() ?? "");
-    const healthIndex = frame.indexOf("Health");
-    const vitalsIndex = frame.indexOf("Vitals");
-    expect(healthIndex).toBeGreaterThanOrEqual(0);
-    expect(vitalsIndex).toBeGreaterThan(healthIndex);
-    const between = frame.slice(healthIndex, vitalsIndex);
-    expect(between).toContain("\n");
-  });
-
-  it("places Health and Vitals on the same row when the terminal is wide", () => {
-    const { lastFrame } = render(
-      <DashboardView state={stateWithDiagnostics()} terminalColumns={140} />,
-    );
-    const frame = stripAnsi(lastFrame() ?? "");
-    const lines = frame.split("\n");
-    const sharedLine = lines.find((line) => line.includes("Health") && line.includes("Vitals"));
-    expect(sharedLine).toBeDefined();
+  it("renders without throwing at every common terminal width", () => {
+    for (const columnsForBreakpoint of [40, 60, 80, 100, 120, 160, 200]) {
+      const { lastFrame, unmount } = render(
+        <DashboardView state={stateWithDiagnostics()} terminalColumns={columnsForBreakpoint} />,
+      );
+      expect(typeof lastFrame()).toBe("string");
+      unmount();
+    }
   });
 });

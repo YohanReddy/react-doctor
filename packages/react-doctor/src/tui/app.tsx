@@ -171,12 +171,7 @@ export const App = ({ rootDirectory, initialMode, startWatching }: AppProps) => 
 
   return (
     <Box flexDirection="column">
-      <Header
-        rootDirectory={state.rootDirectory}
-        project={state.project}
-        isWatching={state.isWatching}
-        terminalColumns={columns}
-      />
+      <Header rootDirectory={state.rootDirectory} />
       {state.helpVisible ? (
         <HelpOverlay />
       ) : state.viewMode === "review" ? (
