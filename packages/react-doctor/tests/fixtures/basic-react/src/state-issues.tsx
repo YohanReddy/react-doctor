@@ -135,6 +135,44 @@ const ConditionalSetStateInRenderComponent = ({ count }: { count: number }) => {
   return <h1>{prevCount}</h1>;
 };
 
+declare const externalStore: {
+  subscribe: (listener: () => void) => () => void;
+  getSnapshot: () => number;
+};
+
+const SubscribeStorePatternComponent = () => {
+  const [snapshot, setSnapshot] = useState(externalStore.getSnapshot());
+  useEffect(() => {
+    const unsubscribe = externalStore.subscribe(() => {
+      setSnapshot(externalStore.getSnapshot());
+    });
+    return unsubscribe;
+  }, []);
+  return <div>{snapshot}</div>;
+};
+
+declare const post: (url: string, body: unknown) => void;
+
+const EventTriggerStateComponent = () => {
+  const [firstName, setFirstName] = useState("");
+  const [jsonToSubmit, setJsonToSubmit] = useState<{ firstName: string } | null>(null);
+  useEffect(() => {
+    if (jsonToSubmit !== null) {
+      post("/api/register", jsonToSubmit);
+    }
+  }, [jsonToSubmit]);
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        setJsonToSubmit({ firstName });
+      }}
+    >
+      <input value={firstName} onChange={(event) => setFirstName(event.target.value)} />
+    </form>
+  );
+};
+
 interface Card {
   gold: boolean;
 }
@@ -193,6 +231,8 @@ export {
   DirectStateMutationComponent,
   SetStateInRenderComponent,
   ConditionalSetStateInRenderComponent,
+  SubscribeStorePatternComponent,
+  EventTriggerStateComponent,
   EffectChainComponent,
   UncontrolledInputComponent,
 };
