@@ -1,4 +1,5 @@
 import {
+  BUILTIN_GLOBAL_NAMESPACE_NAMES,
   CASCADING_SET_STATE_THRESHOLD,
   EFFECT_HOOK_NAMES,
   HOOKS_WITH_DEPS,
@@ -36,13 +37,27 @@ import type { EsTreeNode, Rule, RuleContext } from "../types.js";
 // Without this, `setX(getFilteredTodos(todos, filter))` would treat
 // `getFilteredTodos` as a missing dep and bail before the §2 "expensive
 // derivation" branch could fire.
+// Bottom of a MemberExpression chain — null when it isn't a plain Identifier.
+const getMemberExpressionRootName = (node: EsTreeNode): string | null => {
+  let cursor: EsTreeNode | undefined = node;
+  while (cursor?.type === "MemberExpression") {
+    cursor = cursor.object;
+  }
+  return cursor?.type === "Identifier" ? cursor.name : null;
+};
+
 const collectValueIdentifierNames = (node: EsTreeNode | null | undefined, into: string[]): void => {
   if (!node || typeof node !== "object") return;
   if (node.type === "CallExpression") {
     if (node.callee?.type === "MemberExpression") {
       // For `state.method(arg)`, `state` is a reactive read; `method`
-      // is not. Walk the callee object chain only.
-      collectValueIdentifierNames(node.callee.object, into);
+      // is not. Skip the callee chain entirely when its root is a
+      // built-in global (`Math.floor`, `JSON.parse`, ...) — those
+      // aren't reactive reads either.
+      const rootName = getMemberExpressionRootName(node.callee);
+      if (!rootName || !BUILTIN_GLOBAL_NAMESPACE_NAMES.has(rootName)) {
+        collectValueIdentifierNames(node.callee.object, into);
+      }
     }
     for (const argument of node.arguments ?? []) {
       collectValueIdentifierNames(argument, into);
@@ -50,7 +65,10 @@ const collectValueIdentifierNames = (node: EsTreeNode | null | undefined, into: 
     return;
   }
   if (node.type === "MemberExpression") {
-    collectValueIdentifierNames(node.object, into);
+    const rootName = getMemberExpressionRootName(node);
+    if (!rootName || !BUILTIN_GLOBAL_NAMESPACE_NAMES.has(rootName)) {
+      collectValueIdentifierNames(node.object, into);
+    }
     if (node.computed) collectValueIdentifierNames(node.property, into);
     return;
   }
@@ -119,19 +137,23 @@ export const noDerivedStateEffect: Rule = {
 
         walkAst(setStateArguments[0], (child: EsTreeNode) => {
           if (child.type !== "CallExpression") return;
-          const calleeIdentifierName =
-            child.callee?.type === "Identifier"
-              ? child.callee.name
-              : child.callee?.type === "MemberExpression" &&
-                  child.callee.property?.type === "Identifier"
-                ? child.callee.property.name
-                : null;
-          if (
-            calleeIdentifierName &&
-            !TRIVIAL_DERIVATION_CALLEE_NAMES.has(calleeIdentifierName) &&
-            !isSetterIdentifier(calleeIdentifierName)
-          ) {
+          if (child.callee?.type === "MemberExpression") {
+            // `Math.floor(x)` / `Date.now()` are trivial regardless
+            // of the property — gate on the chain root, not the
+            // method name (which would never match TRIVIAL_*).
+            const rootName = getMemberExpressionRootName(child.callee);
+            if (rootName && BUILTIN_GLOBAL_NAMESPACE_NAMES.has(rootName)) return;
             hasExpensiveDerivation = true;
+            return;
+          }
+          if (child.callee?.type === "Identifier") {
+            const calleeName = child.callee.name;
+            if (
+              !TRIVIAL_DERIVATION_CALLEE_NAMES.has(calleeName) &&
+              !isSetterIdentifier(calleeName)
+            ) {
+              hasExpensiveDerivation = true;
+            }
           }
         });
 
@@ -150,6 +172,14 @@ export const noDerivedStateEffect: Rule = {
       }
 
       if (!allArgumentsDeriveFromDeps) return;
+
+      // HACK: a user-defined function call inside the setter arg
+      // (`setFilteredItems(applyFilters())`) closes over reactive
+      // values implicitly — it's a derivation, not a "state reset".
+      // Without this, a zero-arg call would leave the identifier list
+      // empty and the message would vacuously default to the wrong
+      // "state reset" branch.
+      if (hasExpensiveDerivation) hasAnyDependencyReference = true;
 
       let message: string;
       if (!hasAnyDependencyReference) {
@@ -1045,19 +1075,6 @@ export const rerenderDeferReadsHook: Rule = {
   },
 };
 
-// HACK: walk a MemberExpression chain (computed or not) down to the
-// underlying root identifier, so `state.nested.items.push(x)` and
-// `items[0]` both report against `state` / `items` respectively.
-// Returns null if the chain bottoms out at anything other than a plain
-// Identifier (e.g. a call expression, `this`, etc.).
-const getMemberRootName = (node: EsTreeNode | undefined): string | null => {
-  let cursor: EsTreeNode | undefined = node;
-  while (cursor?.type === "MemberExpression") {
-    cursor = cursor.object;
-  }
-  return cursor?.type === "Identifier" ? cursor.name : null;
-};
-
 // HACK: walks the component AST while tracking which state names are
 // SHADOWED in the current scope by a nested function's params or
 // var/let/const declarations. Without this, a handler that locally
@@ -1138,7 +1155,7 @@ export const noDirectStateMutation: Rule = {
         (child: EsTreeNode, currentlyShadowed: ReadonlySet<string>) => {
           if (child.type === "AssignmentExpression") {
             if (child.left?.type !== "MemberExpression") return;
-            const rootName = getMemberRootName(child.left);
+            const rootName = getRootIdentifierName(child.left);
             if (!rootName || !stateValueToSetter.has(rootName)) return;
             if (currentlyShadowed.has(rootName)) return;
             const setterName = stateValueToSetter.get(rootName);
@@ -1155,7 +1172,7 @@ export const noDirectStateMutation: Rule = {
             if (callee.property?.type !== "Identifier") return;
             const methodName = callee.property.name;
             if (!MUTATING_ARRAY_METHODS.has(methodName)) return;
-            const rootName = getMemberRootName(callee.object);
+            const rootName = getRootIdentifierName(callee.object);
             if (!rootName || !stateValueToSetter.has(rootName)) return;
             if (currentlyShadowed.has(rootName)) return;
             const setterName = stateValueToSetter.get(rootName);

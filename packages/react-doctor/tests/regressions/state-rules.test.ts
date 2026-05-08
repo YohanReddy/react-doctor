@@ -386,6 +386,64 @@ export const Counter = ({ raw }: { raw: string }) => {
     expect(hits[0].message).toContain("compute during render");
     expect(hits[0].message).not.toContain("useMemo");
   });
+
+  it("flags `Math.floor(raw)` and treats it as a trivial derivation (Bugbot #153 round 2)", async () => {
+    // Regression: \`Math.floor(raw)\` previously bailed the rule
+    // entirely — \`collectValueIdentifierNames\` collected "Math" as
+    // a reactive read, "Math" wasn't in deps, allArgumentsDeriveFromDeps
+    // went false, no diagnostic. The chain root is now skipped when
+    // it's a built-in global namespace, and the call is trivial.
+    const projectDir = setupReactProject(tempRoot, "no-derived-state-effect-math-floor", {
+      files: {
+        "src/Counter.tsx": `import { useEffect, useState } from "react";
+
+export const Counter = ({ raw }: { raw: number }) => {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    setCount(Math.floor(raw));
+  }, [raw]);
+  return <span>{count}</span>;
+};
+`,
+      },
+    });
+
+    const hits = await collectRuleHits(projectDir, "no-derived-state-effect");
+    expect(hits).toHaveLength(1);
+    expect(hits[0].message).toContain("compute during render");
+    expect(hits[0].message).not.toContain("useMemo");
+  });
+
+  it("flags `setX(applyFilters())` as expensive, not as a state reset (Bugbot #153 round 2)", async () => {
+    // Regression: zero-arg call \`applyFilters()\` produced an empty
+    // identifier list, both .some() checks vacuously passed, and the
+    // rule fired with the wrong "state reset" message. Now the
+    // callee identifier is collected so the dep mismatch correctly
+    // bails or — in this case — is recognized as expensive (because
+    // \`applyFilters\` isn't in TRIVIAL_DERIVATION_CALLEE_NAMES) AND
+    // referenced via deps (\`filter\`).
+    const projectDir = setupReactProject(tempRoot, "no-derived-state-effect-zero-arg-call", {
+      files: {
+        "src/TodoList.tsx": `import { useEffect, useState } from "react";
+
+declare const applyFilters: (todos: string[]) => string[];
+
+export const TodoList = ({ todos, filter }: { todos: string[]; filter: string }) => {
+  const [visible, setVisible] = useState<string[]>([]);
+  useEffect(() => {
+    setVisible(applyFilters(todos));
+  }, [todos, filter]);
+  return <div>{visible.length}</div>;
+};
+`,
+      },
+    });
+
+    const hits = await collectRuleHits(projectDir, "no-derived-state-effect");
+    expect(hits).toHaveLength(1);
+    expect(hits[0].message).not.toContain("key prop");
+    expect(hits[0].message).toContain("useMemo");
+  });
 });
 
 describe("no-uncontrolled-input", () => {
