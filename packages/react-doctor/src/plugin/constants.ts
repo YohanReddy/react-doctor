@@ -367,12 +367,19 @@ export const EXTERNAL_SYNC_MEMBER_METHOD_NAMES = new Set([
   "disconnect",
   "open",
   "close",
-  // Network
+  // Network — `axios.get(...)` etc. need to be recognized as external
+  // sync just like `axios.post(...)`, otherwise the article's
+  // legitimate fetch-cascade exception
+  // (https://react.dev/learn/you-might-not-need-an-effect#chains-of-computations)
+  // false-positives whenever the cascade is read-only.
   "fetch",
+  "get",
   "post",
   "put",
   "patch",
   "delete",
+  "head",
+  "options",
 ]);
 
 export const EXTERNAL_SYNC_DIRECT_CALLEE_NAMES = new Set([

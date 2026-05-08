@@ -378,6 +378,61 @@ export const Chat = ({ roomId }: { roomId: string }) => {
     expect(hits).toHaveLength(0);
   });
 
+  it("does NOT flag a fetch-cascade where one effect uses `axios.get` (Bugbot #156)", async () => {
+    // Regression: previously \`get\` was missing from the external-sync
+    // member-method allowlist, so an \`axios.get(...)\` effect was
+    // classified as internal-only. Two such effects with state-flow
+    // dependence got flagged as a chain even though both were
+    // legitimately doing network sync.
+    const projectDir = setupReactProject(tempRoot, "no-effect-chain-axios-get-cascade", {
+      files: {
+        "src/Cascade.tsx": `import { useEffect, useState } from "react";
+
+declare const axios: { get: (url: string) => Promise<{ data: unknown }> };
+
+export const Cascade = ({ country }: { country: string }) => {
+  const [cities, setCities] = useState<unknown>(null);
+  const [city, setCity] = useState<string | null>(null);
+  const [areas, setAreas] = useState<unknown>(null);
+
+  useEffect(() => {
+    let ignore = false;
+    axios.get(\`/api/cities?country=\${country}\`).then((response) => {
+      if (!ignore) setCities(response.data);
+    });
+    return () => {
+      ignore = true;
+    };
+  }, [country]);
+
+  useEffect(() => {
+    if (city === null) return;
+    let ignore = false;
+    axios.get(\`/api/areas?city=\${city}\`).then((response) => {
+      if (!ignore) setAreas(response.data);
+    });
+    return () => {
+      ignore = true;
+    };
+  }, [city]);
+
+  return (
+    <div>
+      <select value={city ?? ""} onChange={(event) => setCity(event.target.value)}>
+        {(cities as Array<string> | null)?.map((entry) => <option key={entry}>{entry}</option>)}
+      </select>
+      <span>{(areas as Array<string> | null)?.length}</span>
+    </div>
+  );
+};
+`,
+      },
+    });
+
+    const hits = await collectRuleHits(projectDir, "no-effect-chain");
+    expect(hits).toHaveLength(0);
+  });
+
   it("does NOT flag two effects whose written/read state sets are disjoint", async () => {
     const projectDir = setupReactProject(tempRoot, "no-effect-chain-disjoint", {
       files: {
