@@ -29,15 +29,15 @@ https://github.com/user-attachments/assets/07cc88d9-9589-44c3-aa73-5d603cb1c570
 
 ## Interactive TUI
 
-Want a live dashboard with an animated doctor face, score gauge, progress checklist, and a master/detail diagnostic browser? Install [`react-doctor-tui`](./packages/react-doctor-tui) and run:
+Want a live, health-app-style dashboard with bordered tiles, an animated doctor face, score gauge, top-issues list, category breakdown, and a master/detail diagnostic browser?
 
 ```bash
-npx react-doctor-tui .          # dashboard
-npx react-doctor-tui . --watch  # rescan on save
-npx react-doctor-tui . --review # straight into the diagnostic browser
+react-doctor tui .          # dashboard
+react-doctor tui . --watch  # rescan on save
+react-doctor tui . --review # open straight into the diagnostic browser
 ```
 
-If `react-doctor-tui` is on your PATH, the bundled CLI will also forward `react-doctor watch` and `react-doctor review` to it.
+The TUI lives in the same `react-doctor` package and only loads its UI deps (Ink, React, chokidar) when you invoke the `tui` subcommand, so non-TUI scans stay fast.
 
 ## Install for your coding agent
 

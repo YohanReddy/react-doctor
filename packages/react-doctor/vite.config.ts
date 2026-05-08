@@ -76,6 +76,23 @@ export default defineConfig({
       fixedExtension: false,
     },
     {
+      entry: { tui: "./src/tui.ts" },
+      // HACK: keep ink / react / chokidar / ink-spinner as runtime
+      // requires so the TUI bundle stays small. The CLI lazy-loads
+      // dist/tui.js only when the user invokes `react-doctor tui`,
+      // so non-TUI scans never touch this entry.
+      deps: {
+        neverBundle: ["ink", "ink-spinner", "react", "react/jsx-runtime", "chokidar"],
+      },
+      dts: true,
+      target: "node22",
+      platform: "node",
+      env: {
+        VERSION: process.env.VERSION ?? packageJson.version,
+      },
+      fixedExtension: false,
+    },
+    {
       entry: { "react-doctor-plugin": "./src/plugin/index.ts" },
       target: "node22",
       platform: "node",

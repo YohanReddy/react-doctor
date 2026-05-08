@@ -2,7 +2,9 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "noEmit": true,
-    "declarationMap": true
+    "declarationMap": true,
+    "jsx": "react-jsx",
+    "types": ["node"]
   },
   "include": ["src"]
 }

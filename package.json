@@ -12,8 +12,8 @@
   "type": "module",
   "scripts": {
     "dev": "turbo run dev --filter=react-doctor",
-    "build": "turbo run build --filter=react-doctor --filter=react-doctor-tui",
-    "test": "turbo run test --filter=react-doctor --filter=react-doctor-tui",
+    "build": "turbo run build --filter=react-doctor",
+    "test": "turbo run test --filter=react-doctor",
     "typecheck": "turbo run typecheck",
     "lint": "vp lint",
     "lint:fix": "vp lint --fix",

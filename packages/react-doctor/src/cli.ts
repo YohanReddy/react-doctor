@@ -698,24 +698,12 @@ interface TuiSubcommandOptions {
   review?: boolean;
 }
 
-// HACK: invoked indirectly through a runtime-computed specifier so the
-// `react-doctor` build doesn't try to bundle `react-doctor-tui`. The
-// TUI ships as a separate optional package; users install it with
-// `npm install react-doctor-tui` (or run its standalone bin).
-const TUI_MODULE_SPECIFIER: string = "react-doctor-tui";
-
 const launchTui = async (directory: string, tuiOptions: TuiSubcommandOptions): Promise<void> => {
   try {
-    const tuiModule = (await import(TUI_MODULE_SPECIFIER).catch(() => null)) as null | {
-      runTui?: (options: { directory: string; watch?: boolean; review?: boolean }) => Promise<void>;
-    };
-    if (!tuiModule?.runTui) {
-      logger.error(
-        "react-doctor-tui is not installed. Install it with `npm install react-doctor-tui`, or run the standalone bin: `npx react-doctor-tui`.",
-      );
-      process.exitCode = 1;
-      return;
-    }
+    // HACK: dynamic import keeps Ink + React + chokidar out of the
+    // default startup path. Non-TUI scans never load this entry, so
+    // `react-doctor .` stays as fast as before.
+    const tuiModule = await import("./tui.js");
     await tuiModule.runTui({
       directory: path.resolve(directory),
       watch: tuiOptions.watch,
@@ -727,21 +715,13 @@ const launchTui = async (directory: string, tuiOptions: TuiSubcommandOptions): P
 };
 
 program
-  .command("watch")
-  .description("Open the live React code-health TUI and rescan on file changes")
-  .argument("[directory]", "project directory to scan", ".")
-  .option("--review", "open straight into the diagnostic review screen", false)
-  .action(async (directory: string, options: TuiSubcommandOptions) => {
-    await launchTui(directory, { ...options, watch: true });
-  });
-
-program
-  .command("review")
-  .description("Open the interactive diagnostic review TUI")
+  .command("tui")
+  .description("Open the interactive React code-health TUI")
   .argument("[directory]", "project directory to scan", ".")
   .option("--watch", "rescan automatically when source files change", false)
+  .option("--review", "open straight into the diagnostic review screen", false)
   .action(async (directory: string, options: TuiSubcommandOptions) => {
-    await launchTui(directory, { ...options, review: true });
+    await launchTui(directory, options);
   });
 
 // HACK: when stdout is piped into a process that closes early (e.g.
