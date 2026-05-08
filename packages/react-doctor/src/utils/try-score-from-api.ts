@@ -1,5 +1,6 @@
 import { FETCH_TIMEOUT_MS, SCORE_API_URL } from "../constants.js";
 import type { Diagnostic, ScoreResult } from "../types.js";
+import { logger } from "./logger.js";
 
 const parseScoreResult = (value: unknown): ScoreResult | null => {
   if (typeof value !== "object" || value === null) return null;
@@ -42,16 +43,16 @@ export const tryScoreFromApi = async (
     });
 
     if (!response.ok) {
-      console.warn(
-        `[react-doctor] Score API returned ${response.status} ${response.statusText} — using local scoring`,
+      logger.warn(
+        `Score API returned ${response.status} ${response.statusText} — using local scoring`,
       );
       return null;
     }
 
     return parseScoreResult(await response.json());
   } catch (error) {
-    console.warn(
-      `[react-doctor] Score API unreachable (${describeFailure(error)}) — using local scoring`,
+    logger.warn(
+      `Score API unreachable (${describeFailure(error)}) — using local scoring`,
     );
     return null;
   } finally {

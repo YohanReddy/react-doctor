@@ -50,6 +50,8 @@ export interface AppState {
   lastScanStartedAt: number | null;
   lastScanFinishedAt: number | null;
   lastScanElapsedMs: number | null;
+  diagnosticsOutputPath: string | null;
+  shareUrl: string | null;
   errorMessage: string | null;
   exitRequested: boolean;
   helpVisible: boolean;
@@ -73,6 +75,7 @@ export type AppAction =
   | { type: "scan-failed"; message: string }
   | { type: "set-watching"; watching: boolean }
   | { type: "set-view"; viewMode: ViewMode }
+  | { type: "set-diagnostics-path"; path: string; shareUrl: string }
   | { type: "navigate-rule"; delta: number }
   | { type: "navigate-site"; delta: number }
   | { type: "set-filter"; text: string }

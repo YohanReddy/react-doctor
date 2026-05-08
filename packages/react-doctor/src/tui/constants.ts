@@ -52,3 +52,7 @@ export const FPS_BUDGET_MS = 16;
 export const APP_TITLE = "React Doctor";
 
 export const APP_SUBTITLE = "react.doctor";
+
+export const NARROW_SCREEN_THRESHOLD_COLS = 80;
+
+export const SHARE_BASE_URL = "https://www.react.doctor/share";

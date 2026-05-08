@@ -1,5 +1,6 @@
 import path from "node:path";
 import { buildNoReactDependencyError } from "./constants.js";
+import { logger } from "./utils/logger.js";
 import type {
   Diagnostic,
   DiagnoseOptions,
@@ -120,7 +121,7 @@ const settledOrEmpty = <T extends Diagnostic[]>(
   label: string,
 ): T | Diagnostic[] => {
   if (settled.status === "fulfilled") return settled.value;
-  console.error(`${label} rejected:`, settled.reason);
+  logger.error(`${label} rejected: ${(settled.reason as Error)?.message ?? settled.reason}`);
   return EMPTY_DIAGNOSTICS;
 };
 
@@ -160,7 +161,7 @@ export const diagnose = async (
         respectInlineDisables: effectiveRespectInlineDisables,
         adoptExistingLintConfig: userConfig?.adoptExistingLintConfig ?? true,
       }).catch((error: unknown) => {
-        console.error("Lint failed:", error);
+        logger.error(`Lint failed: ${(error as Error)?.message ?? error}`);
         return EMPTY_DIAGNOSTICS;
       })
     : Promise.resolve(EMPTY_DIAGNOSTICS);
@@ -168,7 +169,7 @@ export const diagnose = async (
   const deadCodePromise =
     effectiveDeadCode && !isDiffMode
       ? runKnip(resolvedDirectory).catch((error: unknown) => {
-          console.error("Dead code analysis failed:", error);
+          logger.error(`Dead code analysis failed: ${(error as Error)?.message ?? error}`);
           return EMPTY_DIAGNOSTICS;
         })
       : Promise.resolve(EMPTY_DIAGNOSTICS);
@@ -176,7 +177,7 @@ export const diagnose = async (
   // HACK: both runners catch their own errors today, but `Promise.allSettled`
   // is the load-bearing safety net for the case where a future runner
   // is refactored without a `.catch()`. Surfacing the rejection via
-  // `console.error` and returning [] keeps `diagnose()` resilient and
+  // `logger.error` and returning [] keeps `diagnose()` resilient and
   // is cheaper than a second look at the bug-report log.
   const [lintSettled, deadCodeSettled] = await Promise.allSettled([lintPromise, deadCodePromise]);
   const lintDiagnostics = settledOrEmpty(lintSettled, "Lint");

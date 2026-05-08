@@ -1,16 +1,46 @@
+import { randomUUID } from "node:crypto";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { Box, useApp, useInput } from "ink";
 import { useCallback, useEffect, useReducer, useRef } from "react";
+import type { Diagnostic } from "react-doctor/api";
 import { DashboardView } from "./components/dashboard-view.js";
 import { FilterInput } from "./components/filter-input.js";
 import { Header } from "./components/header.js";
 import { HelpOverlay } from "./components/help-overlay.js";
 import { ReviewView } from "./components/review-view.js";
 import { StatusBar } from "./components/status-bar.js";
+import { SHARE_BASE_URL } from "./constants.js";
 import { runScanWithListener } from "./scan-controller.js";
 import { appReducer, buildInitialState } from "./store.js";
 import type { AppAction } from "./types.js";
 import { useTerminalSize } from "./utils/use-terminal-size.js";
 import { startWatcher, type WatcherHandle } from "./watcher.js";
+
+const writeDiagnosticsDirectory = (diagnostics: Diagnostic[]): string => {
+  const outputDirectory = join(tmpdir(), `react-doctor-${randomUUID()}`);
+  mkdirSync(outputDirectory, { recursive: true });
+  writeFileSync(join(outputDirectory, "diagnostics.json"), JSON.stringify(diagnostics, null, 2));
+  return outputDirectory;
+};
+
+const buildShareUrl = (
+  diagnostics: Diagnostic[],
+  score: number | null,
+  projectName: string,
+): string => {
+  const errorCount = diagnostics.filter((diagnostic) => diagnostic.severity === "error").length;
+  const warningCount = diagnostics.filter((diagnostic) => diagnostic.severity === "warning").length;
+  const affectedFileCount = new Set(diagnostics.map((diagnostic) => diagnostic.filePath)).size;
+  const params = new URLSearchParams();
+  params.set("p", projectName);
+  if (score !== null) params.set("s", String(score));
+  if (errorCount > 0) params.set("e", String(errorCount));
+  if (warningCount > 0) params.set("w", String(warningCount));
+  if (affectedFileCount > 0) params.set("f", String(affectedFileCount));
+  return `${SHARE_BASE_URL}?${params.toString()}`;
+};
 
 interface AppProps {
   rootDirectory: string;
@@ -68,6 +98,18 @@ export const App = ({ rootDirectory, initialMode, startWatching }: AppProps) => 
       watcherHandleRef.current = null;
     };
   }, [rootDirectory, startWatching, triggerScan]);
+
+  useEffect(() => {
+    if (state.scanStatus !== "complete" || state.diagnostics.length === 0) return;
+    try {
+      const outputPath = writeDiagnosticsDirectory(state.diagnostics);
+      const projectName = state.project?.projectName ?? "project";
+      const shareUrl = buildShareUrl(state.diagnostics, state.score?.score ?? null, projectName);
+      dispatch({ type: "set-diagnostics-path", path: outputPath, shareUrl });
+    } catch {
+      // non-fatal — don't block the UI if temp write fails
+    }
+  }, [state.scanStatus, state.scanCount]);
 
   useEffect(() => {
     if (state.exitRequested) {
