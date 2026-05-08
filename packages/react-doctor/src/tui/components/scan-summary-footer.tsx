@@ -1,6 +1,5 @@
 import { Box, Text } from "ink";
 import type { AppState } from "../types.js";
-import { formatElapsed } from "../utils/format-elapsed.js";
 
 interface ScanSummaryFooterProps {
   state: AppState;
@@ -18,15 +17,11 @@ export const ScanSummaryFooter = ({ state }: ScanSummaryFooterProps) => {
   const totalIssueCount = errorCount + warningCount;
   const affectedFileCount = new Set(state.diagnostics.map((diagnostic) => diagnostic.filePath))
     .size;
-  const elapsed = state.lastScanElapsedMs !== null ? formatElapsed(state.lastScanElapsedMs) : "—";
   const isStale = state.scanStatus === "scanning";
   return (
     <Box flexDirection="column" paddingX={1}>
       <Box>
-        <Text color="gray">Last scan </Text>
-        <Text color="white">{elapsed}</Text>
-        <Text color="gray"> · </Text>
-        <Text color="white">
+        <Text color="white" bold>
           {totalIssueCount === 0
             ? "no issues"
             : `${totalIssueCount} issue${totalIssueCount === 1 ? "" : "s"}`}

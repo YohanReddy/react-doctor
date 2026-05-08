@@ -119,7 +119,8 @@ describe("Ink components render without throwing", () => {
     const frame = lastFrame() ?? "";
     expect(frame).toContain("react-doctor/no-fetch-in-effect");
     expect(frame).toContain("Avoid fetch inside useEffect.");
-    expect(frame).toMatch(/Last scan/);
+    expect(frame).toMatch(/issue/);
+    expect(frame).not.toMatch(/Last scan/);
     unmount();
   });
 
