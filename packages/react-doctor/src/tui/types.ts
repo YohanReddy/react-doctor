@@ -40,12 +40,12 @@ export interface AppState {
   steps: StepState[];
   project: ProjectInfo | null;
   diagnostics: Diagnostic[];
-  filteredDiagnostics: Diagnostic[];
+  matchedDiagnostics: Diagnostic[];
   groupedRules: GroupedRule[];
   selectedRuleIndex: number;
   selectedSiteIndex: number;
-  filterText: string;
-  isFilterActive: boolean;
+  searchText: string;
+  isSearchActive: boolean;
   score: ScoreResult | null;
   previousScore: ScoreResult | null;
   scoreHistory: ScoreHistoryPoint[];
@@ -84,8 +84,8 @@ export type AppAction =
   | { type: "set-view"; viewMode: ViewMode }
   | { type: "navigate-rule"; delta: number }
   | { type: "navigate-site"; delta: number }
-  | { type: "set-filter"; text: string }
-  | { type: "toggle-filter"; active: boolean }
+  | { type: "set-search"; text: string }
+  | { type: "toggle-search"; active: boolean }
   | { type: "toggle-help" }
   | { type: "set-workspace-packages"; packages: WorkspacePackage[] }
   | { type: "navigate-workspace"; delta: number }

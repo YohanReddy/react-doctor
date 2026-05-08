@@ -43,15 +43,15 @@ export const ReviewView = ({ state, terminalColumns, terminalRows }: ReviewViewP
         <Text color="gray">Diagnostics</Text>
         <Text color="gray"> </Text>
         <Text color="white" bold>
-          {state.filteredDiagnostics.length}
+          {state.matchedDiagnostics.length}
         </Text>
         <Text color="gray"> shown</Text>
         <Text color="gray"> · </Text>
         <Text color="gray">{state.diagnostics.length} total</Text>
-        {state.filterText.length > 0 ? (
+        {state.searchText.length > 0 ? (
           <>
-            <Text color="gray"> · filter: </Text>
-            <Text color="cyan">{state.filterText}</Text>
+            <Text color="gray"> · search: </Text>
+            <Text color="cyan">{state.searchText}</Text>
           </>
         ) : null}
       </Box>

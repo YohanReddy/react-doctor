@@ -1,6 +1,6 @@
 import type { ScanEvent } from "../types.js";
 import { RECENT_SCORE_HISTORY_LIMIT } from "./constants.js";
-import { filterDiagnosticsByText } from "./utils/filter-diagnostics.js";
+import { searchDiagnostics } from "./utils/search-diagnostics.js";
 import { groupDiagnosticsByRule } from "./utils/group-diagnostics.js";
 import type { AppAction, AppState, ScoreHistoryPoint, StepState } from "./types.js";
 
@@ -30,12 +30,12 @@ export const buildInitialState = (rootDirectory: string): AppState => ({
   steps: cloneSteps(),
   project: null,
   diagnostics: [],
-  filteredDiagnostics: [],
+  matchedDiagnostics: [],
   groupedRules: [],
   selectedRuleIndex: 0,
   selectedSiteIndex: 0,
-  filterText: "",
-  isFilterActive: false,
+  searchText: "",
+  isSearchActive: false,
   score: null,
   previousScore: null,
   scoreHistory: [],
@@ -64,8 +64,8 @@ const updateStep = (
   );
 
 const recomputeRules = (state: AppState): AppState => {
-  const filtered = filterDiagnosticsByText(state.diagnostics, state.filterText);
-  const grouped = groupDiagnosticsByRule(filtered);
+  const matched = searchDiagnostics(state.diagnostics, state.searchText);
+  const grouped = groupDiagnosticsByRule(matched);
   const safeRuleIndex = Math.min(state.selectedRuleIndex, Math.max(0, grouped.length - 1));
   const ruleAtIndex = grouped[safeRuleIndex];
   const safeSiteIndex = ruleAtIndex
@@ -73,7 +73,7 @@ const recomputeRules = (state: AppState): AppState => {
     : 0;
   return {
     ...state,
-    filteredDiagnostics: filtered,
+    matchedDiagnostics: matched,
     groupedRules: grouped,
     selectedRuleIndex: safeRuleIndex,
     selectedSiteIndex: safeSiteIndex,
@@ -195,10 +195,10 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
       if (nextIndex === state.selectedSiteIndex) return state;
       return { ...state, selectedSiteIndex: nextIndex };
     }
-    case "set-filter":
-      return recomputeRules({ ...state, filterText: action.text });
-    case "toggle-filter":
-      return { ...state, isFilterActive: action.active };
+    case "set-search":
+      return recomputeRules({ ...state, searchText: action.text });
+    case "toggle-search":
+      return { ...state, isSearchActive: action.active };
     case "toggle-help":
       return { ...state, helpVisible: !state.helpVisible };
     case "set-workspace-packages":

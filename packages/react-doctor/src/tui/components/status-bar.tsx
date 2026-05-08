@@ -9,7 +9,7 @@ interface ShortcutHint {
 interface StatusBarProps {
   viewMode: ViewMode;
   isWatching: boolean;
-  isFilterActive: boolean;
+  isSearchActive: boolean;
 }
 
 const buildDashboardShortcuts = (isWatching: boolean): ShortcutHint[] => [
@@ -25,20 +25,20 @@ const buildReviewShortcuts = (): ShortcutHint[] => [
   { key: "↑↓", label: "rule" },
   { key: "←→", label: "site" },
   { key: "c", label: "copy" },
-  { key: "/", label: "filter" },
+  { key: "/", label: "search" },
   { key: "esc", label: "back" },
   { key: "q", label: "quit" },
 ];
 
-const FILTER_SHORTCUTS: ShortcutHint[] = [
-  { key: "type", label: "filter" },
+const SEARCH_SHORTCUTS: ShortcutHint[] = [
+  { key: "type", label: "search" },
   { key: "esc", label: "cancel" },
   { key: "↵", label: "apply" },
 ];
 
-export const StatusBar = ({ viewMode, isWatching, isFilterActive }: StatusBarProps) => {
-  const shortcuts = isFilterActive
-    ? FILTER_SHORTCUTS
+export const StatusBar = ({ viewMode, isWatching, isSearchActive }: StatusBarProps) => {
+  const shortcuts = isSearchActive
+    ? SEARCH_SHORTCUTS
     : viewMode === "review"
       ? buildReviewShortcuts()
       : buildDashboardShortcuts(isWatching);

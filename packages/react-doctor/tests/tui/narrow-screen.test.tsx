@@ -85,7 +85,7 @@ const heavyState = (): AppState => {
     scanStatus: "complete",
     score: { score: 12, label: "Critical" },
     diagnostics: allDiagnostics,
-    filteredDiagnostics: allDiagnostics,
+    matchedDiagnostics: allDiagnostics,
     groupedRules: heavyRules,
     selectedRuleIndex: 3,
     selectedSiteIndex: 0,

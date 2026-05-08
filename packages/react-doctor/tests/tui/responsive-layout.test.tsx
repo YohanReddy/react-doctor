@@ -50,7 +50,7 @@ const populatedState = (): AppState => {
     scanStatus: "complete",
     score: { score: 82, label: "Great" },
     diagnostics: rule.diagnostics,
-    filteredDiagnostics: rule.diagnostics,
+    matchedDiagnostics: rule.diagnostics,
     groupedRules: [rule],
     scanCount: 1,
     lastScanElapsedMs: 1500,

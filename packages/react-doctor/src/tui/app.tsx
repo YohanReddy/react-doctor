@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { discoverReactSubprojects, listWorkspacePackages } from "../utils/discover-project.js";
 import { TOAST_AUTO_DISMISS_MS } from "./constants.js";
 import { DashboardView } from "./components/dashboard-view.js";
-import { FilterInput } from "./components/filter-input.js";
+import { SearchInput } from "./components/search-input.js";
 import { Header } from "./components/header.js";
 import { HelpOverlay } from "./components/help-overlay.js";
 import { ProjectPicker } from "./components/project-picker.js";
@@ -229,22 +229,22 @@ export const App = ({
       return;
     }
 
-    if (currentState.isFilterActive) {
+    if (currentState.isSearchActive) {
       if (key.escape) {
-        dispatch({ type: "set-filter", text: "" });
-        dispatch({ type: "toggle-filter", active: false });
+        dispatch({ type: "set-search", text: "" });
+        dispatch({ type: "toggle-search", active: false });
         return;
       }
       if (key.return) {
-        dispatch({ type: "toggle-filter", active: false });
+        dispatch({ type: "toggle-search", active: false });
         return;
       }
       if (key.backspace || key.delete) {
-        dispatch({ type: "set-filter", text: currentState.filterText.slice(0, -1) });
+        dispatch({ type: "set-search", text: currentState.searchText.slice(0, -1) });
         return;
       }
       if (rawInput && !key.ctrl && !key.meta && rawInput.length === 1) {
-        dispatch({ type: "set-filter", text: currentState.filterText + rawInput });
+        dispatch({ type: "set-search", text: currentState.searchText + rawInput });
       }
       return;
     }
@@ -298,7 +298,7 @@ export const App = ({
         return;
       }
       if (rawInput === "/") {
-        dispatch({ type: "toggle-filter", active: true });
+        dispatch({ type: "toggle-search", active: true });
         return;
       }
     }
@@ -379,13 +379,13 @@ export const App = ({
       ) : (
         <DashboardView state={state} terminalColumns={columns} />
       )}
-      {state.isFilterActive ? <FilterInput value={state.filterText} /> : null}
+      {state.isSearchActive ? <SearchInput value={state.searchText} /> : null}
       {state.toastMessage ? <Toast message={state.toastMessage} tone={state.toastTone} /> : null}
       {!isPickingProject ? (
         <StatusBar
           viewMode={state.viewMode}
           isWatching={state.isWatching}
-          isFilterActive={state.isFilterActive}
+          isSearchActive={state.isSearchActive}
         />
       ) : null}
     </Box>

@@ -1,13 +1,13 @@
 import { Box, Text } from "ink";
 
-interface FilterInputProps {
+interface SearchInputProps {
   value: string;
 }
 
-export const FilterInput = ({ value }: FilterInputProps) => (
+export const SearchInput = ({ value }: SearchInputProps) => (
   <Box paddingX={1}>
     <Text color="cyan" bold>
-      filter ▸{" "}
+      search ▸{" "}
     </Text>
     <Text>{value}</Text>
     <Text color="gray">▌</Text>

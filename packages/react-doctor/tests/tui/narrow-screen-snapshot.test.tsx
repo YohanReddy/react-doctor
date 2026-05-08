@@ -72,7 +72,7 @@ const heavyState = (): AppState => {
     scanStatus: "complete",
     score: { score: 12, label: "Critical" },
     diagnostics: rules.flatMap((rule) => rule.diagnostics),
-    filteredDiagnostics: rules.flatMap((rule) => rule.diagnostics),
+    matchedDiagnostics: rules.flatMap((rule) => rule.diagnostics),
     groupedRules: rules,
     selectedRuleIndex: 2,
     selectedSiteIndex: 0,

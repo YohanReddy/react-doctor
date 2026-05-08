@@ -60,7 +60,7 @@ const stateWithDiagnostics = (overrides: Partial<AppState> = {}): AppState => {
     scanStatus: "complete",
     score: { score: 78, label: "Great" },
     diagnostics: [...fetchRule.diagnostics, ...arrayRule.diagnostics],
-    filteredDiagnostics: [...fetchRule.diagnostics, ...arrayRule.diagnostics],
+    matchedDiagnostics: [...fetchRule.diagnostics, ...arrayRule.diagnostics],
     groupedRules: [fetchRule, arrayRule],
     scanCount: 1,
     lastScanElapsedMs: 1500,
@@ -139,7 +139,7 @@ describe("DashboardView", () => {
     const cleanState: AppState = {
       ...stateWithDiagnostics(),
       diagnostics: [],
-      filteredDiagnostics: [],
+      matchedDiagnostics: [],
       groupedRules: [],
     };
     const { lastFrame } = render(<DashboardView state={cleanState} terminalColumns={120} />);

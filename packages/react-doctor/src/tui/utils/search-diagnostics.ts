@@ -10,10 +10,7 @@ const matchesSearchTerm = (diagnostic: Diagnostic, lowercaseTerm: string): boole
   return false;
 };
 
-export const filterDiagnosticsByText = (
-  diagnostics: Diagnostic[],
-  searchText: string,
-): Diagnostic[] => {
+export const searchDiagnostics = (diagnostics: Diagnostic[], searchText: string): Diagnostic[] => {
   const lowercaseTerm = searchText.trim().toLowerCase();
   if (lowercaseTerm.length === 0) return diagnostics;
   return diagnostics.filter((diagnostic) => matchesSearchTerm(diagnostic, lowercaseTerm));

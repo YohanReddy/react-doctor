@@ -35,7 +35,7 @@ export const DiagnosticList = ({
   if (rules.length === 0) {
     return (
       <Box paddingX={1}>
-        <Text color="gray">No diagnostics match the current filter.</Text>
+        <Text color="gray">No diagnostics match the current search.</Text>
       </Box>
     );
   }

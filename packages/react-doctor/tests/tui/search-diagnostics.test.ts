@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { Diagnostic } from "../../src/types.js";
-import { filterDiagnosticsByText } from "../../src/tui/utils/filter-diagnostics.js";
+import { searchDiagnostics } from "../../src/tui/utils/search-diagnostics.js";
 
 const buildDiagnostic = (overrides: Partial<Diagnostic> = {}): Diagnostic => ({
   filePath: "/repo/src/components/Feed.tsx",
@@ -15,11 +15,11 @@ const buildDiagnostic = (overrides: Partial<Diagnostic> = {}): Diagnostic => ({
   ...overrides,
 });
 
-describe("filterDiagnosticsByText", () => {
-  it("returns all diagnostics for an empty filter", () => {
+describe("searchDiagnostics", () => {
+  it("returns all diagnostics for an empty search term", () => {
     const diagnostics = [buildDiagnostic(), buildDiagnostic({ rule: "no-fetch-in-effect" })];
-    expect(filterDiagnosticsByText(diagnostics, "")).toHaveLength(2);
-    expect(filterDiagnosticsByText(diagnostics, "   ")).toHaveLength(2);
+    expect(searchDiagnostics(diagnostics, "")).toHaveLength(2);
+    expect(searchDiagnostics(diagnostics, "   ")).toHaveLength(2);
   });
 
   it("matches against the rule, plugin, category, message, and file path", () => {
@@ -32,15 +32,15 @@ describe("filterDiagnosticsByText", () => {
         category: "state-effects",
       }),
     ];
-    expect(filterDiagnosticsByText(diagnostics, "feed")).toHaveLength(1);
-    expect(filterDiagnosticsByText(diagnostics, "fetch")).toHaveLength(1);
-    expect(filterDiagnosticsByText(diagnostics, "state-effects")).toHaveLength(1);
-    expect(filterDiagnosticsByText(diagnostics, "Avoid")).toHaveLength(3);
+    expect(searchDiagnostics(diagnostics, "feed")).toHaveLength(1);
+    expect(searchDiagnostics(diagnostics, "fetch")).toHaveLength(1);
+    expect(searchDiagnostics(diagnostics, "state-effects")).toHaveLength(1);
+    expect(searchDiagnostics(diagnostics, "Avoid")).toHaveLength(3);
   });
 
   it("treats search terms case-insensitively", () => {
     const diagnostics = [buildDiagnostic({ filePath: "/repo/src/UserCard.tsx" })];
-    expect(filterDiagnosticsByText(diagnostics, "USERCARD")).toHaveLength(1);
-    expect(filterDiagnosticsByText(diagnostics, "usercard")).toHaveLength(1);
+    expect(searchDiagnostics(diagnostics, "USERCARD")).toHaveLength(1);
+    expect(searchDiagnostics(diagnostics, "usercard")).toHaveLength(1);
   });
 });

@@ -54,7 +54,7 @@ const populatedState = (): AppState => {
     score: { score: 78, label: "Great" },
     previousScore: { score: 72, label: "Needs work" },
     diagnostics: groupedRule.diagnostics,
-    filteredDiagnostics: groupedRule.diagnostics,
+    matchedDiagnostics: groupedRule.diagnostics,
     groupedRules: [groupedRule],
     selectedRuleIndex: 0,
     selectedSiteIndex: 0,

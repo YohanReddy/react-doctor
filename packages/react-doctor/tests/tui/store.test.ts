@@ -130,7 +130,7 @@ describe("appReducer", () => {
           diagnostics: [buildDiagnostic(), buildDiagnostic({ line: 22 })],
         },
       ],
-      filteredDiagnostics: [],
+      matchedDiagnostics: [],
     };
     const movedDown = appReducer(startingState, { type: "navigate-rule", delta: 5 });
     expect(movedDown.selectedRuleIndex).toBe(0);

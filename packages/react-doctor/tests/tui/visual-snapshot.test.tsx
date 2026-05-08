@@ -80,7 +80,7 @@ const buildPopulatedState = (): AppState => {
     score: { score: 82, label: "Great" },
     previousScore: { score: 78, label: "Great" },
     diagnostics: [...fetchRule.diagnostics, ...arrayRule.diagnostics],
-    filteredDiagnostics: [...fetchRule.diagnostics, ...arrayRule.diagnostics],
+    matchedDiagnostics: [...fetchRule.diagnostics, ...arrayRule.diagnostics],
     groupedRules: [fetchRule, arrayRule],
     selectedRuleIndex: 0,
     selectedSiteIndex: 0,

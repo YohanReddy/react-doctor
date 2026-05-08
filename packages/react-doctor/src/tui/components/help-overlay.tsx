@@ -9,8 +9,8 @@ const HELP_LINES: Array<{ key: string; description: string }> = [
   { key: "c", description: "copy the focused issue as agent-pasteable markdown" },
   { key: "↑ / ↓ / j / k", description: "navigate rules" },
   { key: "← / → / h / l", description: "navigate sites within a rule" },
-  { key: "/", description: "filter diagnostics" },
-  { key: "esc", description: "exit filter / close help / back to dashboard" },
+  { key: "/", description: "search diagnostics" },
+  { key: "esc", description: "exit search / close help / back to dashboard" },
   { key: "?", description: "toggle this help" },
   { key: "q / ctrl-c", description: "quit" },
 ];
