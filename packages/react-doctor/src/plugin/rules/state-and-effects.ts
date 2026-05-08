@@ -37,15 +37,6 @@ import type { EsTreeNode, Rule, RuleContext } from "../types.js";
 // Without this, `setX(getFilteredTodos(todos, filter))` would treat
 // `getFilteredTodos` as a missing dep and bail before the §2 "expensive
 // derivation" branch could fire.
-// Bottom of a MemberExpression chain — null when it isn't a plain Identifier.
-const getMemberExpressionRootName = (node: EsTreeNode): string | null => {
-  let cursor: EsTreeNode | undefined = node;
-  while (cursor?.type === "MemberExpression") {
-    cursor = cursor.object;
-  }
-  return cursor?.type === "Identifier" ? cursor.name : null;
-};
-
 const collectValueIdentifierNames = (node: EsTreeNode | null | undefined, into: string[]): void => {
   if (!node || typeof node !== "object") return;
   if (node.type === "CallExpression") {
@@ -54,7 +45,7 @@ const collectValueIdentifierNames = (node: EsTreeNode | null | undefined, into: 
       // is not. Skip the callee chain entirely when its root is a
       // built-in global (`Math.floor`, `JSON.parse`, ...) — those
       // aren't reactive reads either.
-      const rootName = getMemberExpressionRootName(node.callee);
+      const rootName = getRootIdentifierName(node.callee);
       if (!rootName || !BUILTIN_GLOBAL_NAMESPACE_NAMES.has(rootName)) {
         collectValueIdentifierNames(node.callee.object, into);
       }
@@ -65,7 +56,7 @@ const collectValueIdentifierNames = (node: EsTreeNode | null | undefined, into: 
     return;
   }
   if (node.type === "MemberExpression") {
-    const rootName = getMemberExpressionRootName(node);
+    const rootName = getRootIdentifierName(node);
     if (!rootName || !BUILTIN_GLOBAL_NAMESPACE_NAMES.has(rootName)) {
       collectValueIdentifierNames(node.object, into);
     }
@@ -141,7 +132,7 @@ export const noDerivedStateEffect: Rule = {
             // `Math.floor(x)` / `Date.now()` are trivial regardless
             // of the property — gate on the chain root, not the
             // method name (which would never match TRIVIAL_*).
-            const rootName = getMemberExpressionRootName(child.callee);
+            const rootName = getRootIdentifierName(child.callee);
             if (rootName && BUILTIN_GLOBAL_NAMESPACE_NAMES.has(rootName)) return;
             hasExpensiveDerivation = true;
             return;
