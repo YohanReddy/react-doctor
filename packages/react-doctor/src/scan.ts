@@ -96,7 +96,8 @@ const printDiagnostics = (diagnostics: Diagnostic[], isVerbose: boolean): void =
     (diagnostic) => `${diagnostic.plugin}/${diagnostic.rule}`,
   );
 
-  const sortedRuleGroups = sortBySeverity([...ruleGroups.entries()]);
+  // HACK: reversed so errors print last, right above the score box — visible first when the terminal scrolls to the bottom.
+  const sortedRuleGroups = sortBySeverity([...ruleGroups.entries()]).toReversed();
 
   for (const [, ruleDiagnostics] of sortedRuleGroups) {
     const firstDiagnostic = ruleDiagnostics[0];
