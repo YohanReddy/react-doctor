@@ -82,6 +82,26 @@ const heavyState = (): AppState => {
 };
 
 describe("narrow-screen visual snapshots", () => {
+  it("logs the review screen at 100 cols (side-by-side panes)", () => {
+    const { lastFrame } = render(
+      <ReviewView state={heavyState()} terminalColumns={100} terminalRows={32} />,
+    );
+    const frame = lastFrame() ?? "";
+    if (process.env.SNAPSHOT_LOG === "1") {
+      process.stdout.write(`\n===== REVIEW @ 100 cols =====\n${frame}\n=============================\n`);
+    }
+  });
+
+  it("logs the review screen at 91 cols (matches the user's screenshot width)", () => {
+    const { lastFrame } = render(
+      <ReviewView state={heavyState()} terminalColumns={91} terminalRows={32} />,
+    );
+    const frame = lastFrame() ?? "";
+    if (process.env.SNAPSHOT_LOG === "1") {
+      process.stdout.write(`\n===== REVIEW @ 91 cols =====\n${frame}\n============================\n`);
+    }
+  });
+
   it("logs the review screen at 80 cols (matches the user's screenshot)", () => {
     const { lastFrame } = render(
       <ReviewView state={heavyState()} terminalColumns={80} terminalRows={32} />,
