@@ -12,9 +12,7 @@ const isIgnoreOverrideEntry = (value: unknown): value is ReactDoctorIgnoreOverri
   isPlainObject(value) && Array.isArray(value.files);
 
 const collectStringList = (value: unknown): string[] =>
-  Array.isArray(value)
-    ? value.filter((entry): entry is string => typeof entry === "string")
-    : [];
+  Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
 
 export const compileIgnoreOverrides = (
   userConfig: ReactDoctorConfig | null,

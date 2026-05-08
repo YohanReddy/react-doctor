@@ -9,9 +9,7 @@ export interface ParsedFileLineArgument {
 export const parseFileLineArgument = (rawArgument: string): ParsedFileLineArgument => {
   const lastColonIndex = rawArgument.lastIndexOf(":");
   if (lastColonIndex < 0) {
-    throw new Error(
-      `Expected "<file>:<line>" (e.g. "src/foo.tsx:42"), got "${rawArgument}".`,
-    );
+    throw new Error(`Expected "<file>:<line>" (e.g. "src/foo.tsx:42"), got "${rawArgument}".`);
   }
   const filePath = rawArgument.slice(0, lastColonIndex);
   const lineText = rawArgument.slice(lastColonIndex + 1);

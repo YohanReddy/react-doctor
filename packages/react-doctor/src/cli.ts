@@ -602,19 +602,18 @@ program
 const runWhy = async (fileLineArgument: string, directory: string): Promise<void> => {
   const { filePath, line } = parseFileLineArgument(fileLineArgument);
   const resolvedDirectory = path.resolve(directory);
-  setLoggerSilent(true);
   const userConfig = loadConfig(resolvedDirectory);
   const scanResult = await scan(resolvedDirectory, {
     silent: true,
     offline: true,
     configOverride: userConfig,
   });
-  setLoggerSilent(false);
 
+  const requestedRelativePath = toRelativePath(filePath, resolvedDirectory);
   const matchingDiagnostics = scanResult.diagnostics.filter(
     (diagnostic) =>
       diagnostic.line === line &&
-      toRelativePath(diagnostic.filePath, resolvedDirectory) === toRelativePath(filePath, resolvedDirectory),
+      toRelativePath(diagnostic.filePath, resolvedDirectory) === requestedRelativePath,
   );
 
   if (matchingDiagnostics.length === 0) {
@@ -627,14 +626,14 @@ const runWhy = async (fileLineArgument: string, directory: string): Promise<void
     logger.log(`${highlighter.error(ruleIdentifier)} — ${diagnostic.message}`);
     if (diagnostic.help) logger.dim(`  ${diagnostic.help}`);
     if (diagnostic.suppressionHint) {
-      logger.log("");
+      logger.break();
       logger.log(`  Suppression diagnosis: ${diagnostic.suppressionHint}`);
     } else {
       logger.dim(
         "  No nearby react-doctor-disable-next-line comment was detected — add one immediately above this line to suppress.",
       );
     }
-    logger.log("");
+    logger.break();
   }
 };
 

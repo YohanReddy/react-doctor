@@ -14,10 +14,7 @@ const JSX_OPENER_TAG_PATTERN = /<[A-Za-z][\w.]*/;
 // closer. It also skips `=>` arrow functions and `>=` comparisons,
 // which are the two `>`-adjacent operator cases that show up inside
 // JSX attribute expressions.
-export const findJsxOpenerSpan = (
-  lines: string[],
-  openerLineIndex: number,
-): number | null => {
+export const findJsxOpenerSpan = (lines: string[], openerLineIndex: number): number | null => {
   const openerLine = lines[openerLineIndex];
   if (openerLine === undefined) return null;
   const tagMatch = openerLine.match(JSX_OPENER_TAG_PATTERN);

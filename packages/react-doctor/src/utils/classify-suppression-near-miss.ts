@@ -23,14 +23,9 @@ const findOutOfChainMatch = (
   comments: StackedDisableComment[],
   ruleId: string,
 ): StackedDisableComment | undefined =>
-  comments.find(
-    (comment) => !comment.isInChain && isRuleListedInComment(comment.ruleList, ruleId),
-  );
+  comments.find((comment) => !comment.isInChain && isRuleListedInComment(comment.ruleList, ruleId));
 
-const buildAdjacentMismatchHint = (
-  comment: StackedDisableComment,
-  ruleId: string,
-): string => {
+const buildAdjacentMismatchHint = (comment: StackedDisableComment, ruleId: string): string => {
   const ruleListText = comment.ruleList?.trim() ?? "";
   return (
     `An adjacent react-doctor-disable-next-line at line ${comment.commentLineIndex + 1} lists "${ruleListText}" — ${ruleId} is not in that list. ` +

@@ -113,11 +113,7 @@ export const filterInlineSuppressions = (
 
     if (isRuleSuppressedAt(lines, diagnosticLineIndex, ruleIdentifier)) return [];
 
-    const suppressionHint = classifySuppressionNearMiss(
-      lines,
-      diagnosticLineIndex,
-      ruleIdentifier,
-    );
+    const suppressionHint = classifySuppressionNearMiss(lines, diagnosticLineIndex, ruleIdentifier);
     return suppressionHint ? [{ ...diagnostic, suppressionHint }] : [diagnostic];
   });
 };
