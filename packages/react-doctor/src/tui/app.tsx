@@ -1,7 +1,7 @@
-import { randomUUID } from "node:crypto";
-import { mkdirSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import crypto from "node:crypto";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { Box, useApp, useInput } from "ink";
 import { useCallback, useEffect, useReducer, useRef } from "react";
 import type { Diagnostic } from "react-doctor/api";
@@ -19,9 +19,9 @@ import { useTerminalSize } from "./utils/use-terminal-size.js";
 import { startWatcher, type WatcherHandle } from "./watcher.js";
 
 const writeDiagnosticsDirectory = (diagnostics: Diagnostic[]): string => {
-  const outputDirectory = join(tmpdir(), `react-doctor-${randomUUID()}`);
-  mkdirSync(outputDirectory, { recursive: true });
-  writeFileSync(join(outputDirectory, "diagnostics.json"), JSON.stringify(diagnostics, null, 2));
+  const outputDirectory = path.join(os.tmpdir(), `react-doctor-${crypto.randomUUID()}`);
+  fs.mkdirSync(outputDirectory, { recursive: true });
+  fs.writeFileSync(path.join(outputDirectory, "diagnostics.json"), JSON.stringify(diagnostics, null, 2));
   return outputDirectory;
 };
 
