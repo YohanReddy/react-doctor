@@ -1,3 +1,5 @@
+import type { ScannedFile } from "./types";
+
 export const VIDEO_WIDTH_PX = 1920;
 export const VIDEO_HEIGHT_PX = 1080;
 export const VIDEO_FPS = 30;
@@ -8,6 +10,21 @@ export const MUTED_COLOR = "#737373";
 export const RED_COLOR = "#f87171";
 export const GREEN_COLOR = "#4ade80";
 export const YELLOW_COLOR = "#eab308";
+
+export const ERROR_ROW_BACKGROUND_COLOR = "rgba(127, 29, 29, 0.28)";
+export const ERROR_BADGE_BACKGROUND_COLOR = "#dc2626";
+export const ERROR_BADGE_TEXT_COLOR = "#fafafa";
+export const WARNING_BADGE_BACKGROUND_COLOR = "#a16207";
+
+export const FILE_ROW_HORIZONTAL_PADDING_PX = 24;
+export const FILE_ROW_VERTICAL_PADDING_PX = 4;
+export const FILE_ROW_GAP_PX = 24;
+export const LINE_NUMBER_COLUMN_WIDTH_PX = 90;
+export const SEVERITY_BADGE_SIZE_PX = 44;
+export const SEVERITY_BADGE_RADIUS_PX = 6;
+export const POINTS_LOST_COLUMN_WIDTH_PX = 140;
+export const ERROR_POINT_COST = 5;
+export const WARNING_POINT_COST = 2;
 export const OVERLAY_GRADIENT_RGB = "10, 10, 10";
 export const OVERLAY_GRADIENT_HEIGHT_PX = 420;
 export const OVERLAY_GRADIENT_HORIZONTAL_PADDING_PX = 120;
@@ -31,7 +48,7 @@ export const FILE_SCAN_FONT_SIZE_PX = 48;
 export const FRAMES_PER_FILE = 3;
 export const FILE_SCAN_INITIAL_DELAY_FRAMES = 5;
 export const FILE_SCAN_VISIBLE_ROWS = 14;
-export const SCANNED_FILES = [
+const RAW_SCANNED_FILES: Omit<ScannedFile, "pointsLost">[] = [
   { path: "src/components/Button.tsx", errors: 0, warnings: 1 },
   { path: "src/components/UserCard.tsx", errors: 2, warnings: 0 },
   { path: "src/components/Dashboard.tsx", errors: 1, warnings: 2 },
@@ -91,6 +108,11 @@ export const SCANNED_FILES = [
   { path: "src/config/env.ts", errors: 0, warnings: 0 },
 ];
 
+export const SCANNED_FILES: ScannedFile[] = RAW_SCANNED_FILES.map((rawFile) => ({
+  ...rawFile,
+  pointsLost: rawFile.errors * ERROR_POINT_COST + rawFile.warnings * WARNING_POINT_COST,
+}));
+
 export const DIAGNOSTIC_FONT_SIZE_PX = 28;
 export const DIAGNOSTIC_LINE_HEIGHT = 1.7;
 export const FRAMES_PER_DIAGNOSTIC = 4;
@@ -145,7 +167,7 @@ export const FRAMES_PER_FIX = 20;
 export const FIX_INITIAL_DELAY_FRAMES = 15;
 
 export const SCENE_TYPING_DURATION_FRAMES = 100;
-export const SCENE_FILE_SCAN_DURATION_FRAMES = 185;
+export const SCENE_FILE_SCAN_DURATION_FRAMES = 155;
 export const SCENE_DIAGNOSTICS_DURATION_FRAMES = 135;
 export const SCENE_FIXES_DURATION_FRAMES = 195;
 export const SCENE_CTA_DURATION_FRAMES = 90;
