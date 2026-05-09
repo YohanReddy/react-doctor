@@ -874,6 +874,15 @@ interface RunOxlintOptions {
    * React major.
    */
   reactMajorVersion?: number | null;
+  /**
+   * `true` when the scanned package is a library that declares `react`
+   * as a peer dependency with a range admitting React majors below 19.
+   * Forwarded to `createOxlintConfig`, which then suppresses the
+   * React-19-deprecation rules so library authors aren't dinged for
+   * keeping `forwardRef` / `defaultProps` / legacy `react-dom` to
+   * honor their peer contract.
+   */
+  isLibraryTargetingLegacyReact?: boolean;
   includePaths?: string[];
   nodeBinaryPath?: string;
   customRulesOnly?: boolean;
@@ -933,6 +942,7 @@ export const runOxlint = async (options: RunOxlintOptions): Promise<Diagnostic[]
     hasReactCompiler,
     hasTanStackQuery,
     reactMajorVersion = null,
+    isLibraryTargetingLegacyReact = false,
     includePaths,
     nodeBinaryPath = process.execPath,
     customRulesOnly = false,
@@ -976,6 +986,7 @@ export const runOxlint = async (options: RunOxlintOptions): Promise<Diagnostic[]
     hasTanStackQuery,
     customRulesOnly,
     reactMajorVersion,
+    isLibraryTargetingLegacyReact,
     extendsPaths,
   });
   // HACK: only neutralize disable comments in audit mode. Default
@@ -1058,6 +1069,7 @@ export const runOxlint = async (options: RunOxlintOptions): Promise<Diagnostic[]
         hasTanStackQuery,
         customRulesOnly,
         reactMajorVersion,
+        isLibraryTargetingLegacyReact,
         extendsPaths: [],
       });
       writeOxlintConfig(fallbackConfig);

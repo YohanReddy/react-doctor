@@ -182,6 +182,60 @@ describe("discoverProject", () => {
     const projectInfo = discoverProject(projectDirectory);
     expect(projectInfo.hasReactCompiler).toBe(true);
   });
+
+  it("detects library context for component-library fixture (peerDeps span 18+19)", () => {
+    const projectInfo = discoverProject(path.join(FIXTURES_DIRECTORY, "component-library"));
+    expect(projectInfo.reactPeerRange).toBe("^18.0.0 || ^19.0.0");
+    expect(projectInfo.isLibraryTargetingLegacyReact).toBe(true);
+  });
+
+  it("does not flag library mode when react peer range only allows 19+", () => {
+    const projectDirectory = path.join(tempDirectory, "react19-only-library");
+    fs.mkdirSync(projectDirectory, { recursive: true });
+    fs.writeFileSync(
+      path.join(projectDirectory, "package.json"),
+      JSON.stringify({
+        name: "react19-only-library",
+        peerDependencies: { react: "^19.0.0" },
+      }),
+    );
+
+    const projectInfo = discoverProject(projectDirectory);
+    expect(projectInfo.reactPeerRange).toBe("^19.0.0");
+    expect(projectInfo.isLibraryTargetingLegacyReact).toBe(false);
+  });
+
+  it("does not flag library mode for apps that pin react via dependencies only", () => {
+    const projectDirectory = path.join(tempDirectory, "app-without-peer");
+    fs.mkdirSync(projectDirectory, { recursive: true });
+    fs.writeFileSync(
+      path.join(projectDirectory, "package.json"),
+      JSON.stringify({
+        name: "app-without-peer",
+        dependencies: { react: "^17.0.0" },
+      }),
+    );
+
+    const projectInfo = discoverProject(projectDirectory);
+    expect(projectInfo.reactPeerRange).toBeNull();
+    expect(projectInfo.isLibraryTargetingLegacyReact).toBe(false);
+  });
+
+  it("flags library mode when peer range admits React 16/17/18 alongside 19", () => {
+    const projectDirectory = path.join(tempDirectory, "wide-peer-library");
+    fs.mkdirSync(projectDirectory, { recursive: true });
+    fs.writeFileSync(
+      path.join(projectDirectory, "package.json"),
+      JSON.stringify({
+        name: "wide-peer-library",
+        peerDependencies: { react: "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0" },
+        devDependencies: { react: "^19.0.0" },
+      }),
+    );
+
+    const projectInfo = discoverProject(projectDirectory);
+    expect(projectInfo.isLibraryTargetingLegacyReact).toBe(true);
+  });
 });
 
 describe("listWorkspacePackages", () => {

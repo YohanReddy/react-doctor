@@ -521,4 +521,91 @@ export const Search = ({ onChange }: { onChange: (value: string) => void }) => {
     });
     expect(hits.length).toBeGreaterThanOrEqual(1);
   });
+
+  // HACK: library mode flips the deprecation-warning gates from "fail
+  // open" (warn on every detected major) to "skip entirely". Libraries
+  // that declare `react` as a peer dep with a range admitting React
+  // <19 MUST keep `forwardRef`, `defaultProps`, and the legacy
+  // `react-dom` root API to honor that peer contract — flagging them
+  // for "deprecated in 19" gives the wrong advice.
+  it("does NOT flag forwardRef in library mode (legacy React peer dep)", async () => {
+    const projectDir = setupReactProject(tempRoot, "library-mode-forwardRef", {
+      files: {
+        "src/Button.tsx": `import { forwardRef } from "react";
+
+export const Button = forwardRef<HTMLButtonElement>((_props, ref) => (
+  <button ref={ref} />
+));
+`,
+      },
+    });
+
+    const hits = await collectRuleHits(projectDir, "no-react19-deprecated-apis", {
+      reactMajorVersion: 19,
+      isLibraryTargetingLegacyReact: true,
+    });
+    expect(hits).toHaveLength(0);
+  });
+
+  it("does NOT flag Foo.defaultProps in library mode (legacy React peer dep)", async () => {
+    const projectDir = setupReactProject(tempRoot, "library-mode-defaultProps", {
+      files: {
+        "src/Button.tsx": `export const Button = ({ size }: { size?: string }) => <button data-size={size} />;
+Button.defaultProps = { size: "md" };
+`,
+      },
+    });
+
+    const hits = await collectRuleHits(projectDir, "no-default-props", {
+      reactMajorVersion: 19,
+      isLibraryTargetingLegacyReact: true,
+    });
+    expect(hits).toHaveLength(0);
+  });
+
+  it("does NOT flag legacy react-dom render in library mode (legacy React peer dep)", async () => {
+    const projectDir = setupReactProject(tempRoot, "library-mode-react-dom-render", {
+      files: {
+        "src/main.tsx": `import { render } from "react-dom";
+
+void render;
+`,
+      },
+    });
+
+    const hits = await collectRuleHits(projectDir, "no-react-dom-deprecated-apis", {
+      reactMajorVersion: 19,
+      isLibraryTargetingLegacyReact: true,
+    });
+    expect(hits).toHaveLength(0);
+  });
+
+  // HACK: prefer-newer-api gates aren't relaxed by library mode — the
+  // library context is about not breaking peer compat, not about hiding
+  // genuinely useful API recommendations. `useEffectEvent` is still
+  // worth suggesting for code paths that don't need to support older
+  // React.
+  it("STILL flags non-deprecation rules (e.g. prefer-use-effect-event) in library mode", async () => {
+    const projectDir = setupReactProject(tempRoot, "library-mode-prefer-use-effect-event", {
+      files: {
+        "src/Search.tsx": `import { useEffect, useState } from "react";
+
+export const Search = ({ onChange }: { onChange: (value: string) => void }) => {
+  const [text, setText] = useState("");
+  useEffect(() => {
+    const id = setTimeout(() => onChange(text), 300);
+    return () => clearTimeout(id);
+  }, [text, onChange]);
+  return <input value={text} onChange={(event) => setText(event.target.value)} />;
+};
+`,
+      },
+    });
+
+    const hits = await collectRuleHits(projectDir, "prefer-use-effect-event", {
+      reactMajorVersion: 19,
+      isLibraryTargetingLegacyReact: true,
+    });
+    expect(hits.length).toBeGreaterThanOrEqual(1);
+  });
 });

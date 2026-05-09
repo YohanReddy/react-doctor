@@ -115,6 +115,16 @@ interface OxlintConfigOptions {
    */
   reactMajorVersion?: number | null;
   /**
+   * `true` when the scanned package is a library that declares `react`
+   * as a `peerDependency` with a range admitting React majors below 19.
+   * In that mode the React-19-deprecation rules
+   * (`no-react19-deprecated-apis`, `no-default-props`,
+   * `no-react-dom-deprecated-apis`) are skipped because the library
+   * MUST keep `forwardRef`, `defaultProps`, and the legacy `react-dom`
+   * root API to honor its peer contract.
+   */
+  isLibraryTargetingLegacyReact?: boolean;
+  /**
    * Absolute paths to extra configs that should be merged into the
    * generated oxlint config via the `extends` field. Used to fold the
    * user's existing `.oxlintrc.json` / `.eslintrc.json` rules into the
@@ -436,12 +446,23 @@ const VERSION_GATED_RULE_IDS: ReadonlyMap<string, VersionGate> = new Map([
 const filterRulesByReactMajor = (
   rules: Record<string, RuleSeverity>,
   reactMajorVersion: number | null,
+  isLibraryTargetingLegacyReact: boolean,
 ): Record<string, RuleSeverity> => {
   return Object.fromEntries(
     Object.entries(rules).filter(([ruleKey]) => {
       const gate = VERSION_GATED_RULE_IDS.get(ruleKey);
       if (gate === undefined) return true;
-      if (gate.mode === "deprecation-warning") return true;
+      if (gate.mode === "deprecation-warning") {
+        // HACK: when the scanned package is a library declaring `react`
+        // as a peer dep with a range that admits pre-19 majors, the
+        // React-19-deprecation rules are noise — the library NEEDS
+        // forwardRef/defaultProps/legacy react-dom to keep that peer
+        // contract. The deprecation gate normally fires on every
+        // detected major (the audience that still allows the pattern
+        // is the upgrade audience), but library compatibility wins
+        // over a forward-looking nudge.
+        return !isLibraryTargetingLegacyReact;
+      }
       if (reactMajorVersion === null) return true;
       return reactMajorVersion >= gate.minMajor;
     }),
@@ -455,6 +476,7 @@ export const createOxlintConfig = ({
   hasTanStackQuery,
   customRulesOnly = false,
   reactMajorVersion = null,
+  isLibraryTargetingLegacyReact = false,
   extendsPaths = [],
 }: OxlintConfigOptions) => {
   // HACK: REACT_COMPILER_RULES live under the `react-hooks-js` plugin
@@ -502,7 +524,11 @@ export const createOxlintConfig = ({
       ...(customRulesOnly ? {} : BUILTIN_REACT_RULES),
       ...(customRulesOnly ? {} : BUILTIN_A11Y_RULES),
       ...reactCompilerRules,
-      ...filterRulesByReactMajor(GLOBAL_REACT_DOCTOR_RULES, reactMajorVersion),
+      ...filterRulesByReactMajor(
+        GLOBAL_REACT_DOCTOR_RULES,
+        reactMajorVersion,
+        isLibraryTargetingLegacyReact,
+      ),
       ...(framework === "nextjs" ? NEXTJS_RULES : {}),
       ...(framework === "expo" || framework === "react-native" ? REACT_NATIVE_RULES : {}),
       ...(framework === "tanstack-start" ? TANSTACK_START_RULES : {}),

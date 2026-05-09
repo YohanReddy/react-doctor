@@ -20,6 +20,23 @@ export interface ProjectInfo {
   hasReactCompiler: boolean;
   hasTanStackQuery: boolean;
   sourceFileCount: number;
+  /**
+   * The raw `react` version range declared in `peerDependencies` (after
+   * resolving pnpm/Bun catalog references), or `null` when react is not
+   * a peer dep. Libraries published to npm typically declare react as a
+   * peer; apps don't.
+   */
+  reactPeerRange: string | null;
+  /**
+   * `true` when this project is a library targeting React versions
+   * below 19 (i.e. `peerDependencies.react` admits any major below 19).
+   * In that mode the React-19 deprecation rules
+   * (`no-react19-deprecated-apis`, `no-default-props`,
+   * `no-react-dom-deprecated-apis`) are skipped because the library
+   * MUST keep `forwardRef`, `defaultProps`, and the legacy
+   * `react-dom` root API to honor its peer contract.
+   */
+  isLibraryTargetingLegacyReact: boolean;
 }
 
 interface OxlintSpan {
@@ -79,6 +96,14 @@ export interface PackageJson {
 export interface DependencyInfo {
   reactVersion: string | null;
   framework: Framework;
+  /**
+   * Raw `peerDependencies.react` range from the package.json the info
+   * was extracted from, or `null` when react is not a peer dep. Tracked
+   * separately from `reactVersion` (which is whichever entry won across
+   * peer/dep/devDep) so library-mode detection can inspect the peer
+   * range specifically.
+   */
+  reactPeerRange: string | null;
 }
 
 interface KnipIssue {

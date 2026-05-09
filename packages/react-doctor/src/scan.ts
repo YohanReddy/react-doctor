@@ -624,6 +624,11 @@ const printProjectDetection = (
   completeStep(
     `Detecting React Compiler. ${projectInfo.hasReactCompiler ? highlighter.info("Found React Compiler.") : "Not found."}`,
   );
+  if (projectInfo.isLibraryTargetingLegacyReact && projectInfo.reactPeerRange) {
+    completeStep(
+      `Detecting library context. Found React peer dep ${highlighter.info(projectInfo.reactPeerRange)} — skipping React 19 deprecation rules.`,
+    );
+  }
 
   if (isDiffMode) {
     completeStep(`Scanning ${highlighter.info(`${includePaths.length}`)} changed source files.`);
@@ -708,6 +713,7 @@ const runScan = async (
             hasReactCompiler: projectInfo.hasReactCompiler,
             hasTanStackQuery: projectInfo.hasTanStackQuery,
             reactMajorVersion: parseReactMajor(projectInfo.reactVersion),
+            isLibraryTargetingLegacyReact: projectInfo.isLibraryTargetingLegacyReact,
             includePaths: lintIncludePaths,
             nodeBinaryPath: resolvedNodeBinaryPath,
             customRulesOnly: options.customRulesOnly,

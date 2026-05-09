@@ -91,6 +91,12 @@ export interface CollectRuleHitsOptions {
   framework?: "unknown" | "react-native";
   hasReactCompiler?: boolean;
   hasTanStackQuery?: boolean;
+  /**
+   * Set to `true` to simulate scanning a library that declares `react`
+   * as a peer dep with a range admitting React majors below 19. The
+   * React-19-deprecation rules should be suppressed in that mode.
+   */
+  isLibraryTargetingLegacyReact?: boolean;
 }
 
 export interface RuleHit {
@@ -123,6 +129,7 @@ export const collectRuleHits = async (
     hasReactCompiler: options.hasReactCompiler ?? false,
     hasTanStackQuery: options.hasTanStackQuery ?? false,
     reactMajorVersion,
+    isLibraryTargetingLegacyReact: options.isLibraryTargetingLegacyReact ?? false,
   });
   return diagnostics
     .filter((diagnostic) => diagnostic.rule === ruleId)

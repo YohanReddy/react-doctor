@@ -26,6 +26,8 @@ const buildDiagnoseResult = (): DiagnoseResult => ({
     hasReactCompiler: false,
     hasTanStackQuery: false,
     sourceFileCount: 12,
+    reactPeerRange: null,
+    isLibraryTargetingLegacyReact: false,
   },
   elapsedMilliseconds: 321,
 });

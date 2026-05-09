@@ -12,6 +12,8 @@ const SAMPLE_PROJECT: ProjectInfo = {
   hasReactCompiler: false,
   hasTanStackQuery: false,
   sourceFileCount: 42,
+  reactPeerRange: null,
+  isLibraryTargetingLegacyReact: false,
 };
 
 const buildSampleDiagnostic = (overrides: Partial<Diagnostic> = {}): Diagnostic => ({

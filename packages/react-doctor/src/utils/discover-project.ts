@@ -16,6 +16,7 @@ import type {
 import { findMonorepoRoot, isMonorepoRoot } from "./find-monorepo-root.js";
 import { isFile } from "./is-file.js";
 import { isPlainObject } from "./is-plain-object.js";
+import { peerRangeSupportsLegacyReact } from "./parse-react-peer-range.js";
 import { readPackageJson } from "./read-package-json.js";
 
 const REACT_COMPILER_PACKAGES = new Set([
@@ -312,6 +313,12 @@ const resolveCatalogVersion = (
   return null;
 };
 
+const extractReactPeerRange = (packageJson: PackageJson): string | null => {
+  const peerRange = packageJson.peerDependencies?.react ?? null;
+  if (!peerRange || isCatalogReference(peerRange)) return null;
+  return peerRange;
+};
+
 const extractDependencyInfo = (packageJson: PackageJson): DependencyInfo => {
   const allDependencies = collectAllDependencies(packageJson);
   const rawVersion = allDependencies.react ?? null;
@@ -319,6 +326,7 @@ const extractDependencyInfo = (packageJson: PackageJson): DependencyInfo => {
   return {
     reactVersion,
     framework: detectFramework(allDependencies),
+    reactPeerRange: extractReactPeerRange(packageJson),
   };
 };
 
@@ -419,10 +427,11 @@ const resolveWorkspaceDirectories = (rootDirectory: string, pattern: string): st
 
 const findDependencyInfoFromMonorepoRoot = (directory: string): DependencyInfo => {
   const monorepoRoot = findMonorepoRoot(directory);
-  if (!monorepoRoot) return { reactVersion: null, framework: "unknown" };
+  if (!monorepoRoot) return { reactVersion: null, framework: "unknown", reactPeerRange: null };
 
   const monorepoPackageJsonPath = path.join(monorepoRoot, "package.json");
-  if (!isFile(monorepoPackageJsonPath)) return { reactVersion: null, framework: "unknown" };
+  if (!isFile(monorepoPackageJsonPath))
+    return { reactVersion: null, framework: "unknown", reactPeerRange: null };
 
   const rootPackageJson = readPackageJson(monorepoPackageJsonPath);
   const rootInfo = extractDependencyInfo(rootPackageJson);
@@ -432,12 +441,13 @@ const findDependencyInfoFromMonorepoRoot = (directory: string): DependencyInfo =
   return {
     reactVersion: rootInfo.reactVersion ?? catalogVersion ?? workspaceInfo.reactVersion,
     framework: rootInfo.framework !== "unknown" ? rootInfo.framework : workspaceInfo.framework,
+    reactPeerRange: rootInfo.reactPeerRange ?? workspaceInfo.reactPeerRange,
   };
 };
 
 const findReactInWorkspaces = (rootDirectory: string, packageJson: PackageJson): DependencyInfo => {
   const patterns = getWorkspacePatterns(rootDirectory, packageJson);
-  const result: DependencyInfo = { reactVersion: null, framework: "unknown" };
+  const result: DependencyInfo = { reactVersion: null, framework: "unknown", reactPeerRange: null };
 
   for (const pattern of patterns) {
     const directories = resolveWorkspaceDirectories(rootDirectory, pattern);
@@ -452,8 +462,11 @@ const findReactInWorkspaces = (rootDirectory: string, packageJson: PackageJson):
       if (info.framework !== "unknown" && result.framework === "unknown") {
         result.framework = info.framework;
       }
+      if (info.reactPeerRange && !result.reactPeerRange) {
+        result.reactPeerRange = info.reactPeerRange;
+      }
 
-      if (result.reactVersion && result.framework !== "unknown") {
+      if (result.reactVersion && result.framework !== "unknown" && result.reactPeerRange) {
         return result;
       }
     }
@@ -603,7 +616,8 @@ export const discoverProject = (directory: string): ProjectInfo => {
   }
 
   const packageJson = readPackageJson(packageJsonPath);
-  let { reactVersion, framework } = extractDependencyInfo(packageJson);
+  const localInfo = extractDependencyInfo(packageJson);
+  let { reactVersion, framework, reactPeerRange } = localInfo;
 
   if (!reactVersion) {
     reactVersion = resolveCatalogVersion(packageJson, "react", directory);
@@ -650,6 +664,14 @@ export const discoverProject = (directory: string): ProjectInfo => {
     TANSTACK_QUERY_PACKAGES.has(packageName),
   );
 
+  // HACK: library detection is intentionally local-package-only. Peer
+  // ranges for parent packages in a monorepo don't constrain THIS
+  // package's compatibility surface — only its own `peerDependencies`
+  // do. So we never inherit a peer range from workspace siblings or
+  // monorepo roots, even though we inherit the resolved react version
+  // for display.
+  const isLibraryTargetingLegacyReact = peerRangeSupportsLegacyReact(reactPeerRange);
+
   const projectInfo: ProjectInfo = {
     rootDirectory: directory,
     projectName,
@@ -659,6 +681,8 @@ export const discoverProject = (directory: string): ProjectInfo => {
     hasReactCompiler,
     hasTanStackQuery,
     sourceFileCount,
+    reactPeerRange,
+    isLibraryTargetingLegacyReact,
   };
   cachedProjectInfos.set(directory, projectInfo);
   return projectInfo;
