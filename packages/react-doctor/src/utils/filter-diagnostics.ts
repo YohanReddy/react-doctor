@@ -58,17 +58,20 @@ const isInsideTextComponent = (
   return false;
 };
 
-interface EnclosingJsxOpener {
+interface JsxOpener {
   fullName: string;
   leafName: string;
   lineIndex: number;
 }
 
-const findEnclosingJsxOpener = (
-  lines: string[],
-  diagnosticLine: number,
-): EnclosingJsxOpener | null => {
-  for (let lineIndex = diagnosticLine - 1; lineIndex >= 0; lineIndex--) {
+interface ResolvedJsxRange {
+  closerLineIndex: number;
+  closerColumn: number;
+  bodyText: string;
+}
+
+const findOpenerAtOrAbove = (lines: string[], upperBoundLineIndex: number): JsxOpener | null => {
+  for (let lineIndex = upperBoundLineIndex; lineIndex >= 0; lineIndex--) {
     const match = lines[lineIndex].match(OPENING_TAG_PATTERN);
     if (!match) continue;
     const fullName = match[1];
@@ -78,65 +81,99 @@ const findEnclosingJsxOpener = (
   return null;
 };
 
-// Returns the inner-body text of a JSX element starting at `opener`,
-// using a forward scan for the matching `</fullName>` or `</leafName>`
-// closing tag. Heuristic — operates on raw lines without an AST — but
-// good enough to distinguish "wrapper holds only stringifiable
-// children" from "wrapper also holds a JSX child element".
+// Resolves the inner-body text of a JSX element starting at `opener`,
+// plus the position of its matching closing tag. Heuristic — operates
+// on raw lines without an AST — but good enough to (a) distinguish
+// "wrapper holds only stringifiable children" from "wrapper also
+// holds a JSX child element", and (b) verify the opener actually
+// encloses a given diagnostic position (vs. being a closed sibling).
 //
-// Returns `null` when we couldn't confidently locate the enclosing
-// element's body (e.g. no matching closing tag, opening tag's `>`
-// missing on its own line). Callers should treat `null` as "don't
-// suppress" — staying conservative when the heuristic loses
-// confidence.
-const extractWrapperBodyText = (lines: string[], opener: EnclosingJsxOpener): string | null => {
+// Returns `null` when we couldn't confidently locate the element's
+// closing tag or body (no matching `</Tag>`, opening `>` missing on
+// its own line, self-closing tag, etc.). Callers should treat `null`
+// as "this opener can't enclose anything we care about" and walk
+// further up.
+const resolveJsxRange = (lines: string[], opener: JsxOpener): ResolvedJsxRange | null => {
   const closingPattern = new RegExp(
     `</(?:${escapeRegExpSpecials(opener.fullName)}|${escapeRegExpSpecials(opener.leafName)})\\s*>`,
   );
 
-  let closingLineIndex = -1;
-  let closingMatchColumn = -1;
+  let closerLineIndex = -1;
+  let closerColumn = -1;
   for (let lineIndex = opener.lineIndex; lineIndex < lines.length; lineIndex++) {
     const match = closingPattern.exec(lines[lineIndex]);
     if (!match) continue;
-    closingLineIndex = lineIndex;
-    closingMatchColumn = match.index;
+    closerLineIndex = lineIndex;
+    closerColumn = match.index;
     break;
   }
-  if (closingLineIndex < 0) return null;
+  if (closerLineIndex < 0) return null;
 
   const openerLine = lines[opener.lineIndex];
   const tagStartIndex = openerLine.indexOf(`<${opener.fullName}`);
   if (tagStartIndex < 0) return null;
   const openerEndIndex = openerLine.indexOf(">", tagStartIndex);
 
-  if (opener.lineIndex === closingLineIndex) {
-    if (openerEndIndex < 0 || openerEndIndex >= closingMatchColumn) return null;
-    return openerLine.slice(openerEndIndex + 1, closingMatchColumn);
+  let bodyText: string;
+  if (opener.lineIndex === closerLineIndex) {
+    if (openerEndIndex < 0 || openerEndIndex >= closerColumn) return null;
+    bodyText = openerLine.slice(openerEndIndex + 1, closerColumn);
+  } else {
+    const segments: string[] = [];
+    if (openerEndIndex >= 0) segments.push(openerLine.slice(openerEndIndex + 1));
+    for (let lineIndex = opener.lineIndex + 1; lineIndex < closerLineIndex; lineIndex++) {
+      segments.push(lines[lineIndex]);
+    }
+    segments.push(lines[closerLineIndex].slice(0, closerColumn));
+    bodyText = segments.join("\n");
   }
 
-  const segments: string[] = [];
-  if (openerEndIndex >= 0) {
-    segments.push(openerLine.slice(openerEndIndex + 1));
-  }
-  for (let lineIndex = opener.lineIndex + 1; lineIndex < closingLineIndex; lineIndex++) {
-    segments.push(lines[lineIndex]);
-  }
-  segments.push(lines[closingLineIndex].slice(0, closingMatchColumn));
-  return segments.join("\n");
+  return { closerLineIndex, closerColumn, bodyText };
 };
 
+// Iterates openers from nearest-above the diagnostic outward, skipping
+// those whose closing tag falls BEFORE the diagnostic position (those
+// are closed siblings, not enclosing parents). Returns `true` when the
+// nearest actually-enclosing opener is in `wrapperNames` AND its body
+// has no JSX child elements.
+//
+// Diagnostic line and column are 1-indexed; column may be 0 when
+// oxlint omits the span (we treat that as "earliest position on the
+// line", which is conservative for enclosure checks).
 const isInsideStringOnlyWrapper = (
   lines: string[],
   diagnosticLine: number,
+  diagnosticColumn: number,
   wrapperNames: Set<string>,
 ): boolean => {
-  const opener = findEnclosingJsxOpener(lines, diagnosticLine);
-  if (!opener) return false;
-  if (!wrapperNames.has(opener.fullName) && !wrapperNames.has(opener.leafName)) return false;
-  const bodyText = extractWrapperBodyText(lines, opener);
-  if (bodyText === null) return false;
-  return !JSX_CHILD_OPEN_PATTERN.test(bodyText);
+  const diagnosticLineIndex = diagnosticLine - 1;
+  const diagnosticColumnIndex = Math.max(0, diagnosticColumn - 1);
+  let upperBoundLineIndex = diagnosticLineIndex;
+
+  while (upperBoundLineIndex >= 0) {
+    const opener = findOpenerAtOrAbove(lines, upperBoundLineIndex);
+    if (!opener) return false;
+
+    const range = resolveJsxRange(lines, opener);
+    if (range === null) {
+      upperBoundLineIndex = opener.lineIndex - 1;
+      continue;
+    }
+
+    const isClosedBeforeDiagnostic =
+      range.closerLineIndex < diagnosticLineIndex ||
+      (range.closerLineIndex === diagnosticLineIndex &&
+        range.closerColumn <= diagnosticColumnIndex);
+    if (isClosedBeforeDiagnostic) {
+      upperBoundLineIndex = opener.lineIndex - 1;
+      continue;
+    }
+
+    if (!wrapperNames.has(opener.fullName) && !wrapperNames.has(opener.leafName)) return false;
+    return !JSX_CHILD_OPEN_PATTERN.test(range.bodyText);
+  }
+
+  return false;
 };
 
 export const filterIgnoredDiagnostics = (
@@ -189,7 +226,12 @@ export const filterIgnoredDiagnostics = (
         }
         if (
           hasRawTextWrappers &&
-          isInsideStringOnlyWrapper(lines, diagnostic.line, rawTextWrapperComponentNames)
+          isInsideStringOnlyWrapper(
+            lines,
+            diagnostic.line,
+            diagnostic.column,
+            rawTextWrapperComponentNames,
+          )
         ) {
           return false;
         }
