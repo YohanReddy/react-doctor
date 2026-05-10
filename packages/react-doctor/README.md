@@ -23,7 +23,7 @@ Run this at your project root:
 npx -y react-doctor@latest .
 ```
 
-You'll get a score (75+ Great, 50 to 74 Needs work, under 50 Critical) and a list of issues across state & effects, performance, architecture, security, accessibility, and dead code. Rules toggle automatically based on your framework and React version. Libraries that declare `react` as a peer dep with a range admitting React < 19 also skip the React 19 deprecation rules (`forwardRef`, `defaultProps`, legacy `react-dom` root API) since those APIs are required to honor the peer contract. Test files (`*.test.*`, `*.spec.*`, `*.stories.*`, anything under `__tests__` / `tests` / `test` / `__mocks__` / `cypress` / `e2e` / `playwright`) skip the production-quality rules that fixtures legitimately exercise — correctness rules still fire because a buggy test is still a bug. Library entry points (source files with a matching artifact under `dist` / `build` / `lib` / `out` / `esm` / `cjs`) aren't flagged as dead code even when no other source file imports them.
+You'll get a score (75+ Great, 50 to 74 Needs work, under 50 Critical) and a list of issues across state & effects, performance, architecture, security, accessibility, and dead code. Rules toggle automatically based on your framework and React version.
 
 https://github.com/user-attachments/assets/07cc88d9-9589-44c3-aa73-5d603cb1c570
 
