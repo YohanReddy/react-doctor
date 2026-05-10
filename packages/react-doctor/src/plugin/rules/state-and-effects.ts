@@ -339,7 +339,7 @@ export const preferUseReducer: Rule = {
       for (const statement of body.body ?? []) {
         if (statement.type !== "VariableDeclaration") continue;
         for (const declarator of statement.declarations ?? []) {
-          if (isHookCall(declarator.init, "useState")) useStateCount++;
+          if (declarator.init && isHookCall(declarator.init, "useState")) useStateCount++;
         }
       }
       if (useStateCount >= RELATED_USE_STATE_THRESHOLD) {

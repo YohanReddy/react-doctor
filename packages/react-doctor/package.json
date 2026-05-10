@@ -55,16 +55,23 @@
     "./eslint-plugin": {
       "types": "./dist/eslint-plugin.d.ts",
       "default": "./dist/eslint-plugin.js"
+    },
+    "./browser-poc": {
+      "types": "./dist/browser-poc.d.ts",
+      "default": "./dist/browser-poc.js"
     }
   },
   "scripts": {
     "dev": "vp pack --watch",
-    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && NODE_ENV=production vp pack",
+    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && NODE_ENV=production vp pack && esbuild src/browser-poc.ts --bundle --format=iife --global-name=ReactDoctorBrowserPoc --platform=browser --target=es2022 --loader:.wasm=binary --outfile=dist/browser-poc.global.js",
+    "poc:browser": "vite --host 127.0.0.1",
     "typecheck": "tsc --noEmit",
     "test": "vp test run"
   },
   "dependencies": {
+    "@oxc-parser/wasm": "^0.60.0",
     "agent-install": "0.0.5",
+    "bippy": "^0.5.39",
     "commander": "^14.0.3",
     "knip": "^6.10.0",
     "ora": "^9.4.0",

@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite-plus";
 
 const packageRoot = path.dirname(fileURLToPath(import.meta.url));
+const WASM_FILE_SUFFIX = ".wasm";
 
 const packageJson = JSON.parse(fs.readFileSync(path.join(packageRoot, "package.json"), "utf8")) as {
   version: string;
@@ -43,6 +44,18 @@ const copySkillToDist = () => {
 };
 
 export default defineConfig({
+  plugins: [
+    {
+      name: "react-doctor-wasm-binary-loader",
+      enforce: "pre",
+      load: (id) => {
+        if (!id.endsWith(WASM_FILE_SUFFIX)) return null;
+        const base64 = fs.readFileSync(id).toString("base64");
+        return `const binary = atob(${JSON.stringify(base64)});
+export default Uint8Array.from(binary, (character) => character.charCodeAt(0));`;
+      },
+    },
+  ],
   pack: [
     {
       entry: { cli: "./src/cli.ts" },
@@ -90,6 +103,13 @@ export default defineConfig({
       env: {
         VERSION: process.env.VERSION ?? packageJson.version,
       },
+    },
+    {
+      entry: { "browser-poc": "./src/browser-poc.ts" },
+      dts: true,
+      target: "es2022",
+      platform: "browser",
+      fixedExtension: false,
     },
   ],
   test: {
