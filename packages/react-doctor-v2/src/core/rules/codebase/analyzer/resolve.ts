@@ -10,6 +10,7 @@ import {
 import { collectManifestEntrySpecifiers } from "./manifest.js";
 import {
   getPackageNameFromSpecifier,
+  isUrlLikeSpecifier,
   matchesGlob,
   toPortablePath,
   toRelativePath,
@@ -341,6 +342,15 @@ const resolveImport = (
   const importSource = normalizedSpecifier.resource;
   const packageName = getPackageNameFromSpecifier(importSource);
   const pluginResult = pluginResults.get(module.file.workspaceId);
+  if (isUrlLikeSpecifier(importSource)) {
+    return {
+      importRecord,
+      targetKind: "asset",
+      targetFilePath: null,
+      packageName: null,
+      error: null,
+    };
+  }
   if (isKnownAssetSpecifier(importSource)) {
     return {
       importRecord,
@@ -375,7 +385,11 @@ const resolveImport = (
 
   if (result.path) {
     const resolvedPath = path.resolve(result.path);
-    const sourceMappedTargetPath = findSourceMappedTarget(sourceFilePaths, resolvedPath, workspaces);
+    const sourceMappedTargetPath = findSourceMappedTarget(
+      sourceFilePaths,
+      resolvedPath,
+      workspaces,
+    );
     const internalTargetPath = sourceFilePaths.has(resolvedPath)
       ? resolvedPath
       : sourceMappedTargetPath;
@@ -414,6 +428,10 @@ const resolveImport = (
       packageName,
       error: null,
     };
+  }
+
+  if (packageName) {
+    return toExternalPackageImport(importRecord, packageName);
   }
 
   return {

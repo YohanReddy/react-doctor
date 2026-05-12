@@ -1,0 +1,641 @@
+{
+  "repository": "plane",
+  "projectCount": 11,
+  "totalCount": 26704,
+  "errorCount": 18289,
+  "warningCount": 8415,
+  "failedChecks": [
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/plane/apps/admin",
+      "id": "react-doctor/oxlint",
+      "error": "Oxlint returned invalid JSON."
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/plane/apps/live",
+      "id": "react-doctor/oxlint",
+      "error": "Oxlint returned invalid JSON."
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/plane/apps/space",
+      "id": "react-doctor/oxlint",
+      "error": "Oxlint returned invalid JSON."
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/plane/apps/web",
+      "id": "react-doctor/oxlint",
+      "error": "Oxlint returned invalid JSON."
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/plane/packages/editor",
+      "id": "react-doctor/oxlint",
+      "error": "Oxlint returned invalid JSON."
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/plane/packages/hooks",
+      "id": "react-doctor/oxlint",
+      "error": "Oxlint returned invalid JSON."
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/plane/packages/i18n",
+      "id": "react-doctor/oxlint",
+      "error": "Oxlint returned invalid JSON."
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/plane/packages/propel",
+      "id": "react-doctor/oxlint",
+      "error": "Oxlint returned invalid JSON."
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/plane/packages/types",
+      "id": "react-doctor/oxlint",
+      "error": "Oxlint returned invalid JSON."
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/plane/packages/ui",
+      "id": "react-doctor/oxlint",
+      "error": "Oxlint returned invalid JSON."
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/plane/packages/utils",
+      "id": "react-doctor/oxlint",
+      "error": "Oxlint returned invalid JSON."
+    }
+  ],
+  "unknownFrameworkCount": 0,
+  "topRules": [
+    {
+      "rule": "unresolved-import",
+      "count": 18289
+    },
+    {
+      "rule": "unlisted-dependency",
+      "count": 4947
+    },
+    {
+      "rule": "unused-file",
+      "count": 3053
+    },
+    {
+      "rule": "unused-export",
+      "count": 219
+    },
+    {
+      "rule": "unused-type-export",
+      "count": 56
+    },
+    {
+      "rule": "duplicate-export",
+      "count": 51
+    },
+    {
+      "rule": "unused-dependency",
+      "count": 36
+    },
+    {
+      "rule": "unused-dev-dependency",
+      "count": 22
+    },
+    {
+      "rule": "type-only-dependency",
+      "count": 18
+    },
+    {
+      "rule": "runtime-dev-dependency",
+      "count": 12
+    }
+  ],
+  "projects": [
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/plane/apps/admin",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 239,
+      "parsed": true,
+      "framework": "vite",
+      "score": 68,
+      "totalCount": 831,
+      "errorCount": 530,
+      "warningCount": 301,
+      "failedChecks": [
+        {
+          "id": "react-doctor/oxlint",
+          "error": "Oxlint returned invalid JSON."
+        }
+      ],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 530
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 178
+        },
+        {
+          "rule": "unused-file",
+          "count": 83
+        },
+        {
+          "rule": "unused-export",
+          "count": 27
+        },
+        {
+          "rule": "unused-dependency",
+          "count": 6
+        },
+        {
+          "rule": "runtime-dev-dependency",
+          "count": 4
+        },
+        {
+          "rule": "duplicate-export",
+          "count": 1
+        },
+        {
+          "rule": "type-only-dependency",
+          "count": 1
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/plane/apps/live",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 218,
+      "parsed": true,
+      "framework": "react",
+      "score": 71,
+      "totalCount": 368,
+      "errorCount": 217,
+      "warningCount": 151,
+      "failedChecks": [
+        {
+          "id": "react-doctor/oxlint",
+          "error": "Oxlint returned invalid JSON."
+        }
+      ],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 217
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 68
+        },
+        {
+          "rule": "unused-file",
+          "count": 41
+        },
+        {
+          "rule": "unused-type-export",
+          "count": 16
+        },
+        {
+          "rule": "unused-export",
+          "count": 14
+        },
+        {
+          "rule": "type-only-dependency",
+          "count": 6
+        },
+        {
+          "rule": "unused-dependency",
+          "count": 5
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/plane/apps/space",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 291,
+      "parsed": true,
+      "framework": "vite",
+      "score": 71,
+      "totalCount": 1270,
+      "errorCount": 811,
+      "warningCount": 459,
+      "failedChecks": [
+        {
+          "id": "react-doctor/oxlint",
+          "error": "Oxlint returned invalid JSON."
+        }
+      ],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 811
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 284
+        },
+        {
+          "rule": "unused-file",
+          "count": 151
+        },
+        {
+          "rule": "unused-export",
+          "count": 12
+        },
+        {
+          "rule": "unused-dependency",
+          "count": 5
+        },
+        {
+          "rule": "runtime-dev-dependency",
+          "count": 4
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 2
+        },
+        {
+          "rule": "type-only-dependency",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/plane/apps/web",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 1945,
+      "parsed": true,
+      "framework": "vite",
+      "score": 68,
+      "totalCount": 19504,
+      "errorCount": 13297,
+      "warningCount": 6207,
+      "failedChecks": [
+        {
+          "id": "react-doctor/oxlint",
+          "error": "Oxlint returned invalid JSON."
+        }
+      ],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 13297
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 4126
+        },
+        {
+          "rule": "unused-file",
+          "count": 1948
+        },
+        {
+          "rule": "unused-export",
+          "count": 116
+        },
+        {
+          "rule": "unused-dependency",
+          "count": 9
+        },
+        {
+          "rule": "runtime-dev-dependency",
+          "count": 4
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 2
+        },
+        {
+          "rule": "duplicate-export",
+          "count": 1
+        },
+        {
+          "rule": "type-only-dependency",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/plane/packages/editor",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 362,
+      "parsed": true,
+      "framework": "react",
+      "score": 74,
+      "totalCount": 1527,
+      "errorCount": 1046,
+      "warningCount": 481,
+      "failedChecks": [
+        {
+          "id": "react-doctor/oxlint",
+          "error": "Oxlint returned invalid JSON."
+        }
+      ],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 1046
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 276
+        },
+        {
+          "rule": "unused-file",
+          "count": 195
+        },
+        {
+          "rule": "unused-export",
+          "count": 5
+        },
+        {
+          "rule": "type-only-dependency",
+          "count": 2
+        },
+        {
+          "rule": "unused-dependency",
+          "count": 2
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/plane/packages/hooks",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 168,
+      "parsed": true,
+      "framework": "react",
+      "score": 86,
+      "totalCount": 17,
+      "errorCount": 10,
+      "warningCount": 7,
+      "failedChecks": [
+        {
+          "id": "react-doctor/oxlint",
+          "error": "Oxlint returned invalid JSON."
+        }
+      ],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 10
+        },
+        {
+          "rule": "unused-file",
+          "count": 5
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/plane/packages/i18n",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 302,
+      "parsed": true,
+      "framework": "react",
+      "score": 80,
+      "totalCount": 198,
+      "errorCount": 106,
+      "warningCount": 92,
+      "failedChecks": [
+        {
+          "id": "react-doctor/oxlint",
+          "error": "Oxlint returned invalid JSON."
+        }
+      ],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 106
+        },
+        {
+          "rule": "unused-file",
+          "count": 82
+        },
+        {
+          "rule": "unused-export",
+          "count": 7
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 2
+        },
+        {
+          "rule": "unused-dependency",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/plane/packages/propel",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 362,
+      "parsed": true,
+      "framework": "react",
+      "score": 74,
+      "totalCount": 1598,
+      "errorCount": 1252,
+      "warningCount": 346,
+      "failedChecks": [
+        {
+          "id": "react-doctor/oxlint",
+          "error": "Oxlint returned invalid JSON."
+        }
+      ],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 1252
+        },
+        {
+          "rule": "unused-file",
+          "count": 289
+        },
+        {
+          "rule": "duplicate-export",
+          "count": 48
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 3
+        },
+        {
+          "rule": "unused-dependency",
+          "count": 3
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 2
+        },
+        {
+          "rule": "type-only-dependency",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/plane/packages/types",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 210,
+      "parsed": true,
+      "framework": "react",
+      "score": 74,
+      "totalCount": 384,
+      "errorCount": 256,
+      "warningCount": 128,
+      "failedChecks": [
+        {
+          "id": "react-doctor/oxlint",
+          "error": "Oxlint returned invalid JSON."
+        }
+      ],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 256
+        },
+        {
+          "rule": "unused-file",
+          "count": 96
+        },
+        {
+          "rule": "unused-type-export",
+          "count": 26
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 2
+        },
+        {
+          "rule": "unused-export",
+          "count": 2
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 1
+        },
+        {
+          "rule": "unused-peer-dependency",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/plane/packages/ui",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 234,
+      "parsed": true,
+      "framework": "react",
+      "score": 68,
+      "totalCount": 554,
+      "errorCount": 431,
+      "warningCount": 123,
+      "failedChecks": [
+        {
+          "id": "react-doctor/oxlint",
+          "error": "Oxlint returned invalid JSON."
+        }
+      ],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 431
+        },
+        {
+          "rule": "unused-file",
+          "count": 87
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 12
+        },
+        {
+          "rule": "unused-type-export",
+          "count": 7
+        },
+        {
+          "rule": "unused-dependency",
+          "count": 5
+        },
+        {
+          "rule": "unused-export",
+          "count": 5
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 4
+        },
+        {
+          "rule": "type-only-dependency",
+          "count": 2
+        },
+        {
+          "rule": "duplicate-export",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/plane/packages/utils",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 232,
+      "parsed": true,
+      "framework": "react",
+      "score": 77,
+      "totalCount": 453,
+      "errorCount": 333,
+      "warningCount": 120,
+      "failedChecks": [
+        {
+          "id": "react-doctor/oxlint",
+          "error": "Oxlint returned invalid JSON."
+        }
+      ],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 333
+        },
+        {
+          "rule": "unused-file",
+          "count": 76
+        },
+        {
+          "rule": "unused-export",
+          "count": 31
+        },
+        {
+          "rule": "unused-type-export",
+          "count": 7
+        },
+        {
+          "rule": "type-only-dependency",
+          "count": 4
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 2
+        }
+      ]
+    }
+  ]
+}

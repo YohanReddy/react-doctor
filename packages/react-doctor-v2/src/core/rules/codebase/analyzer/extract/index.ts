@@ -1,6 +1,16 @@
 import { parseSync } from "oxc-parser";
 import type { StaticExportEntry, StaticImport, StaticImportEntry } from "oxc-parser";
-import { REACT_CLIENT_DIRECTIVE, REACT_SERVER_DIRECTIVE } from "../constants.js";
+import {
+  CHILD_PROCESS_ENTRY_METHODS,
+  CHILD_PROCESS_MODULE_SPECIFIERS,
+  NODE_MODULE_SPECIFIERS,
+  PATH_ENTRY_HELPER_METHODS,
+  PATH_MODULE_SPECIFIERS,
+  REACT_CLIENT_DIRECTIVE,
+  REACT_SERVER_DIRECTIVE,
+  WHOLE_OBJECT_MEMBER_METHODS,
+  WORKER_THREADS_MODULE_SPECIFIERS,
+} from "../constants.js";
 import { getSourcePositionFromLineStarts } from "../path-utils.js";
 import type { EsTreeNode } from "../../../lint/utils/es-tree-node.js";
 import { isAstNode } from "../../../lint/utils/is-ast-node.js";
@@ -12,6 +22,7 @@ import type {
   ExportRecord,
   ImportedBinding,
   ImportRecord,
+  MemberObjectReference,
   NamespaceLocalAlias,
   NamespaceLocalObjectAlias,
   NamespaceMemberReference,
@@ -23,6 +34,29 @@ interface CommentRecord {
   value: string;
   start: number;
   end: number;
+}
+
+interface CommonJsStarReExportRecord {
+  source: string;
+  start: number;
+  end: number;
+}
+
+interface ShadowRange {
+  start: number;
+  end: number;
+}
+
+interface RuntimeEntryLocals {
+  childProcessMethodNames: Set<string>;
+  childProcessNamespaceNames: Set<string>;
+  nodeModuleNamespaceNames: Set<string>;
+  nodeModuleRegisterNames: Set<string>;
+  pathHelperMethodNames: Map<string, string>;
+  pathNamespaceNames: Set<string>;
+  shadowRangesByName: Map<string, ShadowRange[]>;
+  workerThreadConstructorNames: Set<string>;
+  workerThreadNamespaceNames: Set<string>;
 }
 
 const isIdentifierWithName = (value: unknown): value is EsTreeNode & { name: string } =>
@@ -57,6 +91,63 @@ const getNodeEnd = (node: EsTreeNode): number => {
   if (Array.isArray(node.range) && typeof node.range[1] === "number") return node.range[1];
   return getNodeStart(node);
 };
+
+const collectBindingIdentifierNames = (node: unknown): string[] => {
+  if (!isAstNode(node)) return [];
+  if (isIdentifierWithName(node)) return [node.name];
+  if (node.type === "ObjectPattern") {
+    return (node.properties ?? []).flatMap((property: unknown) => {
+      if (!isAstNode(property)) return [];
+      if (property.type === "Property") return collectBindingIdentifierNames(property.value);
+      if (property.type === "RestElement") return collectBindingIdentifierNames(property.argument);
+      return [];
+    });
+  }
+  if (node.type === "ArrayPattern") {
+    return (node.elements ?? []).flatMap(collectBindingIdentifierNames);
+  }
+  if (node.type === "AssignmentPattern") {
+    return collectBindingIdentifierNames(node.left);
+  }
+  if (node.type === "RestElement") {
+    return collectBindingIdentifierNames(node.argument);
+  }
+  return [];
+};
+
+const findNearestScopeEnd = (node: EsTreeNode): number => {
+  let currentNode = node.parent;
+  while (currentNode) {
+    if (
+      currentNode.type === "BlockStatement" ||
+      currentNode.type === "Program" ||
+      currentNode.type === "StaticBlock"
+    ) {
+      return getNodeEnd(currentNode);
+    }
+    currentNode = currentNode.parent;
+  }
+  return getNodeEnd(node);
+};
+
+const addShadowRange = (
+  runtimeEntryLocals: RuntimeEntryLocals,
+  name: string,
+  range: ShadowRange,
+): void => {
+  const ranges = runtimeEntryLocals.shadowRangesByName.get(name) ?? [];
+  ranges.push(range);
+  runtimeEntryLocals.shadowRangesByName.set(name, ranges);
+};
+
+const isRuntimeLocalShadowed = (
+  runtimeEntryLocals: RuntimeEntryLocals,
+  name: string,
+  position: number,
+): boolean =>
+  runtimeEntryLocals.shadowRangesByName
+    .get(name)
+    ?.some((range) => position >= range.start && position <= range.end) ?? false;
 
 const position = (file: ProjectFile, start: number) =>
   getSourcePositionFromLineStarts(file.lineStarts, start);
@@ -138,6 +229,25 @@ const toMemberExpressionPath = (
   return {
     namespace: parentPath.namespace,
     memberPath: [...parentPath.memberPath, propertyName],
+  };
+};
+
+const toQualifiedNamePath = (
+  node: EsTreeNode,
+): { namespace: string; memberPath: string[] } | null => {
+  if (isIdentifierWithName(node)) return { namespace: node.name, memberPath: [] };
+  if (
+    node.type !== "TSQualifiedName" ||
+    !isAstNode(node.left) ||
+    !isIdentifierWithName(node.right)
+  ) {
+    return null;
+  }
+  const parentPath = toQualifiedNamePath(node.left);
+  if (!parentPath) return null;
+  return {
+    namespace: parentPath.namespace,
+    memberPath: [...parentPath.memberPath, node.right.name],
   };
 };
 
@@ -249,8 +359,140 @@ const getImportUseExpression = (importCall: EsTreeNode): EsTreeNode => {
   return expression;
 };
 
+const toDynamicImportThenBinding = (
+  importedName: string,
+  localName: string,
+  node: EsTreeNode,
+): ImportedBinding => ({
+  importedName,
+  localName,
+  isTypeOnly: false,
+  isNamespace: false,
+  start: getNodeStart(node),
+  end: getNodeEnd(node),
+});
+
+const collectDynamicImportThenBindings = (importUseExpression: EsTreeNode): ImportedBinding[] => {
+  const thenMemberExpression = importUseExpression.parent;
+  if (
+    !isAstNode(thenMemberExpression) ||
+    thenMemberExpression.type !== "MemberExpression" ||
+    thenMemberExpression.object !== importUseExpression ||
+    !isIdentifierWithName(thenMemberExpression.property) ||
+    thenMemberExpression.property.name !== "then"
+  ) {
+    return [];
+  }
+  const thenCallExpression = thenMemberExpression.parent;
+  if (
+    !isAstNode(thenCallExpression) ||
+    thenCallExpression.type !== "CallExpression" ||
+    thenCallExpression.callee !== thenMemberExpression ||
+    !Array.isArray(thenCallExpression.arguments)
+  ) {
+    return [];
+  }
+  const callback = thenCallExpression.arguments[0];
+  if (
+    !isAstNode(callback) ||
+    (callback.type !== "ArrowFunctionExpression" && callback.type !== "FunctionExpression") ||
+    !Array.isArray(callback.params)
+  ) {
+    return [];
+  }
+  const moduleParameter = callback.params[0];
+  if (!isAstNode(moduleParameter)) return [];
+  if (moduleParameter.type === "ObjectPattern") {
+    return collectObjectPatternRequireBindings(moduleParameter);
+  }
+  if (!isIdentifierWithName(moduleParameter) || !isAstNode(callback.body)) return [];
+  const importedNamesByName = new Map<string, ImportedBinding>();
+  walkAst(callback.body, (node) => {
+    if (node.type !== "MemberExpression") return;
+    const memberExpressionPath = toMemberExpressionPath(node);
+    if (
+      !memberExpressionPath ||
+      memberExpressionPath.namespace !== moduleParameter.name ||
+      memberExpressionPath.memberPath.length === 0
+    ) {
+      return;
+    }
+    const importedName = memberExpressionPath.memberPath[0];
+    if (importedName && !importedNamesByName.has(importedName)) {
+      importedNamesByName.set(
+        importedName,
+        toDynamicImportThenBinding(importedName, moduleParameter.name, node),
+      );
+    }
+  });
+  return [...importedNamesByName.values()];
+};
+
+const isPromiseAllCall = (node: EsTreeNode): boolean =>
+  node.type === "CallExpression" &&
+  isAstNode(node.callee) &&
+  node.callee.type === "MemberExpression" &&
+  isIdentifierWithName(node.callee.object) &&
+  node.callee.object.name === "Promise" &&
+  isIdentifierWithName(node.callee.property) &&
+  node.callee.property.name === "all";
+
+const collectDynamicImportPromiseAllBindings = (
+  importUseExpression: EsTreeNode,
+): ImportedBinding[] => {
+  const importElements = importUseExpression.parent;
+  if (!isAstNode(importElements) || importElements.type !== "ArrayExpression") return [];
+  const promiseAllCall = importElements.parent;
+  if (!isAstNode(promiseAllCall) || !isPromiseAllCall(promiseAllCall)) return [];
+  const awaitExpression = promiseAllCall.parent;
+  if (
+    !isAstNode(awaitExpression) ||
+    awaitExpression.type !== "AwaitExpression" ||
+    awaitExpression.argument !== promiseAllCall
+  ) {
+    return [];
+  }
+  const declarator = awaitExpression.parent;
+  if (
+    !isAstNode(declarator) ||
+    declarator.type !== "VariableDeclarator" ||
+    declarator.init !== awaitExpression ||
+    !isAstNode(declarator.id) ||
+    declarator.id.type !== "ArrayPattern" ||
+    !Array.isArray(importElements.elements) ||
+    !Array.isArray(declarator.id.elements)
+  ) {
+    return [];
+  }
+  const importIndex = importElements.elements.findIndex(
+    (element) => element === importUseExpression,
+  );
+  const bindingElement = declarator.id.elements[importIndex];
+  if (!isAstNode(bindingElement)) return [];
+  if (bindingElement.type === "ObjectPattern") {
+    return collectObjectPatternRequireBindings(bindingElement);
+  }
+  if (isIdentifierWithName(bindingElement)) {
+    return [
+      {
+        importedName: "*",
+        localName: bindingElement.name,
+        isTypeOnly: false,
+        isNamespace: true,
+        start: getNodeStart(bindingElement),
+        end: getNodeEnd(bindingElement),
+      },
+    ];
+  }
+  return [];
+};
+
 const collectDynamicImportBindings = (importCall: EsTreeNode): ImportedBinding[] => {
   const importUseExpression = getImportUseExpression(importCall);
+  const thenBindings = collectDynamicImportThenBindings(importUseExpression);
+  if (thenBindings.length > 0) return thenBindings;
+  const promiseAllBindings = collectDynamicImportPromiseAllBindings(importUseExpression);
+  if (promiseAllBindings.length > 0) return promiseAllBindings;
   const parent = importUseExpression.parent;
   if (!parent) return [];
   if (
@@ -320,6 +562,25 @@ const getTemplateGlobValue = (node: unknown): string | null => {
   });
   if (parts.length < 2) return null;
   return parts.reduce((pattern, part, index) => `${pattern}${index > 0 ? "*" : ""}${part}`, "");
+};
+
+const getStringConcatenationGlobValue = (node: unknown): string | null => {
+  if (!isAstNode(node)) return null;
+  const literalValue = getStringLiteralValue(node);
+  if (literalValue !== null) return literalValue;
+  if (node.type !== "BinaryExpression" || node.operator !== "+") return "*";
+  const leftValue = getStringConcatenationGlobValue(node.left);
+  const rightValue = getStringConcatenationGlobValue(node.right);
+  if (leftValue === null || rightValue === null) return null;
+  return `${leftValue}${rightValue}`;
+};
+
+const getDynamicImportGlobValue = (node: unknown): string | null => {
+  const templatePattern = getTemplateGlobValue(node);
+  if (templatePattern) return templatePattern;
+  const concatenationPattern = getStringConcatenationGlobValue(node);
+  if (!concatenationPattern || !concatenationPattern.includes("*")) return null;
+  return concatenationPattern;
 };
 
 const getBooleanLiteralValue = (node: unknown): boolean | null => {
@@ -411,7 +672,7 @@ const createDynamicImportRecord = (
       getNodeEnd(node),
     );
   }
-  const templatePattern = getTemplateGlobValue(sourceNode);
+  const templatePattern = getDynamicImportGlobValue(sourceNode);
   if (!templatePattern) return null;
   return createImportRecord(
     file,
@@ -463,12 +724,25 @@ const collectJSDocTags = (comments: CommentRecord[], exportStart: number): Set<s
     .filter((comment) => comment.end <= exportStart)
     .sort((first, second) => second.end - first.end)[0];
   if (!precedingComment || exportStart - precedingComment.end > 8) return new Set();
-  return new Set(
-    [...precedingComment.value.matchAll(/@([a-zA-Z][\w-]*)/g)]
-      .map((match) => match[1])
-      .filter(Boolean),
-  );
+  const tags = [
+    ...[...precedingComment.value.matchAll(/@([a-zA-Z][\w-]*)/g)].map((match) => match[1]),
+    ...[...precedingComment.value.matchAll(/@api\s+([a-zA-Z][\w-]*)/g)].map((match) => match[1]),
+  ].filter((tag): tag is string => Boolean(tag));
+  return new Set(tags);
 };
+
+const toCommentImportedBinding = (
+  importedName: string,
+  start: number,
+  end: number,
+): ImportedBinding => ({
+  importedName,
+  localName: importedName,
+  isTypeOnly: true,
+  isNamespace: false,
+  start,
+  end,
+});
 
 const collectCommentImportRecords = (
   file: ProjectFile,
@@ -476,19 +750,51 @@ const collectCommentImportRecords = (
 ): ImportRecord[] => {
   const imports: ImportRecord[] = [];
   for (const comment of comments) {
-    const matches = [
-      ...comment.value.matchAll(/<reference\s+path=["']([^"']+)["']/g),
-      ...comment.value.matchAll(/import\(\s*["']([^"']+)["']\s*\)/g),
-      ...comment.value.matchAll(/@import\b[\s\S]*?\bfrom\s+["']([^"']+)["']/g),
-    ];
-    for (const match of matches) {
+    for (const match of comment.value.matchAll(/<reference\s+path=["']([^"']+)["']/g)) {
       const source = match[1];
       if (!source) continue;
       imports.push(
         createImportRecord(
           file,
           source,
-          "static",
+          "comment",
+          [],
+          comment.start,
+          comment.end,
+          false,
+          undefined,
+          true,
+        ),
+      );
+    }
+    for (const match of comment.value.matchAll(
+      /import\(\s*["']([^"']+)["']\s*\)(?:\s*\.\s*([A-Za-z_$][\w$]*))?/g,
+    )) {
+      const source = match[1];
+      if (!source) continue;
+      const importedName = match[2];
+      imports.push(
+        createImportRecord(
+          file,
+          source,
+          "comment",
+          importedName ? [toCommentImportedBinding(importedName, comment.start, comment.end)] : [],
+          comment.start,
+          comment.end,
+          false,
+          undefined,
+          true,
+        ),
+      );
+    }
+    for (const match of comment.value.matchAll(/@import\b[\s\S]*?\bfrom\s+["']([^"']+)["']/g)) {
+      const source = match[1];
+      if (!source) continue;
+      imports.push(
+        createImportRecord(
+          file,
+          source,
+          "comment",
           [],
           comment.start,
           comment.end,
@@ -517,6 +823,7 @@ const toExportRecord = (
     symbolKind: getExportKind(entry),
     isTypeOnly: entry.isType,
     isReExport: Boolean(entry.moduleRequest),
+    isCommonJs: false,
     isNamespace: entry.importName.kind === "All" || entry.importName.kind === "AllButDefault",
     isReactComponentLike: isReactComponentLikeName(exportedName),
     jsDocTags: collectJSDocTags(comments, entry.start),
@@ -698,6 +1005,624 @@ const collectDestructuredNamespaceReferences = (node: EsTreeNode): NamespaceMemb
   });
 };
 
+const collectObjectExportNames = (node: unknown): string[] => {
+  if (!isAstNode(node) || node.type !== "ObjectExpression" || !Array.isArray(node.properties)) {
+    return [];
+  }
+  return node.properties.flatMap((property) => {
+    if (!isAstNode(property) || property.type !== "Property") return [];
+    const propertyName = toPropertyName(property.key);
+    return propertyName ? [propertyName] : [];
+  });
+};
+
+const getRequireCallSource = (node: unknown): string | null => {
+  if (
+    !isAstNode(node) ||
+    node.type !== "CallExpression" ||
+    !isIdentifierWithName(node.callee) ||
+    node.callee.name !== "require" ||
+    !Array.isArray(node.arguments)
+  ) {
+    return null;
+  }
+  return getStringLiteralValue(node.arguments[0]);
+};
+
+const createRuntimeEntryLocals = (): RuntimeEntryLocals => ({
+  childProcessMethodNames: new Set(),
+  childProcessNamespaceNames: new Set(),
+  nodeModuleNamespaceNames: new Set(),
+  nodeModuleRegisterNames: new Set(),
+  pathHelperMethodNames: new Map(),
+  pathNamespaceNames: new Set(),
+  shadowRangesByName: new Map(),
+  workerThreadConstructorNames: new Set(),
+  workerThreadNamespaceNames: new Set(),
+});
+
+const addRuntimeImportDeclarationLocals = (
+  node: EsTreeNode,
+  runtimeEntryLocals: RuntimeEntryLocals,
+): void => {
+  if (node.type !== "ImportDeclaration" || !Array.isArray(node.specifiers)) return;
+  const source = getStringLiteralValue(node.source);
+  if (!source) return;
+  for (const specifier of node.specifiers) {
+    if (!isAstNode(specifier) || !isIdentifierWithName(specifier.local)) continue;
+    if (CHILD_PROCESS_MODULE_SPECIFIERS.has(source)) {
+      if (specifier.type === "ImportNamespaceSpecifier") {
+        runtimeEntryLocals.childProcessNamespaceNames.add(specifier.local.name);
+      } else if (specifier.type === "ImportSpecifier") {
+        const importedName = toPropertyName(specifier.imported);
+        if (importedName && CHILD_PROCESS_ENTRY_METHODS.has(importedName)) {
+          runtimeEntryLocals.childProcessMethodNames.add(specifier.local.name);
+        }
+      }
+    }
+    if (NODE_MODULE_SPECIFIERS.has(source)) {
+      if (specifier.type === "ImportNamespaceSpecifier") {
+        runtimeEntryLocals.nodeModuleNamespaceNames.add(specifier.local.name);
+      } else if (specifier.type === "ImportSpecifier") {
+        const importedName = toPropertyName(specifier.imported);
+        if (importedName === "register") {
+          runtimeEntryLocals.nodeModuleRegisterNames.add(specifier.local.name);
+        }
+      }
+    }
+    if (PATH_MODULE_SPECIFIERS.has(source)) {
+      if (
+        specifier.type === "ImportNamespaceSpecifier" ||
+        specifier.type === "ImportDefaultSpecifier"
+      ) {
+        runtimeEntryLocals.pathNamespaceNames.add(specifier.local.name);
+      } else if (specifier.type === "ImportSpecifier") {
+        const importedName = toPropertyName(specifier.imported);
+        if (importedName && PATH_ENTRY_HELPER_METHODS.has(importedName)) {
+          runtimeEntryLocals.pathHelperMethodNames.set(specifier.local.name, importedName);
+        }
+      }
+    }
+    if (WORKER_THREADS_MODULE_SPECIFIERS.has(source)) {
+      if (specifier.type === "ImportNamespaceSpecifier") {
+        runtimeEntryLocals.workerThreadNamespaceNames.add(specifier.local.name);
+      } else if (specifier.type === "ImportSpecifier") {
+        const importedName = toPropertyName(specifier.imported);
+        if (importedName === "Worker") {
+          runtimeEntryLocals.workerThreadConstructorNames.add(specifier.local.name);
+        }
+      }
+    }
+  }
+};
+
+const addRuntimeRequireLocals = (
+  node: EsTreeNode,
+  runtimeEntryLocals: RuntimeEntryLocals,
+): void => {
+  if (node.type !== "VariableDeclarator" || !isAstNode(node.id) || !isAstNode(node.init)) {
+    return;
+  }
+  const source = getRequireCallSource(node.init);
+  if (!source) return;
+  if (isIdentifierWithName(node.id)) {
+    if (CHILD_PROCESS_MODULE_SPECIFIERS.has(source)) {
+      runtimeEntryLocals.childProcessNamespaceNames.add(node.id.name);
+    }
+    if (NODE_MODULE_SPECIFIERS.has(source)) {
+      runtimeEntryLocals.nodeModuleNamespaceNames.add(node.id.name);
+    }
+    if (PATH_MODULE_SPECIFIERS.has(source)) {
+      runtimeEntryLocals.pathNamespaceNames.add(node.id.name);
+    }
+    if (WORKER_THREADS_MODULE_SPECIFIERS.has(source)) {
+      runtimeEntryLocals.workerThreadNamespaceNames.add(node.id.name);
+    }
+    return;
+  }
+  if (node.id.type !== "ObjectPattern") return;
+  for (const binding of collectObjectPatternRequireBindings(node.id)) {
+    if (
+      CHILD_PROCESS_MODULE_SPECIFIERS.has(source) &&
+      CHILD_PROCESS_ENTRY_METHODS.has(binding.importedName)
+    ) {
+      runtimeEntryLocals.childProcessMethodNames.add(binding.localName);
+    }
+    if (NODE_MODULE_SPECIFIERS.has(source) && binding.importedName === "register") {
+      runtimeEntryLocals.nodeModuleRegisterNames.add(binding.localName);
+    }
+    if (PATH_MODULE_SPECIFIERS.has(source) && PATH_ENTRY_HELPER_METHODS.has(binding.importedName)) {
+      runtimeEntryLocals.pathHelperMethodNames.set(binding.localName, binding.importedName);
+    }
+    if (WORKER_THREADS_MODULE_SPECIFIERS.has(source) && binding.importedName === "Worker") {
+      runtimeEntryLocals.workerThreadConstructorNames.add(binding.localName);
+    }
+  }
+};
+
+const getRuntimeRequireBindingNames = (node: EsTreeNode): Set<string> => {
+  const bindingNames = new Set<string>();
+  if (node.type !== "VariableDeclarator" || !isAstNode(node.id) || !isAstNode(node.init)) {
+    return bindingNames;
+  }
+  const source = getRequireCallSource(node.init);
+  if (
+    !source ||
+    (!CHILD_PROCESS_MODULE_SPECIFIERS.has(source) &&
+      !NODE_MODULE_SPECIFIERS.has(source) &&
+      !PATH_MODULE_SPECIFIERS.has(source) &&
+      !WORKER_THREADS_MODULE_SPECIFIERS.has(source))
+  ) {
+    return bindingNames;
+  }
+  for (const bindingName of collectBindingIdentifierNames(node.id)) {
+    bindingNames.add(bindingName);
+  }
+  return bindingNames;
+};
+
+const addRuntimeShadowRanges = (node: EsTreeNode, runtimeEntryLocals: RuntimeEntryLocals): void => {
+  if (
+    (node.type === "FunctionDeclaration" ||
+      node.type === "FunctionExpression" ||
+      node.type === "ArrowFunctionExpression") &&
+    isAstNode(node.body)
+  ) {
+    const range = { start: getNodeStart(node.body), end: getNodeEnd(node.body) };
+    for (const bindingName of (node.params ?? []).flatMap(collectBindingIdentifierNames)) {
+      addShadowRange(runtimeEntryLocals, bindingName, range);
+    }
+    if (
+      (node.type === "FunctionDeclaration" || node.type === "FunctionExpression") &&
+      isIdentifierWithName(node.id)
+    ) {
+      addShadowRange(runtimeEntryLocals, node.id.name, range);
+    }
+    return;
+  }
+  if (node.type === "VariableDeclarator" && isAstNode(node.id)) {
+    const runtimeRequireBindingNames = getRuntimeRequireBindingNames(node);
+    const range = { start: getNodeStart(node), end: findNearestScopeEnd(node) };
+    for (const bindingName of collectBindingIdentifierNames(node.id)) {
+      if (!runtimeRequireBindingNames.has(bindingName)) {
+        addShadowRange(runtimeEntryLocals, bindingName, range);
+      }
+    }
+    return;
+  }
+  if (node.type === "CatchClause" && isAstNode(node.param) && isAstNode(node.body)) {
+    const range = { start: getNodeStart(node.body), end: getNodeEnd(node.body) };
+    for (const bindingName of collectBindingIdentifierNames(node.param)) {
+      addShadowRange(runtimeEntryLocals, bindingName, range);
+    }
+  }
+};
+
+const getInlineDirnamePath = (
+  node: unknown,
+  runtimeEntryLocals: RuntimeEntryLocals,
+): string | null => {
+  if (
+    !isAstNode(node) ||
+    node.type !== "CallExpression" ||
+    !isAstNode(node.callee) ||
+    !Array.isArray(node.arguments) ||
+    node.arguments.length < 2
+  ) {
+    return null;
+  }
+  let helperName: string | null = null;
+  if (
+    node.callee.type === "MemberExpression" &&
+    isIdentifierWithName(node.callee.object) &&
+    runtimeEntryLocals.pathNamespaceNames.has(node.callee.object.name) &&
+    !isRuntimeLocalShadowed(
+      runtimeEntryLocals,
+      node.callee.object.name,
+      getNodeStart(node.callee.object),
+    ) &&
+    isIdentifierWithName(node.callee.property) &&
+    PATH_ENTRY_HELPER_METHODS.has(node.callee.property.name)
+  ) {
+    helperName = node.callee.property.name;
+  } else if (
+    isIdentifierWithName(node.callee) &&
+    !isRuntimeLocalShadowed(runtimeEntryLocals, node.callee.name, getNodeStart(node.callee))
+  ) {
+    helperName = runtimeEntryLocals.pathHelperMethodNames.get(node.callee.name) ?? null;
+  }
+  if (!helperName) return null;
+  const firstArgument = node.arguments[0];
+  if (!isIdentifierWithName(firstArgument) || firstArgument.name !== "__dirname") return null;
+  const pathParts = node.arguments.slice(1).map(getStringLiteralValue);
+  if (pathParts.some((pathPart) => pathPart === null)) return null;
+  const joinedPath = pathParts.join("/").replace(/\/+/g, "/");
+  return joinedPath.startsWith(".") || joinedPath.startsWith("/") ? joinedPath : `./${joinedPath}`;
+};
+
+const isImportMetaUrlExpression = (node: unknown): boolean =>
+  isAstNode(node) &&
+  node.type === "MemberExpression" &&
+  isAstNode(node.object) &&
+  node.object.type === "MetaProperty" &&
+  isIdentifierWithName(node.property) &&
+  node.property.name === "url";
+
+const createEntryImportRecord = (file: ProjectFile, sourceNode: unknown): ImportRecord | null => {
+  if (!isAstNode(sourceNode)) return null;
+  const source = getStringLiteralValue(sourceNode);
+  if (!source) return null;
+  return createImportRecord(
+    file,
+    source,
+    "require-resolve",
+    [],
+    getNodeStart(sourceNode),
+    getNodeEnd(sourceNode),
+  );
+};
+
+const collectResolverEntryImportRecords = (
+  file: ProjectFile,
+  node: EsTreeNode,
+  runtimeEntryLocals: RuntimeEntryLocals,
+): ImportRecord[] => {
+  if (node.type !== "CallExpression" || !isAstNode(node.callee) || !Array.isArray(node.arguments)) {
+    return [];
+  }
+  const firstArgument = node.arguments[0];
+  if (
+    node.callee.type === "MemberExpression" &&
+    isIdentifierWithName(node.callee.object) &&
+    node.callee.object.name === "require" &&
+    !isRuntimeLocalShadowed(runtimeEntryLocals, "require", getNodeStart(node.callee.object)) &&
+    isIdentifierWithName(node.callee.property) &&
+    node.callee.property.name === "resolve"
+  ) {
+    const importRecord = createEntryImportRecord(file, firstArgument);
+    return importRecord ? [importRecord] : [];
+  }
+  if (
+    node.callee.type === "MemberExpression" &&
+    isAstNode(node.callee.object) &&
+    node.callee.object.type === "MetaProperty" &&
+    isIdentifierWithName(node.callee.property) &&
+    node.callee.property.name === "resolve"
+  ) {
+    const importRecord = createEntryImportRecord(file, firstArgument);
+    return importRecord ? [importRecord] : [];
+  }
+  let isNodeModuleRegisterCall = false;
+  if (
+    isIdentifierWithName(node.callee) &&
+    runtimeEntryLocals.nodeModuleRegisterNames.has(node.callee.name) &&
+    !isRuntimeLocalShadowed(runtimeEntryLocals, node.callee.name, getNodeStart(node.callee))
+  ) {
+    isNodeModuleRegisterCall = true;
+  } else if (
+    node.callee.type === "MemberExpression" &&
+    isIdentifierWithName(node.callee.object) &&
+    runtimeEntryLocals.nodeModuleNamespaceNames.has(node.callee.object.name) &&
+    !isRuntimeLocalShadowed(
+      runtimeEntryLocals,
+      node.callee.object.name,
+      getNodeStart(node.callee.object),
+    ) &&
+    isIdentifierWithName(node.callee.property) &&
+    node.callee.property.name === "register"
+  ) {
+    isNodeModuleRegisterCall = true;
+  }
+  if (!isNodeModuleRegisterCall) return [];
+  const source = getStringLiteralValue(firstArgument);
+  const secondArgument = node.arguments[1];
+  if (!source || (source.startsWith(".") && !isImportMetaUrlExpression(secondArgument))) {
+    return [];
+  }
+  const importRecord = createEntryImportRecord(file, firstArgument);
+  return importRecord ? [importRecord] : [];
+};
+
+const collectRuntimeEntryImportRecords = (
+  file: ProjectFile,
+  node: EsTreeNode,
+  runtimeEntryLocals: RuntimeEntryLocals,
+): ImportRecord[] => {
+  if (node.type !== "CallExpression" || !isAstNode(node.callee) || !Array.isArray(node.arguments)) {
+    return [];
+  }
+  let isChildProcessEntryCall = false;
+  if (
+    isIdentifierWithName(node.callee) &&
+    runtimeEntryLocals.childProcessMethodNames.has(node.callee.name) &&
+    !isRuntimeLocalShadowed(runtimeEntryLocals, node.callee.name, getNodeStart(node.callee))
+  ) {
+    isChildProcessEntryCall = true;
+  } else if (
+    node.callee.type === "MemberExpression" &&
+    isIdentifierWithName(node.callee.object) &&
+    runtimeEntryLocals.childProcessNamespaceNames.has(node.callee.object.name) &&
+    !isRuntimeLocalShadowed(
+      runtimeEntryLocals,
+      node.callee.object.name,
+      getNodeStart(node.callee.object),
+    ) &&
+    isIdentifierWithName(node.callee.property) &&
+    CHILD_PROCESS_ENTRY_METHODS.has(node.callee.property.name)
+  ) {
+    isChildProcessEntryCall = true;
+  }
+  if (!isChildProcessEntryCall) return [];
+  const source = getInlineDirnamePath(node.arguments[0], runtimeEntryLocals);
+  if (!source) return [];
+  return [
+    createImportRecord(
+      file,
+      source,
+      "require-resolve",
+      [],
+      getNodeStart(node.arguments[0]),
+      getNodeEnd(node.arguments[0]),
+    ),
+  ];
+};
+
+const collectWorkerThreadEntryImportRecords = (
+  file: ProjectFile,
+  node: EsTreeNode,
+  runtimeEntryLocals: RuntimeEntryLocals,
+): ImportRecord[] => {
+  if (node.type !== "NewExpression" || !isAstNode(node.callee) || !Array.isArray(node.arguments)) {
+    return [];
+  }
+  let isWorkerThreadConstructor = false;
+  if (
+    isIdentifierWithName(node.callee) &&
+    runtimeEntryLocals.workerThreadConstructorNames.has(node.callee.name) &&
+    !isRuntimeLocalShadowed(runtimeEntryLocals, node.callee.name, getNodeStart(node.callee))
+  ) {
+    isWorkerThreadConstructor = true;
+  } else if (
+    node.callee.type === "MemberExpression" &&
+    isIdentifierWithName(node.callee.object) &&
+    runtimeEntryLocals.workerThreadNamespaceNames.has(node.callee.object.name) &&
+    !isRuntimeLocalShadowed(
+      runtimeEntryLocals,
+      node.callee.object.name,
+      getNodeStart(node.callee.object),
+    ) &&
+    isIdentifierWithName(node.callee.property) &&
+    node.callee.property.name === "Worker"
+  ) {
+    isWorkerThreadConstructor = true;
+  }
+  if (!isWorkerThreadConstructor) return [];
+  const source = getInlineDirnamePath(node.arguments[0], runtimeEntryLocals);
+  if (!source) return [];
+  return [
+    createImportRecord(
+      file,
+      source,
+      "require-resolve",
+      [],
+      getNodeStart(node.arguments[0]),
+      getNodeEnd(node.arguments[0]),
+    ),
+  ];
+};
+
+const collectRequireSpreadSources = (node: unknown): CommonJsStarReExportRecord[] => {
+  if (!isAstNode(node) || node.type !== "ObjectExpression" || !Array.isArray(node.properties)) {
+    return [];
+  }
+  return node.properties.flatMap((property) => {
+    if (!isAstNode(property) || property.type !== "SpreadElement") return [];
+    const source = getRequireCallSource(property.argument);
+    return source ? [{ source, start: getNodeStart(property), end: getNodeEnd(property) }] : [];
+  });
+};
+
+const collectCommonJsExportNames = (node: EsTreeNode): string[] => {
+  if (node.type !== "AssignmentExpression" || node.operator !== "=" || !isAstNode(node.left)) {
+    return [];
+  }
+  const leftPath = toMemberExpressionPath(node.left);
+  if (!leftPath) return [];
+  if (leftPath.namespace === "exports" && leftPath.memberPath.length === 1) {
+    const exportName = leftPath.memberPath[0];
+    return exportName ? [exportName] : [];
+  }
+  if (leftPath.namespace === "module" && leftPath.memberPath[0] === "exports") {
+    if (leftPath.memberPath.length === 2) {
+      const exportName = leftPath.memberPath[1];
+      return exportName ? [exportName] : [];
+    }
+    if (leftPath.memberPath.length === 1) {
+      const objectExportNames = collectObjectExportNames(node.right);
+      if (collectRequireSpreadSources(node.right).length > 0) return objectExportNames;
+      if (getRequireCallSource(node.right)) return [];
+      return objectExportNames.length > 0 ? objectExportNames : ["default"];
+    }
+  }
+  return [];
+};
+
+const collectCommonJsStarReExports = (node: EsTreeNode): CommonJsStarReExportRecord[] => {
+  if (node.type !== "AssignmentExpression" || node.operator !== "=" || !isAstNode(node.left)) {
+    return [];
+  }
+  const leftPath = toMemberExpressionPath(node.left);
+  if (
+    !leftPath ||
+    leftPath.namespace !== "module" ||
+    leftPath.memberPath[0] !== "exports" ||
+    leftPath.memberPath.length !== 1
+  ) {
+    return [];
+  }
+  const directSource = getRequireCallSource(node.right);
+  if (directSource) {
+    return [{ source: directSource, start: getNodeStart(node), end: getNodeEnd(node) }];
+  }
+  return collectRequireSpreadSources(node.right);
+};
+
+const collectCommonJsReExportRecords = (file: ProjectFile, node: EsTreeNode): ImportRecord[] => {
+  if (
+    node.type !== "AssignmentExpression" ||
+    node.operator !== "=" ||
+    !isAstNode(node.left) ||
+    !isAstNode(node.right)
+  ) {
+    return [];
+  }
+  const leftPath = toMemberExpressionPath(node.left);
+  if (
+    !leftPath ||
+    leftPath.namespace !== "module" ||
+    leftPath.memberPath[0] !== "exports" ||
+    leftPath.memberPath.length !== 2
+  ) {
+    return [];
+  }
+  const exportName = leftPath.memberPath[1];
+  if (
+    !exportName ||
+    node.right.type !== "MemberExpression" ||
+    !isAstNode(node.right.object) ||
+    node.right.object.type !== "CallExpression" ||
+    !isIdentifierWithName(node.right.object.callee) ||
+    node.right.object.callee.name !== "require" ||
+    !isAstNode(node.right.property) ||
+    !Array.isArray(node.right.object.arguments)
+  ) {
+    return [];
+  }
+  const source = getStringLiteralValue(node.right.object.arguments[0]);
+  const importedName = toPropertyName(node.right.property);
+  if (!source || !importedName) return [];
+  return [
+    createImportRecord(
+      file,
+      source,
+      "re-export",
+      [
+        {
+          importedName,
+          localName: exportName,
+          isTypeOnly: false,
+          isNamespace: false,
+          start: getNodeStart(node.right.property),
+          end: getNodeEnd(node.right.property),
+        },
+      ],
+      getNodeStart(node),
+      getNodeEnd(node),
+    ),
+  ];
+};
+
+const toMemberObjectReference = (node: unknown): MemberObjectReference | null => {
+  if (!isAstNode(node)) return null;
+  const memberExpressionPath = toMemberExpressionPath(node);
+  return memberExpressionPath
+    ? {
+        namespace: memberExpressionPath.namespace,
+        memberPath: memberExpressionPath.memberPath,
+      }
+    : null;
+};
+
+const collectWholeObjectMemberReferences = (node: EsTreeNode): MemberObjectReference[] => {
+  if (
+    node.type === "CallExpression" &&
+    isAstNode(node.callee) &&
+    node.callee.type === "MemberExpression" &&
+    isIdentifierWithName(node.callee.object) &&
+    node.callee.object.name === "Object" &&
+    isIdentifierWithName(node.callee.property) &&
+    WHOLE_OBJECT_MEMBER_METHODS.has(node.callee.property.name) &&
+    Array.isArray(node.arguments)
+  ) {
+    return node.arguments.flatMap((argument) => {
+      const reference = toMemberObjectReference(argument);
+      return reference ? [reference] : [];
+    });
+  }
+  if (node.type === "SpreadElement") {
+    const reference = toMemberObjectReference(node.argument);
+    return reference ? [reference] : [];
+  }
+  return [];
+};
+
+const toTypeImportQualifierName = (node: unknown): string | null => {
+  if (!isAstNode(node)) return null;
+  if (isIdentifierWithName(node)) return node.name;
+  if (node.type !== "TSQualifiedName") return null;
+  return toTypeImportQualifierName(node.left);
+};
+
+const collectTypeImportRecords = (file: ProjectFile, node: EsTreeNode): ImportRecord[] => {
+  if (node.type !== "TSImportType") return [];
+  const source = getStringLiteralValue(node.source);
+  if (!source) return [];
+  const qualifierName = toTypeImportQualifierName(node.qualifier);
+  return [
+    createImportRecord(
+      file,
+      source,
+      "comment",
+      qualifierName
+        ? [toCommentImportedBinding(qualifierName, getNodeStart(node), getNodeEnd(node))]
+        : [],
+      getNodeStart(node),
+      getNodeEnd(node),
+      false,
+      undefined,
+      true,
+    ),
+  ];
+};
+
+const collectTypeScriptImportEqualsRecords = (
+  file: ProjectFile,
+  node: EsTreeNode,
+): ImportRecord[] => {
+  if (
+    node.type !== "TSImportEqualsDeclaration" ||
+    !isIdentifierWithName(node.id) ||
+    !isAstNode(node.moduleReference) ||
+    node.moduleReference.type !== "TSExternalModuleReference"
+  ) {
+    return [];
+  }
+  const source = getStringLiteralValue(node.moduleReference.expression);
+  if (!source) return [];
+  return [
+    createImportRecord(
+      file,
+      source,
+      "require",
+      [
+        {
+          importedName: "*",
+          localName: node.id.name,
+          isTypeOnly: node.importKind === "type",
+          isNamespace: true,
+          start: getNodeStart(node.id),
+          end: getNodeEnd(node.id),
+        },
+      ],
+      getNodeStart(node),
+      getNodeEnd(node),
+      false,
+      undefined,
+      node.importKind === "type",
+    ),
+  ];
+};
+
 const collectAstFacts = (
   file: ProjectFile,
   program: EsTreeNode,
@@ -705,22 +1630,30 @@ const collectAstFacts = (
   imports: ImportRecord[];
   usedIdentifiers: Set<string>;
   namespaceMemberReferences: NamespaceMemberReference[];
+  memberObjectReferences: MemberObjectReference[];
   namespaceObjectAliases: NamespaceObjectAlias[];
   namespaceLocalAliases: NamespaceLocalAlias[];
   namespaceLocalObjectAliases: NamespaceLocalObjectAlias[];
   cjsExportNames: Set<string>;
+  cjsStarReExports: CommonJsStarReExportRecord[];
   membersByExportName: Map<string, ExportMemberRecord[]>;
 } => {
   const imports: ImportRecord[] = [];
   const usedIdentifiers = new Set<string>();
   const namespaceMemberReferences: NamespaceMemberReference[] = [];
+  const memberObjectReferences: MemberObjectReference[] = [];
   const namespaceObjectAliases: NamespaceObjectAlias[] = [];
   const namespaceLocalAliases: NamespaceLocalAlias[] = [];
   const namespaceLocalObjectAliases: NamespaceLocalObjectAlias[] = [];
   const cjsExportNames = new Set<string>();
+  const cjsStarReExports: CommonJsStarReExportRecord[] = [];
+  const runtimeEntryLocals = createRuntimeEntryLocals();
   const membersByExportName = new Map<string, ExportMemberRecord[]>();
 
   walkAst(program, (node) => {
+    addRuntimeImportDeclarationLocals(node, runtimeEntryLocals);
+    addRuntimeShadowRanges(node, runtimeEntryLocals);
+
     if (
       node.type === "Identifier" &&
       typeof node.name === "string" &&
@@ -733,7 +1666,13 @@ const collectAstFacts = (
       usedIdentifiers.add(node.name);
     }
 
+    memberObjectReferences.push(...collectWholeObjectMemberReferences(node));
+    imports.push(...collectTypeImportRecords(file, node));
+    imports.push(...collectTypeScriptImportEqualsRecords(file, node));
+
     if (node.type === "CallExpression" && isAstNode(node.callee)) {
+      imports.push(...collectResolverEntryImportRecords(file, node, runtimeEntryLocals));
+      imports.push(...collectRuntimeEntryImportRecords(file, node, runtimeEntryLocals));
       imports.push(...collectContextImportRecords(file, node));
       if (node.callee.type === "Import" && Array.isArray(node.arguments)) {
         const dynamicImportRecord = createDynamicImportRecord(file, node, node.arguments[0]);
@@ -752,29 +1691,6 @@ const collectAstFacts = (
               source,
               "require",
               collectRequireBindings(node),
-              getNodeStart(node),
-              getNodeEnd(node),
-            ),
-          );
-      }
-      if (
-        node.callee.type === "MemberExpression" &&
-        isAstNode(node.callee.object) &&
-        isAstNode(node.callee.property) &&
-        node.callee.object.type === "Identifier" &&
-        node.callee.object.name === "require" &&
-        node.callee.property.type === "Identifier" &&
-        node.callee.property.name === "resolve" &&
-        Array.isArray(node.arguments)
-      ) {
-        const source = getStringLiteralValue(node.arguments[0]);
-        if (source)
-          imports.push(
-            createImportRecord(
-              file,
-              source,
-              "require-resolve",
-              [],
               getNodeStart(node),
               getNodeEnd(node),
             ),
@@ -801,11 +1717,33 @@ const collectAstFacts = (
         );
     }
 
+    imports.push(...collectWorkerThreadEntryImportRecords(file, node, runtimeEntryLocals));
+
     if (node.type === "VariableDeclarator") {
+      addRuntimeRequireLocals(node, runtimeEntryLocals);
       namespaceObjectAliases.push(...collectObjectNamespaceAliases(node));
       namespaceLocalAliases.push(...collectNamespaceLocalAliases(node));
       namespaceLocalObjectAliases.push(...collectNamespaceLocalObjectAliases(node));
       namespaceMemberReferences.push(...collectDestructuredNamespaceReferences(node));
+    }
+
+    if (node.type === "TSQualifiedName") {
+      const qualifiedNamePath = toQualifiedNamePath(node);
+      if (qualifiedNamePath && qualifiedNamePath.memberPath.length > 0) {
+        namespaceMemberReferences.push({
+          namespace: qualifiedNamePath.namespace,
+          memberName: qualifiedNamePath.memberPath.at(-1) ?? "",
+          memberPath: qualifiedNamePath.memberPath,
+        });
+      }
+    }
+
+    if (node.type === "AssignmentExpression") {
+      imports.push(...collectCommonJsReExportRecords(file, node));
+      cjsStarReExports.push(...collectCommonJsStarReExports(node));
+      for (const exportName of collectCommonJsExportNames(node)) {
+        cjsExportNames.add(exportName);
+      }
     }
 
     if (node.type === "MemberExpression" && isAstNode(node.object) && isAstNode(node.property)) {
@@ -823,14 +1761,6 @@ const collectAstFacts = (
           cjsExportNames.add(memberExpressionPath.memberPath[0] ?? "");
         }
       }
-      if (
-        isIdentifierWithName(node.object) &&
-        node.object.name === "module" &&
-        isIdentifierWithName(node.property) &&
-        node.property.name === "exports"
-      ) {
-        cjsExportNames.add("default");
-      }
     }
 
     if (
@@ -840,27 +1770,31 @@ const collectAstFacts = (
     ) {
       const members: ExportMemberRecord[] = [];
       const rawMembers =
-        node.type === "TSEnumDeclaration" && isAstNode(node.body) && Array.isArray(node.body.members)
+        node.type === "TSEnumDeclaration" &&
+        isAstNode(node.body) &&
+        Array.isArray(node.body.members)
           ? node.body.members
-          : node.type === "ClassDeclaration" && isAstNode(node.body) && Array.isArray(node.body.body)
+          : node.type === "ClassDeclaration" &&
+              isAstNode(node.body) &&
+              Array.isArray(node.body.body)
             ? node.body.body
             : [];
       for (const member of rawMembers) {
-          if (!isAstNode(member)) continue;
-          if (node.type === "ClassDeclaration" && member.static !== true) continue;
-          const key = isAstNode(member.id) ? member.id : isAstNode(member.key) ? member.key : null;
-          const name = key && typeof key.name === "string" ? key.name : getStringLiteralValue(key);
-          if (name) {
-            members.push({
-              name,
-              kind: node.type === "TSEnumDeclaration" ? "enum" : "class",
-              start: getNodeStart(member),
-              end: getNodeEnd(member),
-              position: position(file, getNodeStart(member)),
-              jsDocTags: new Set(),
-              hasLocalReferences: false,
-            });
-          }
+        if (!isAstNode(member)) continue;
+        if (node.type === "ClassDeclaration" && member.static !== true) continue;
+        const key = isAstNode(member.id) ? member.id : isAstNode(member.key) ? member.key : null;
+        const name = key && typeof key.name === "string" ? key.name : getStringLiteralValue(key);
+        if (name) {
+          members.push({
+            name,
+            kind: node.type === "TSEnumDeclaration" ? "enum" : "class",
+            start: getNodeStart(member),
+            end: getNodeEnd(member),
+            position: position(file, getNodeStart(member)),
+            jsDocTags: new Set(),
+            hasLocalReferences: false,
+          });
+        }
       }
       membersByExportName.set(node.id.name, members);
     }
@@ -870,10 +1804,12 @@ const collectAstFacts = (
     imports,
     usedIdentifiers,
     namespaceMemberReferences,
+    memberObjectReferences,
     namespaceObjectAliases,
     namespaceLocalAliases,
     namespaceLocalObjectAliases,
     cjsExportNames,
+    cjsStarReExports,
     membersByExportName,
   };
 };
@@ -894,7 +1830,7 @@ const enrichExportsFromAst = (
             : "class"
           : exportRecord.symbolKind,
       members: membersByExportName.get(localName) ?? [],
-      hasLocalReferences: usedIdentifiers.has(localName),
+      hasLocalReferences: exportRecord.isCommonJs ? false : usedIdentifiers.has(localName),
     };
   });
 
@@ -926,6 +1862,7 @@ export const extractModule = (file: ProjectFile): CodebaseModule => {
       symbolKind: "value",
       isTypeOnly: false,
       isReExport: false,
+      isCommonJs: true,
       isNamespace: false,
       isReactComponentLike: isReactComponentLikeName(cjsExportName),
       jsDocTags: new Set(),
@@ -936,10 +1873,55 @@ export const extractModule = (file: ProjectFile): CodebaseModule => {
       position: { line: 1, column: 1 },
     });
   }
+  const cjsStarReExportImports = astFacts.cjsStarReExports.map((record) =>
+    createImportRecord(
+      file,
+      record.source,
+      "re-export",
+      [
+        {
+          importedName: "*",
+          localName: "*",
+          isTypeOnly: false,
+          isNamespace: true,
+          start: record.start,
+          end: record.end,
+        },
+      ],
+      record.start,
+      record.end,
+    ),
+  );
+  for (const record of astFacts.cjsStarReExports) {
+    rawExports.push({
+      exportedName: "*",
+      localName: null,
+      source: record.source,
+      importedName: "*",
+      symbolKind: "unknown",
+      isTypeOnly: false,
+      isReExport: true,
+      isCommonJs: true,
+      isNamespace: true,
+      isReactComponentLike: false,
+      jsDocTags: new Set(),
+      members: [],
+      hasLocalReferences: false,
+      start: record.start,
+      end: record.end,
+      position: position(file, record.start),
+    });
+  }
 
   return {
     file,
-    imports: [...staticImports, ...commentImports, ...astFacts.imports, ...reExportImports],
+    imports: [
+      ...staticImports,
+      ...commentImports,
+      ...astFacts.imports,
+      ...reExportImports,
+      ...cjsStarReExportImports,
+    ],
     exports: enrichExportsFromAst(
       rawExports,
       astFacts.membersByExportName,
@@ -948,6 +1930,7 @@ export const extractModule = (file: ProjectFile): CodebaseModule => {
     directives: collectDirectives(program),
     usedIdentifiers: astFacts.usedIdentifiers,
     namespaceMemberReferences: astFacts.namespaceMemberReferences,
+    memberObjectReferences: astFacts.memberObjectReferences,
     namespaceObjectAliases: astFacts.namespaceObjectAliases,
     namespaceLocalAliases: astFacts.namespaceLocalAliases,
     namespaceLocalObjectAliases: astFacts.namespaceLocalObjectAliases,

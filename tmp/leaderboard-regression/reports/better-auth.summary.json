@@ -1,0 +1,129 @@
+{
+  "repository": "better-auth",
+  "path": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/better-auth",
+  "v1": {
+    "ok": true,
+    "error": null,
+    "score": 64,
+    "scoreLabel": "Needs work",
+    "totalCount": 664,
+    "errorCount": 8,
+    "warningCount": 656,
+    "affectedFileCount": 162,
+    "projectFramework": "nextjs",
+    "topRules": [
+      {
+        "rule": "react-doctor/server-sequential-independent-await",
+        "count": 109
+      },
+      {
+        "rule": "react-doctor/rendering-svg-precision",
+        "count": 102
+      },
+      {
+        "rule": "react-doctor/design-no-redundant-size-axes",
+        "count": 92
+      },
+      {
+        "rule": "react-doctor/async-await-in-loop",
+        "count": 74
+      },
+      {
+        "rule": "react-doctor/js-combine-iterations",
+        "count": 25
+      },
+      {
+        "rule": "react-doctor/no-barrel-import",
+        "count": 23
+      },
+      {
+        "rule": "react/no-unknown-property",
+        "count": 21
+      },
+      {
+        "rule": "react-doctor/no-secrets-in-client-code",
+        "count": 20
+      },
+      {
+        "rule": "react-doctor/js-set-map-lookups",
+        "count": 16
+      },
+      {
+        "rule": "react-doctor/no-array-index-as-key",
+        "count": 15
+      }
+    ]
+  },
+  "v2": {
+    "ok": false,
+    "score": 0,
+    "scoreLabel": "Critical",
+    "totalCount": 8676,
+    "errorCount": 2606,
+    "warningCount": 6070,
+    "affectedFileCount": 1135,
+    "projectFramework": "unknown",
+    "failedChecks": [],
+    "topRules": [
+      {
+        "rule": "unresolved-import",
+        "count": 2592
+      },
+      {
+        "rule": "unlisted-dependency",
+        "count": 2530
+      },
+      {
+        "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+        "count": 656
+      },
+      {
+        "rule": "duplicate-export",
+        "count": 393
+      },
+      {
+        "rule": "oxlint/react-doctor(server-sequential-independent-await)",
+        "count": 338
+      },
+      {
+        "rule": "unused-file",
+        "count": 255
+      },
+      {
+        "rule": "unused-export",
+        "count": 235
+      },
+      {
+        "rule": "unused-type-export",
+        "count": 146
+      },
+      {
+        "rule": "oxlint/react-doctor(async-await-in-loop)",
+        "count": 143
+      },
+      {
+        "rule": "oxlint/react-doctor(rendering-content-visibility)",
+        "count": 103
+      }
+    ]
+  },
+  "durations": {
+    "v1Milliseconds": 1045,
+    "v2Milliseconds": 2848
+  },
+  "exit": {
+    "v1": {
+      "exitCode": 0,
+      "signal": null
+    },
+    "v2": {
+      "exitCode": 0,
+      "signal": null
+    }
+  },
+  "regressionFlags": [
+    "v2 score is 64 points lower",
+    "v2 has 2598 more errors",
+    "v2 issue count is much higher (664 -> 8676)"
+  ]
+}

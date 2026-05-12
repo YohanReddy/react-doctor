@@ -2,6 +2,8 @@ import { defineRule } from "../../registry.js";
 import { RADIX_PRIMITIVE_IMPORT_PATTERN, getImportSourceValue } from "./utils/index.js";
 import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
+const SHADCN_WRAPPER_PATH_PATTERN = /(?:^|[/\\])components[/\\]ui[/\\][^/\\]+\.[cm]?[jt]sx?$/;
+
 export const shadcnNoDirectRadixImport = defineRule<Rule>({
   recommendation:
     "In shadcn/ui apps, import the local component wrapper from components/ui instead of importing Radix primitives directly in product code.",
@@ -13,6 +15,7 @@ export const shadcnNoDirectRadixImport = defineRule<Rule>({
   ],
   create: (context: RuleContext) => ({
     ImportDeclaration(node: EsTreeNode) {
+      if (SHADCN_WRAPPER_PATH_PATTERN.test(context.getFilename?.() ?? "")) return;
       const source = getImportSourceValue(node);
       if (!source || !RADIX_PRIMITIVE_IMPORT_PATTERN.test(source)) return;
       context.report({

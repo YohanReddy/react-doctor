@@ -1,0 +1,163 @@
+{
+  "repository": "nodejs-org",
+  "projectCount": 2,
+  "totalCount": 2071,
+  "errorCount": 1013,
+  "warningCount": 1058,
+  "failedChecks": [],
+  "unknownFrameworkCount": 0,
+  "topRules": [
+    {
+      "rule": "unresolved-import",
+      "count": 1005
+    },
+    {
+      "rule": "unused-export",
+      "count": 212
+    },
+    {
+      "rule": "unused-file",
+      "count": 173
+    },
+    {
+      "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+      "count": 171
+    },
+    {
+      "rule": "oxlint/react-doctor(rendering-svg-precision)",
+      "count": 140
+    },
+    {
+      "rule": "oxlint/react-doctor(server-serialization)",
+      "count": 48
+    },
+    {
+      "rule": "oxlint/jsx-a11y(anchor-is-valid)",
+      "count": 42
+    },
+    {
+      "rule": "oxlint/react-doctor(rendering-content-visibility)",
+      "count": 38
+    },
+    {
+      "rule": "unlisted-dependency",
+      "count": 28
+    },
+    {
+      "rule": "unused-type-export",
+      "count": 26
+    }
+  ],
+  "projects": [
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/nodejs-org/packages/ui-components",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 385,
+      "parsed": true,
+      "framework": "react",
+      "score": 12,
+      "totalCount": 1056,
+      "errorCount": 374,
+      "warningCount": 682,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 373
+        },
+        {
+          "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+          "count": 171
+        },
+        {
+          "rule": "unused-export",
+          "count": 167
+        },
+        {
+          "rule": "oxlint/react-doctor(rendering-svg-precision)",
+          "count": 140
+        },
+        {
+          "rule": "oxlint/jsx-a11y(anchor-is-valid)",
+          "count": 42
+        },
+        {
+          "rule": "unused-file",
+          "count": 33
+        },
+        {
+          "rule": "oxlint/react-doctor(server-serialization)",
+          "count": 28
+        },
+        {
+          "rule": "oxlint/react-doctor(rendering-content-visibility)",
+          "count": 26
+        },
+        {
+          "rule": "oxlint/react-doctor(shadcn-no-direct-radix-import)",
+          "count": 14
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 12
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/nodejs-org/apps/site",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 1050,
+      "parsed": true,
+      "framework": "nextjs",
+      "score": 0,
+      "totalCount": 1015,
+      "errorCount": 639,
+      "warningCount": 376,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 632
+        },
+        {
+          "rule": "unused-file",
+          "count": 140
+        },
+        {
+          "rule": "unused-export",
+          "count": 45
+        },
+        {
+          "rule": "unused-type-export",
+          "count": 26
+        },
+        {
+          "rule": "oxlint/react-doctor(server-serialization)",
+          "count": 20
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 16
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 16
+        },
+        {
+          "rule": "oxlint/react-doctor(async-suspense-boundaries)",
+          "count": 14
+        },
+        {
+          "rule": "oxlint/react-doctor(rendering-content-visibility)",
+          "count": 12
+        },
+        {
+          "rule": "unused-dependency",
+          "count": 10
+        }
+      ]
+    }
+  ]
+}

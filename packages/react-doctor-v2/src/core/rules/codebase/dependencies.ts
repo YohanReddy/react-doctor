@@ -134,6 +134,9 @@ const hasDeclaredDependency = (workspace: WorkspaceInfo, packageName: string): b
     workspace.dependencyBuckets[bucketName].has(packageName),
   );
 
+const hasDeclaredDependencyInGraph = (graph: ModuleGraph, packageName: string): boolean =>
+  graph.workspaces.some((workspace) => hasDeclaredDependency(workspace, packageName));
+
 const getDeclaredDependencyBuckets = (
   workspace: WorkspaceInfo,
   packageName: string,
@@ -194,7 +197,11 @@ const collectUnlistedImportDependencies = (graph: ModuleGraph): DependencyFindin
   graph.packageUsages
     .filter((usage) => {
       const workspace = graph.workspaces[usage.workspaceId];
-      return workspace && !hasDeclaredDependency(workspace, usage.packageName);
+      return (
+        workspace &&
+        !hasDeclaredDependency(workspace, usage.packageName) &&
+        !hasDeclaredDependencyInGraph(graph, usage.packageName)
+      );
     })
     .map((usage) => {
       const workspace = graph.workspaces[usage.workspaceId];

@@ -1,0 +1,129 @@
+{
+  "repository": "executor",
+  "path": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/executor",
+  "v1": {
+    "ok": true,
+    "error": null,
+    "score": 76,
+    "scoreLabel": "Great",
+    "totalCount": 158,
+    "errorCount": 31,
+    "warningCount": 127,
+    "affectedFileCount": 63,
+    "projectFramework": "vite",
+    "topRules": [
+      {
+        "rule": "react-hooks/rules-of-hooks",
+        "count": 30
+      },
+      {
+        "rule": "react-doctor/no-react19-deprecated-apis",
+        "count": 16
+      },
+      {
+        "rule": "react-doctor/no-array-index-as-key",
+        "count": 12
+      },
+      {
+        "rule": "react-doctor/js-combine-iterations",
+        "count": 10
+      },
+      {
+        "rule": "react-doctor/js-tosorted-immutable",
+        "count": 8
+      },
+      {
+        "rule": "effect/no-event-handler",
+        "count": 6
+      },
+      {
+        "rule": "react-doctor/async-await-in-loop",
+        "count": 6
+      },
+      {
+        "rule": "react-doctor/js-set-map-lookups",
+        "count": 5
+      },
+      {
+        "rule": "jsx-a11y/no-autofocus",
+        "count": 4
+      },
+      {
+        "rule": "react-doctor/design-no-redundant-padding-axes",
+        "count": 4
+      }
+    ]
+  },
+  "v2": {
+    "ok": false,
+    "score": 0,
+    "scoreLabel": "Critical",
+    "totalCount": 4377,
+    "errorCount": 1615,
+    "warningCount": 2762,
+    "affectedFileCount": 703,
+    "projectFramework": "unknown",
+    "failedChecks": [],
+    "topRules": [
+      {
+        "rule": "unresolved-import",
+        "count": 1571
+      },
+      {
+        "rule": "unlisted-dependency",
+        "count": 638
+      },
+      {
+        "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+        "count": 400
+      },
+      {
+        "rule": "duplicate-export",
+        "count": 354
+      },
+      {
+        "rule": "unused-file",
+        "count": 281
+      },
+      {
+        "rule": "unused-export",
+        "count": 272
+      },
+      {
+        "rule": "unused-type-export",
+        "count": 146
+      },
+      {
+        "rule": "barrel-hotspot",
+        "count": 81
+      },
+      {
+        "rule": "namespace-only-export",
+        "count": 51
+      },
+      {
+        "rule": "oxlint/react-doctor(server-serialization)",
+        "count": 47
+      }
+    ]
+  },
+  "durations": {
+    "v1Milliseconds": 1357,
+    "v2Milliseconds": 1637
+  },
+  "exit": {
+    "v1": {
+      "exitCode": 0,
+      "signal": null
+    },
+    "v2": {
+      "exitCode": 0,
+      "signal": null
+    }
+  },
+  "regressionFlags": [
+    "v2 score is 76 points lower",
+    "v2 has 1584 more errors",
+    "v2 issue count is much higher (158 -> 4377)"
+  ]
+}

@@ -1,0 +1,129 @@
+{
+  "repository": "tldraw",
+  "path": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw",
+  "v1": {
+    "ok": true,
+    "error": null,
+    "score": 61,
+    "scoreLabel": "Needs work",
+    "totalCount": 1496,
+    "errorCount": 390,
+    "warningCount": 1106,
+    "affectedFileCount": 514,
+    "projectFramework": "vite",
+    "topRules": [
+      {
+        "rule": "eslint/no-undef",
+        "count": 122
+      },
+      {
+        "rule": "react-doctor/async-await-in-loop",
+        "count": 114
+      },
+      {
+        "rule": "effect/no-event-handler",
+        "count": 89
+      },
+      {
+        "rule": "react-doctor/js-combine-iterations",
+        "count": 78
+      },
+      {
+        "rule": "react-doctor/no-generic-handler-names",
+        "count": 62
+      },
+      {
+        "rule": "react-doctor/no-react19-deprecated-apis",
+        "count": 61
+      },
+      {
+        "rule": "react-doctor/async-parallel",
+        "count": 57
+      },
+      {
+        "rule": "tldraw/prefer-class-methods",
+        "count": 53
+      },
+      {
+        "rule": "react-doctor/no-array-index-as-key",
+        "count": 52
+      },
+      {
+        "rule": "react-doctor/js-cache-property-access",
+        "count": 49
+      }
+    ]
+  },
+  "v2": {
+    "ok": false,
+    "score": 0,
+    "scoreLabel": "Critical",
+    "totalCount": 8572,
+    "errorCount": 2188,
+    "warningCount": 6384,
+    "affectedFileCount": 1899,
+    "projectFramework": "unknown",
+    "failedChecks": [],
+    "topRules": [
+      {
+        "rule": "duplicate-export",
+        "count": 1835
+      },
+      {
+        "rule": "unresolved-import",
+        "count": 1143
+      },
+      {
+        "rule": "unused-file",
+        "count": 692
+      },
+      {
+        "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+        "count": 638
+      },
+      {
+        "rule": "oxlint/eslint(no-undef)",
+        "count": 382
+      },
+      {
+        "rule": "oxlint/eslint(no-console)",
+        "count": 362
+      },
+      {
+        "rule": "unused-class-member",
+        "count": 293
+      },
+      {
+        "rule": "oxlint/react-doctor(rerender-split-combined-hooks)",
+        "count": 240
+      },
+      {
+        "rule": "barrel-hotspot",
+        "count": 212
+      },
+      {
+        "rule": "unlisted-dependency",
+        "count": 164
+      }
+    ]
+  },
+  "durations": {
+    "v1Milliseconds": 38279,
+    "v2Milliseconds": 7099
+  },
+  "exit": {
+    "v1": {
+      "exitCode": 0,
+      "signal": null
+    },
+    "v2": {
+      "exitCode": 0,
+      "signal": null
+    }
+  },
+  "regressionFlags": [
+    "v2 score is 61 points lower",
+    "v2 has 1798 more errors",
+    "v2 issue count is much higher (1496 -> 8572)"
+  ]
+}

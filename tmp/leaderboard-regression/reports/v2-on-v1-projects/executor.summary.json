@@ -1,0 +1,273 @@
+{
+  "repository": "executor",
+  "projectCount": 4,
+  "totalCount": 1740,
+  "errorCount": 790,
+  "warningCount": 950,
+  "failedChecks": [],
+  "unknownFrameworkCount": 0,
+  "topRules": [
+    {
+      "rule": "unresolved-import",
+      "count": 758
+    },
+    {
+      "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+      "count": 269
+    },
+    {
+      "rule": "unused-file",
+      "count": 107
+    },
+    {
+      "rule": "unlisted-dependency",
+      "count": 58
+    },
+    {
+      "rule": "namespace-only-export",
+      "count": 51
+    },
+    {
+      "rule": "unused-export",
+      "count": 46
+    },
+    {
+      "rule": "oxlint/react-doctor(server-serialization)",
+      "count": 44
+    },
+    {
+      "rule": "oxlint/react-doctor(rendering-content-visibility)",
+      "count": 41
+    },
+    {
+      "rule": "oxlint/react-hooks(rules-of-hooks)",
+      "count": 27
+    },
+    {
+      "rule": "oxlint/react-doctor(no-icon-only-button-without-label)",
+      "count": 26
+    }
+  ],
+  "projects": [
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/executor/packages/react",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 419,
+      "parsed": true,
+      "framework": "vite",
+      "score": 0,
+      "totalCount": 694,
+      "errorCount": 224,
+      "warningCount": 470,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 222
+        },
+        {
+          "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+          "count": 120
+        },
+        {
+          "rule": "unused-file",
+          "count": 67
+        },
+        {
+          "rule": "unused-export",
+          "count": 46
+        },
+        {
+          "rule": "oxlint/react-doctor(server-serialization)",
+          "count": 44
+        },
+        {
+          "rule": "oxlint/react-doctor(rendering-content-visibility)",
+          "count": 29
+        },
+        {
+          "rule": "oxlint/react-doctor(rerender-split-combined-hooks)",
+          "count": 26
+        },
+        {
+          "rule": "oxlint/react-doctor(no-icon-only-button-without-label)",
+          "count": 14
+        },
+        {
+          "rule": "oxlint/react-doctor(no-react19-deprecated-apis)",
+          "count": 14
+        },
+        {
+          "rule": "barrel-hotspot",
+          "count": 12
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/executor/apps/cloud",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 450,
+      "parsed": true,
+      "framework": "tanstack-start",
+      "score": 0,
+      "totalCount": 715,
+      "errorCount": 394,
+      "warningCount": 321,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 367
+        },
+        {
+          "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+          "count": 134
+        },
+        {
+          "rule": "oxlint/react-hooks(rules-of-hooks)",
+          "count": 27
+        },
+        {
+          "rule": "namespace-only-export",
+          "count": 25
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 22
+        },
+        {
+          "rule": "unused-file",
+          "count": 19
+        },
+        {
+          "rule": "test-only-dependency",
+          "count": 15
+        },
+        {
+          "rule": "oxlint/react-doctor(js-cache-function-results)",
+          "count": 12
+        },
+        {
+          "rule": "oxlint/react-doctor(rendering-content-visibility)",
+          "count": 12
+        },
+        {
+          "rule": "oxlint/react-doctor(no-icon-only-button-without-label)",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/executor/apps/local",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 300,
+      "parsed": true,
+      "framework": "vite",
+      "score": 24,
+      "totalCount": 280,
+      "errorCount": 149,
+      "warningCount": 131,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 146
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 32
+        },
+        {
+          "rule": "namespace-only-export",
+          "count": 26
+        },
+        {
+          "rule": "duplicate-export",
+          "count": 16
+        },
+        {
+          "rule": "unused-file",
+          "count": 13
+        },
+        {
+          "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+          "count": 12
+        },
+        {
+          "rule": "oxlint/react-doctor(js-cache-function-results)",
+          "count": 6
+        },
+        {
+          "rule": "runtime-dev-dependency",
+          "count": 4
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 4
+        },
+        {
+          "rule": "oxlint/react-doctor(async-await-in-loop)",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/executor/apps/marketing",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 222,
+      "parsed": true,
+      "framework": "react",
+      "score": 56,
+      "totalCount": 51,
+      "errorCount": 23,
+      "warningCount": 28,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 23
+        },
+        {
+          "rule": "unused-file",
+          "count": 8
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 4
+        },
+        {
+          "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+          "count": 3
+        },
+        {
+          "rule": "oxlint/react-doctor(no-icon-only-button-without-label)",
+          "count": 2
+        },
+        {
+          "rule": "oxlint/react-doctor(rendering-svg-precision)",
+          "count": 2
+        },
+        {
+          "rule": "unused-dependency",
+          "count": 2
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 2
+        },
+        {
+          "rule": "oxlint/react-doctor(async-suspense-boundaries)",
+          "count": 1
+        },
+        {
+          "rule": "oxlint/react-doctor(js-cache-function-results)",
+          "count": 1
+        }
+      ]
+    }
+  ]
+}

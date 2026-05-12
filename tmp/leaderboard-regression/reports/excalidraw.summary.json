@@ -1,0 +1,135 @@
+{
+  "repository": "excalidraw",
+  "path": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/excalidraw",
+  "v1": {
+    "ok": true,
+    "error": null,
+    "score": 61,
+    "scoreLabel": "Needs work",
+    "totalCount": 511,
+    "errorCount": 2,
+    "warningCount": 509,
+    "affectedFileCount": 157,
+    "projectFramework": "vite",
+    "topRules": [
+      {
+        "rule": "react-doctor/no-render-in-render",
+        "count": 84
+      },
+      {
+        "rule": "effect/no-event-handler",
+        "count": 77
+      },
+      {
+        "rule": "react-doctor/js-combine-iterations",
+        "count": 50
+      },
+      {
+        "rule": "react-doctor/no-barrel-import",
+        "count": 40
+      },
+      {
+        "rule": "react-doctor/js-batch-dom-css",
+        "count": 23
+      },
+      {
+        "rule": "effect/no-derived-state",
+        "count": 17
+      },
+      {
+        "rule": "react-doctor/no-react19-deprecated-apis",
+        "count": 17
+      },
+      {
+        "rule": "react-doctor/rendering-svg-precision",
+        "count": 17
+      },
+      {
+        "rule": "jsx-a11y/no-static-element-interactions",
+        "count": 15
+      },
+      {
+        "rule": "jsx-a11y/click-events-have-key-events",
+        "count": 14
+      }
+    ]
+  },
+  "v2": {
+    "ok": false,
+    "score": 50,
+    "scoreLabel": "Critical",
+    "totalCount": 1721,
+    "errorCount": 284,
+    "warningCount": 1437,
+    "affectedFileCount": 374,
+    "projectFramework": "vite",
+    "failedChecks": [
+      {
+        "id": "react-doctor/oxlint",
+        "error": "Oxlint returned invalid JSON."
+      }
+    ],
+    "topRules": [
+      {
+        "rule": "unlisted-dependency",
+        "count": 480
+      },
+      {
+        "rule": "unused-export",
+        "count": 412
+      },
+      {
+        "rule": "unresolved-import",
+        "count": 284
+      },
+      {
+        "rule": "duplicate-export",
+        "count": 185
+      },
+      {
+        "rule": "barrel-hotspot",
+        "count": 80
+      },
+      {
+        "rule": "namespace-only-export",
+        "count": 73
+      },
+      {
+        "rule": "unused-class-member",
+        "count": 48
+      },
+      {
+        "rule": "unused-dev-dependency",
+        "count": 45
+      },
+      {
+        "rule": "unused-file",
+        "count": 37
+      },
+      {
+        "rule": "unused-enum-member",
+        "count": 33
+      }
+    ]
+  },
+  "durations": {
+    "v1Milliseconds": 1075,
+    "v2Milliseconds": 972
+  },
+  "exit": {
+    "v1": {
+      "exitCode": 0,
+      "signal": null
+    },
+    "v2": {
+      "exitCode": 0,
+      "signal": null
+    }
+  },
+  "regressionFlags": [
+    "v2 failed checks: react-doctor/oxlint",
+    "v2 score is 11 points lower",
+    "v2 has 282 more errors",
+    "v2 issue count is much higher (511 -> 1721)"
+  ]
+}

@@ -57,7 +57,7 @@ Config lookup starts at the requested directory and walks ancestors until a proj
   "offline": true,
   "failOn": "error",
   "respectInlineDisables": true,
-  "adoptExistingLintConfig": true,
+  "adoptExistingLintConfig": false,
   "includeEcosystemRules": true,
   "ignoredTags": ["design"],
   "textComponents": ["Trans"],

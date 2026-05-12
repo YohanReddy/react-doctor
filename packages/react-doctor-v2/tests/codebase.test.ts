@@ -59,7 +59,8 @@ describe("codebase rules", () => {
 
   it("treats runner files as support entrypoints", async () => {
     const rootDirectory = await createFixtureProject({
-      "src/main.ts": "console.log('main');\n",
+      "src/main.ts":
+        "import type { BoxRef, UserRef } from './type-consumer';\nconsole.log('main');\n",
       "src/model.eval.ts": "export const evalScenario = () => 'ok';\n",
       "evalite.config.ts": "export default { root: 'src' };\n",
     });
@@ -152,6 +153,23 @@ describe("codebase rules", () => {
     ]);
   });
 
+  it("treats @api public exports as visibility-protected", async () => {
+    const rootDirectory = await createFixtureProject({
+      "src/main.ts": "import './api';\nconsole.log('main');\n",
+      "src/api.ts": ["/** @api public */", "export const publicApi = 1;"].join("\n"),
+    });
+
+    const result = await inspectReactProject({
+      rootDirectory,
+      rules: {
+        disabledRuleIds: [PROJECT_STRUCTURE_RULE_ID],
+        enabledRuleIds: [DEAD_CODE_RULE_ID],
+      },
+    });
+
+    expect(result.issues.map((issue) => issue.id)).toEqual([]);
+  });
+
   it("does not mark unused imported bindings as used exports", async () => {
     const rootDirectory = await createFixtureProject({
       "src/main.tsx": [
@@ -217,6 +235,49 @@ describe("codebase rules", () => {
       `${DEAD_CODE_RULE_ID}/unused-class-member/src/members.ts/FeatureFlags.disabled`,
       `${DEAD_CODE_RULE_ID}/unused-enum-member/src/members.ts/Status.Inactive`,
     ]);
+  });
+
+  it("treats whole-object enum and static class usage as member usage", async () => {
+    const rootDirectory = await createFixtureProject({
+      "src/main.ts": [
+        "import { DirectFlags, DirectStatus } from './direct-members';",
+        "import * as namespaceMembers from './namespace-members';",
+        "console.log(Object.values(DirectStatus));",
+        "console.log(Object.keys(DirectFlags));",
+        "console.log(Object.entries(namespaceMembers.NamespaceStatus));",
+        "console.log({ ...namespaceMembers.NamespaceFlags });",
+      ].join("\n"),
+      "src/direct-members.ts": [
+        "export enum DirectStatus {",
+        "  Active = 'active',",
+        "  Inactive = 'inactive',",
+        "}",
+        "export class DirectFlags {",
+        "  static enabled = true;",
+        "  static disabled = false;",
+        "}",
+      ].join("\n"),
+      "src/namespace-members.ts": [
+        "export enum NamespaceStatus {",
+        "  Active = 'active',",
+        "  Inactive = 'inactive',",
+        "}",
+        "export class NamespaceFlags {",
+        "  static enabled = true;",
+        "  static disabled = false;",
+        "}",
+      ].join("\n"),
+    });
+
+    const result = await inspectReactProject({
+      rootDirectory,
+      rules: {
+        disabledRuleIds: [PROJECT_STRUCTURE_RULE_ID],
+        enabledRuleIds: [DEAD_CODE_RULE_ID],
+      },
+    });
+
+    expect(result.issues.map((issue) => issue.id)).toEqual([]);
   });
 
   it("propagates namespace object alias member usage to source exports", async () => {
@@ -566,7 +627,10 @@ describe("codebase rules", () => {
         "new Worker(new URL('./worker.ts', import.meta.url));",
       ].join("\n"),
       "src/referenced.ts": "console.log('referenced');\n",
-      "src/models.ts": "console.log('models');\n",
+      "src/models.ts": [
+        "export interface User { name: string }",
+        "export interface UnusedModel { name: string }",
+      ].join("\n"),
       "src/worker.ts": "console.log('worker');\n",
       "src/dead.ts": "console.log('dead');\n",
       "node_modules/comment-types/package.json": JSON.stringify({
@@ -586,7 +650,140 @@ describe("codebase rules", () => {
 
     expect(result.issues.map((issue) => issue.id).sort()).toEqual([
       `${DEAD_CODE_RULE_ID}/unused-file/src/dead.ts`,
+      `${DEAD_CODE_RULE_ID}/unused-type-export/src/models.ts/UnusedModel`,
       `${DEPENDENCIES_RULE_ID}/unused-dev-dependency/./unused-dev`,
+    ]);
+  });
+
+  it("tracks child_process runtime entry paths", async () => {
+    const rootDirectory = await createFixtureProject({
+      "src/main.ts": [
+        "import { fork } from 'node:child_process';",
+        "import * as childProcess from 'node:child_process';",
+        "import path, { resolve } from 'node:path';",
+        "const { execFile } = require('node:child_process');",
+        "const { join } = require('node:path');",
+        "fork(path.join(__dirname, 'worker.js'));",
+        "childProcess.spawn(resolve(__dirname, 'cli.js'));",
+        "execFile(join(__dirname, 'bin', 'task.js'));",
+        "const shadowFork = (fork) => fork(path.join(__dirname, 'shadowed-worker.js'));",
+        "const shadowJoin = (join) => fork(join(__dirname, 'shadowed-join.js'));",
+        "shadowFork(() => undefined);",
+        "shadowJoin(() => undefined);",
+      ].join("\n"),
+      "src/worker.js": "console.log('worker');\n",
+      "src/cli.js": "console.log('cli');\n",
+      "src/bin/task.js": "console.log('task');\n",
+      "src/shadowed-worker.js": "console.log('shadowed worker');\n",
+      "src/shadowed-join.js": "console.log('shadowed join');\n",
+      "src/unused.js": "console.log('unused');\n",
+    });
+
+    const result = await inspectReactProject({
+      rootDirectory,
+      rules: {
+        disabledRuleIds: [PROJECT_STRUCTURE_RULE_ID],
+        enabledRuleIds: [DEAD_CODE_RULE_ID],
+      },
+    });
+
+    expect(result.issues.map((issue) => issue.id).sort()).toEqual([
+      `${DEAD_CODE_RULE_ID}/unused-file/src/shadowed-join.js`,
+      `${DEAD_CODE_RULE_ID}/unused-file/src/shadowed-worker.js`,
+      `${DEAD_CODE_RULE_ID}/unused-file/src/unused.js`,
+    ]);
+  });
+
+  it("tracks worker_threads runtime entry paths", async () => {
+    const rootDirectory = await createFixtureProject({
+      "src/main.ts": [
+        "import { Worker as NodeWorker } from 'node:worker_threads';",
+        "import * as workerThreads from 'node:worker_threads';",
+        "import path, { join } from 'node:path';",
+        "const { Worker: RequiredWorker } = require('node:worker_threads');",
+        "const requiredWorkerThreads = require('node:worker_threads');",
+        "new NodeWorker(path.join(__dirname, 'thread-a.js'));",
+        "new workerThreads.Worker(join(__dirname, 'thread-b.js'));",
+        "new RequiredWorker(path.resolve(__dirname, 'thread-c.js'));",
+        "new requiredWorkerThreads.Worker(path.join(__dirname, 'thread-d.js'));",
+        "const shadowWorker = (NodeWorker) => new NodeWorker(path.join(__dirname, 'shadowed-thread.js'));",
+        "shadowWorker(() => undefined);",
+      ].join("\n"),
+      "src/thread-a.js": "console.log('thread a');\n",
+      "src/thread-b.js": "console.log('thread b');\n",
+      "src/thread-c.js": "console.log('thread c');\n",
+      "src/thread-d.js": "console.log('thread d');\n",
+      "src/shadowed-thread.js": "console.log('shadowed thread');\n",
+      "src/unused.js": "console.log('unused');\n",
+    });
+
+    const result = await inspectReactProject({
+      rootDirectory,
+      rules: {
+        disabledRuleIds: [PROJECT_STRUCTURE_RULE_ID],
+        enabledRuleIds: [DEAD_CODE_RULE_ID],
+      },
+    });
+
+    expect(result.issues.map((issue) => issue.id).sort()).toEqual([
+      `${DEAD_CODE_RULE_ID}/unused-file/src/shadowed-thread.js`,
+      `${DEAD_CODE_RULE_ID}/unused-file/src/unused.js`,
+    ]);
+  });
+
+  it("tracks resolver and node module register entry APIs", async () => {
+    const rootDirectory = await createFixtureProject({
+      "package.json": JSON.stringify({
+        dependencies: {
+          "loader-package": "latest",
+          "unused-loader": "latest",
+        },
+      }),
+      "src/main.ts": [
+        "import { register as moduleRegister } from 'node:module';",
+        "import * as nodeModule from 'node:module';",
+        "require.resolve('./resolved-require.js');",
+        "import.meta.resolve('./resolved-meta.js');",
+        "moduleRegister('./registered.js', import.meta.url);",
+        "nodeModule.register('./registered-namespace.js', import.meta.url);",
+        "nodeModule.register('loader-package');",
+        "function shadowRequire(require) { require.resolve('./shadowed-resolve.js'); }",
+        "function shadowRegister(moduleRegister) { moduleRegister('./shadowed-register.js', import.meta.url); }",
+        "shadowRequire({ resolve: () => undefined });",
+        "shadowRegister(() => undefined);",
+      ].join("\n"),
+      "src/resolved-require.js": "console.log('require');\n",
+      "src/resolved-meta.js": "console.log('meta');\n",
+      "src/registered.js": "console.log('registered');\n",
+      "src/registered-namespace.js": "console.log('registered namespace');\n",
+      "src/shadowed-resolve.js": "console.log('shadowed resolve');\n",
+      "src/shadowed-register.js": "console.log('shadowed register');\n",
+      "src/unused.js": "console.log('unused');\n",
+      "node_modules/loader-package/package.json": JSON.stringify({
+        name: "loader-package",
+        main: "index.js",
+      }),
+      "node_modules/loader-package/index.js": "module.exports = {};\n",
+      "node_modules/unused-loader/package.json": JSON.stringify({
+        name: "unused-loader",
+        main: "index.js",
+      }),
+      "node_modules/unused-loader/index.js": "module.exports = {};\n",
+    });
+
+    const result = await inspectReactProject({
+      rootDirectory,
+      rules: {
+        disabledRuleIds: [PROJECT_STRUCTURE_RULE_ID],
+        enabledRuleIds: [DEAD_CODE_RULE_ID, DEPENDENCIES_RULE_ID],
+      },
+    });
+
+    expect(result.issues.map((issue) => issue.id).sort()).toEqual([
+      `${DEAD_CODE_RULE_ID}/unused-file/src/shadowed-register.js`,
+      `${DEAD_CODE_RULE_ID}/unused-file/src/shadowed-resolve.js`,
+      `${DEAD_CODE_RULE_ID}/unused-file/src/unused.js`,
+      `${DEPENDENCIES_RULE_ID}/unused-dependency/./unused-loader`,
     ]);
   });
 
@@ -596,11 +793,27 @@ describe("codebase rules", () => {
         "const { used } = require('./lib');",
         "const namespace = require('./namespace');",
         "const member = require('./member').member;",
-        "console.log(used, namespace.keep, member);",
+        "const { usedObject } = require('./object-exports');",
+        "const direct = require('./direct-member').direct;",
+        "const { alias } = require('./cjs-reexport');",
+        "const { viaStar } = require('./cjs-star');",
+        "const { spreadUsed } = require('./cjs-spread');",
+        "console.log(used, namespace.keep, member, usedObject, direct, alias, viaStar, spreadUsed);",
       ].join("\n"),
       "src/lib.js": "exports.used = 1;\nexports.unused = 2;\n",
       "src/namespace.js": "exports.keep = 1;\nexports.drop = 2;\n",
       "src/member.js": "exports.member = 1;\nexports.extra = 2;\n",
+      "src/object-exports.js": "module.exports = { usedObject: 1, unusedObject: 2 };\n",
+      "src/direct-member.js": "module.exports.direct = 1;\nmodule.exports.unusedDirect = 2;\n",
+      "src/cjs-reexport.js": [
+        "module.exports.alias = require('./source').usedSource;",
+        "module.exports.unusedAlias = 1;",
+      ].join("\n"),
+      "src/source.js": "exports.usedSource = 1;\nexports.unusedSource = 2;\n",
+      "src/cjs-star.js": "module.exports = require('./star-source');\n",
+      "src/star-source.js": "exports.viaStar = 1;\nexports.unusedStar = 2;\n",
+      "src/cjs-spread.js": "module.exports = { ...require('./spread-source') };\n",
+      "src/spread-source.js": "exports.spreadUsed = 1;\nexports.unusedSpread = 2;\n",
     });
 
     const result = await inspectReactProject({
@@ -615,11 +828,42 @@ describe("codebase rules", () => {
       "unused-export",
       "unused-export",
       "unused-export",
+      "unused-export",
+      "unused-export",
+      "unused-export",
+      "unused-export",
+      "unused-export",
+      "unused-export",
     ]);
     expect(result.issues.map((issue) => issue.id).sort()).toEqual([
+      `${DEAD_CODE_RULE_ID}/unused-export/src/cjs-reexport.js/unusedAlias`,
+      `${DEAD_CODE_RULE_ID}/unused-export/src/direct-member.js/unusedDirect`,
       `${DEAD_CODE_RULE_ID}/unused-export/src/lib.js/unused`,
       `${DEAD_CODE_RULE_ID}/unused-export/src/member.js/extra`,
       `${DEAD_CODE_RULE_ID}/unused-export/src/namespace.js/drop`,
+      `${DEAD_CODE_RULE_ID}/unused-export/src/object-exports.js/unusedObject`,
+      `${DEAD_CODE_RULE_ID}/unused-export/src/source.js/unusedSource`,
+      `${DEAD_CODE_RULE_ID}/unused-export/src/spread-source.js/unusedSpread`,
+      `${DEAD_CODE_RULE_ID}/unused-export/src/star-source.js/unusedStar`,
+    ]);
+  });
+
+  it("tracks TypeScript import-equals require bindings", async () => {
+    const rootDirectory = await createFixtureProject({
+      "src/main.ts": ["import Lib = require('./lib');", "console.log(Lib.keep);"].join("\n"),
+      "src/lib.ts": ["export const keep = 1;", "export const drop = 2;"].join("\n"),
+    });
+
+    const result = await inspectReactProject({
+      rootDirectory,
+      rules: {
+        disabledRuleIds: [PROJECT_STRUCTURE_RULE_ID],
+        enabledRuleIds: [DEAD_CODE_RULE_ID],
+      },
+    });
+
+    expect(result.issues.map((issue) => issue.id)).toEqual([
+      `${DEAD_CODE_RULE_ID}/unused-export/src/lib.ts/drop`,
     ]);
   });
 
@@ -640,6 +884,67 @@ describe("codebase rules", () => {
 
     expect(result.issues.map((issue) => issue.id)).toEqual([
       `${DEAD_CODE_RULE_ID}/unused-export/src/lib.ts/unused`,
+    ]);
+  });
+
+  it("credits exports referenced from TypeScript import types", async () => {
+    const rootDirectory = await createFixtureProject({
+      "src/main.ts": "import { runtime } from './type-consumer';\nconsole.log(runtime);\n",
+      "src/type-consumer.ts": [
+        "type UserRef = import('./models').User;",
+        "type BoxRef = import('./models').Box.Item;",
+        "export const runtime = 1;",
+      ].join("\n"),
+      "src/models.ts": [
+        "export interface User { name: string }",
+        "export namespace Box {",
+        "  export interface Item { name: string }",
+        "}",
+        "export interface UnusedModel { name: string }",
+      ].join("\n"),
+    });
+
+    const result = await inspectReactProject({
+      rootDirectory,
+      rules: {
+        disabledRuleIds: [PROJECT_STRUCTURE_RULE_ID],
+        enabledRuleIds: [DEAD_CODE_RULE_ID],
+      },
+    });
+
+    expect(result.issues.map((issue) => issue.id).sort()).toEqual([
+      `${DEAD_CODE_RULE_ID}/unused-type-export/src/models.ts/UnusedModel`,
+    ]);
+  });
+
+  it("credits exports referenced from TypeScript namespace type members", async () => {
+    const rootDirectory = await createFixtureProject({
+      "src/main.ts": "import { runtime } from './type-consumer';\nconsole.log(runtime);\n",
+      "src/type-consumer.ts": [
+        "import type * as Models from './models';",
+        "type UserRef = Models.User;",
+        "type BoxRef = Models.Box.Item;",
+        "export const runtime = 1;",
+      ].join("\n"),
+      "src/models.ts": [
+        "export interface User { name: string }",
+        "export namespace Box {",
+        "  export interface Item { name: string }",
+        "}",
+        "export interface UnusedModel { name: string }",
+      ].join("\n"),
+    });
+
+    const result = await inspectReactProject({
+      rootDirectory,
+      rules: {
+        disabledRuleIds: [PROJECT_STRUCTURE_RULE_ID],
+        enabledRuleIds: [DEAD_CODE_RULE_ID],
+      },
+    });
+
+    expect(result.issues.map((issue) => issue.id).sort()).toEqual([
+      `${DEAD_CODE_RULE_ID}/unused-type-export/src/models.ts/UnusedModel`,
     ]);
   });
 
@@ -699,6 +1004,70 @@ describe("codebase rules", () => {
     ]);
   });
 
+  it("credits exports read from dynamic import then callbacks", async () => {
+    const rootDirectory = await createFixtureProject({
+      "src/main.ts": [
+        "void import('./lazy').then((lazyModule) => lazyModule.usedMember);",
+        "void import('./lazy').then(({ usedNamed }) => console.log(usedNamed));",
+        "void import('./component').then((module) => module.DashboardComponent);",
+      ].join("\n"),
+      "src/lazy.ts": [
+        "export const usedMember = 1;",
+        "export const usedNamed = 2;",
+        "export const unusedDynamic = 3;",
+      ].join("\n"),
+      "src/component.ts": [
+        "export const DashboardComponent = () => null;",
+        "export const UnusedComponent = () => null;",
+      ].join("\n"),
+    });
+
+    const result = await inspectReactProject({
+      rootDirectory,
+      rules: {
+        disabledRuleIds: [PROJECT_STRUCTURE_RULE_ID],
+        enabledRuleIds: [DEAD_CODE_RULE_ID],
+      },
+    });
+
+    expect(result.issues.map((issue) => issue.id).sort()).toEqual([
+      `${DEAD_CODE_RULE_ID}/unused-export/src/component.ts/UnusedComponent`,
+      `${DEAD_CODE_RULE_ID}/unused-export/src/lazy.ts/unusedDynamic`,
+    ]);
+  });
+
+  it("credits exports destructured from Promise.all dynamic imports", async () => {
+    const rootDirectory = await createFixtureProject({
+      "src/main.ts": [
+        "const [{ usedNamed }, lazyNamespace] = await Promise.all([",
+        "  import('./first-lazy'),",
+        "  import('./second-lazy'),",
+        "]);",
+        "console.log(usedNamed, lazyNamespace.usedNamespace);",
+      ].join("\n"),
+      "src/first-lazy.ts": ["export const usedNamed = 1;", "export const unusedFirst = 2;"].join(
+        "\n",
+      ),
+      "src/second-lazy.ts": [
+        "export const usedNamespace = 1;",
+        "export const unusedSecond = 2;",
+      ].join("\n"),
+    });
+
+    const result = await inspectReactProject({
+      rootDirectory,
+      rules: {
+        disabledRuleIds: [PROJECT_STRUCTURE_RULE_ID],
+        enabledRuleIds: [DEAD_CODE_RULE_ID],
+      },
+    });
+
+    expect(result.issues.map((issue) => issue.id).sort()).toEqual([
+      `${DEAD_CODE_RULE_ID}/unused-export/src/first-lazy.ts/unusedFirst`,
+      `${DEAD_CODE_RULE_ID}/unused-export/src/second-lazy.ts/unusedSecond`,
+    ]);
+  });
+
   it("expands Vite glob and Webpack context imports into reachable files", async () => {
     const rootDirectory = await createFixtureProject({
       "package.json": JSON.stringify({
@@ -751,6 +1120,31 @@ describe("codebase rules", () => {
 
     expect(result.issues.map((issue) => issue.id).sort()).toEqual([
       `${DEAD_CODE_RULE_ID}/unused-file/src/locales/nested/en.ts`,
+      `${DEAD_CODE_RULE_ID}/unused-file/src/unused.ts`,
+    ]);
+  });
+
+  it("expands string concatenated dynamic imports into reachable files", async () => {
+    const rootDirectory = await createFixtureProject({
+      "src/main.ts": ["const page = 'home';", "await import('./pages/' + page + '.ts');"].join(
+        "\n",
+      ),
+      "src/pages/home.ts": "console.log('home');\n",
+      "src/pages/about.ts": "console.log('about');\n",
+      "src/pages/nested/home.ts": "console.log('nested');\n",
+      "src/unused.ts": "console.log('unused');\n",
+    });
+
+    const result = await inspectReactProject({
+      rootDirectory,
+      rules: {
+        disabledRuleIds: [PROJECT_STRUCTURE_RULE_ID],
+        enabledRuleIds: [DEAD_CODE_RULE_ID],
+      },
+    });
+
+    expect(result.issues.map((issue) => issue.id).sort()).toEqual([
+      `${DEAD_CODE_RULE_ID}/unused-file/src/pages/nested/home.ts`,
       `${DEAD_CODE_RULE_ID}/unused-file/src/unused.ts`,
     ]);
   });
@@ -1099,9 +1493,18 @@ describe("codebase rules", () => {
         prettier: {
           plugins: ["prettier-plugin-tailwindcss"],
         },
+        imports: {
+          "#conditioned-loader": {
+            default: "condition-loader",
+            types: "./src/register.ts",
+          },
+          "#loader": "imports-loader",
+        },
         sideEffects: ["./src/register.ts"],
         dependencies: {
+          "condition-loader": "latest",
           eslint: "latest",
+          "imports-loader": "latest",
           "prettier-plugin-tailwindcss": "latest",
           typescript: "latest",
           "unused-pkg": "latest",
@@ -1125,7 +1528,9 @@ describe("codebase rules", () => {
       "unused-file",
     ]);
     const issueIds = result.issues.map((issue) => issue.id).join("\n");
+    expect(issueIds).not.toContain("condition-loader");
     expect(issueIds).not.toContain("eslint");
+    expect(issueIds).not.toContain("imports-loader");
     expect(issueIds).not.toContain("prettier-plugin-tailwindcss");
     expect(issueIds).not.toContain("typescript");
     expect(issueIds).not.toContain("src/register.ts");

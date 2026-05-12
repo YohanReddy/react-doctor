@@ -89,6 +89,20 @@ export const SUPPORT_ENTRY_PATTERNS = [
   "evalite.config.{js,mjs,cjs,ts,mts,cts}",
 ];
 
+export const WHOLE_OBJECT_MEMBER_METHODS = new Set([
+  "entries",
+  "getOwnPropertyNames",
+  "keys",
+  "values",
+]);
+
+export const CHILD_PROCESS_ENTRY_METHODS = new Set(["execFile", "fork", "spawn"]);
+export const CHILD_PROCESS_MODULE_SPECIFIERS = new Set(["child_process", "node:child_process"]);
+export const NODE_MODULE_SPECIFIERS = new Set(["module", "node:module"]);
+export const PATH_MODULE_SPECIFIERS = new Set(["node:path", "path"]);
+export const PATH_ENTRY_HELPER_METHODS = new Set(["join", "resolve"]);
+export const WORKER_THREADS_MODULE_SPECIFIERS = new Set(["node:worker_threads", "worker_threads"]);
+
 export const PUBLIC_VISIBILITY_TAGS = new Set(["public", "alpha", "beta"]);
 export const INTERNAL_VISIBILITY_TAG = "internal";
 export const EXPECTED_UNUSED_VISIBILITY_TAG = "expected-unused";

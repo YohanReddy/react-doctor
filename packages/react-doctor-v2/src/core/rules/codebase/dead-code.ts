@@ -93,6 +93,7 @@ const collectDuplicateExports = (graph: ModuleGraph): DuplicateExportFinding[] =
   const exportsByName = new Map<string, DuplicateExportFinding["exports"]>();
   for (const node of graph.nodes.values()) {
     if (!node.isReachable) continue;
+    if (isExternalEntrypointExportSurface(node)) continue;
     for (const exportSymbol of node.exports.values()) {
       if (
         exportSymbol.exportedName === DEFAULT_EXPORT_NAME ||

@@ -1,0 +1,218 @@
+{
+  "repository": "better-auth",
+  "projectCount": 3,
+  "totalCount": 2513,
+  "errorCount": 1006,
+  "warningCount": 1507,
+  "failedChecks": [],
+  "unknownFrameworkCount": 0,
+  "topRules": [
+    {
+      "rule": "unresolved-import",
+      "count": 998
+    },
+    {
+      "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+      "count": 310
+    },
+    {
+      "rule": "oxlint/react-doctor(server-sequential-independent-await)",
+      "count": 109
+    },
+    {
+      "rule": "oxlint/react-doctor(rendering-svg-precision)",
+      "count": 102
+    },
+    {
+      "rule": "duplicate-export",
+      "count": 92
+    },
+    {
+      "rule": "oxlint/react-doctor(rendering-content-visibility)",
+      "count": 90
+    },
+    {
+      "rule": "unused-export",
+      "count": 74
+    },
+    {
+      "rule": "oxlint/react-doctor(async-await-in-loop)",
+      "count": 66
+    },
+    {
+      "rule": "unused-dependency",
+      "count": 42
+    },
+    {
+      "rule": "unused-type-export",
+      "count": 30
+    }
+  ],
+  "projects": [
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/better-auth/packages/better-auth",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 930,
+      "parsed": true,
+      "framework": "tanstack-start",
+      "score": 0,
+      "totalCount": 1405,
+      "errorCount": 842,
+      "warningCount": 563,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 834
+        },
+        {
+          "rule": "oxlint/react-doctor(server-sequential-independent-await)",
+          "count": 108
+        },
+        {
+          "rule": "duplicate-export",
+          "count": 92
+        },
+        {
+          "rule": "oxlint/react-doctor(async-await-in-loop)",
+          "count": 66
+        },
+        {
+          "rule": "unused-export",
+          "count": 37
+        },
+        {
+          "rule": "unused-type-export",
+          "count": 30
+        },
+        {
+          "rule": "barrel-hotspot",
+          "count": 27
+        },
+        {
+          "rule": "oxlint/react-doctor(async-cheap-condition-before-await)",
+          "count": 27
+        },
+        {
+          "rule": "oxlint/react-doctor(no-barrel-import)",
+          "count": 23
+        },
+        {
+          "rule": "oxlint/react-doctor(no-swallowed-error)",
+          "count": 20
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/better-auth/packages/expo",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 241,
+      "parsed": true,
+      "framework": "react-native",
+      "score": 65,
+      "totalCount": 73,
+      "errorCount": 35,
+      "warningCount": 38,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 35
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 9
+        },
+        {
+          "rule": "duplicate-dependency-declaration",
+          "count": 7
+        },
+        {
+          "rule": "oxlint/react-doctor(no-secrets-in-client-code)",
+          "count": 7
+        },
+        {
+          "rule": "runtime-dev-dependency",
+          "count": 7
+        },
+        {
+          "rule": "oxlint/react-doctor(no-swallowed-error)",
+          "count": 2
+        },
+        {
+          "rule": "unused-dependency",
+          "count": 2
+        },
+        {
+          "rule": "unused-file",
+          "count": 2
+        },
+        {
+          "rule": "oxlint/react-doctor(server-sequential-independent-await)",
+          "count": 1
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/better-auth/docs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 648,
+      "parsed": true,
+      "framework": "nextjs",
+      "score": 0,
+      "totalCount": 1035,
+      "errorCount": 129,
+      "warningCount": 906,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+          "count": 310
+        },
+        {
+          "rule": "unresolved-import",
+          "count": 129
+        },
+        {
+          "rule": "oxlint/react-doctor(rendering-svg-precision)",
+          "count": 102
+        },
+        {
+          "rule": "oxlint/react-doctor(rendering-content-visibility)",
+          "count": 90
+        },
+        {
+          "rule": "unused-dependency",
+          "count": 40
+        },
+        {
+          "rule": "unused-export",
+          "count": 37
+        },
+        {
+          "rule": "oxlint/react-doctor(server-serialization)",
+          "count": 23
+        },
+        {
+          "rule": "unused-file",
+          "count": 23
+        },
+        {
+          "rule": "oxlint/react(no-unknown-property)",
+          "count": 21
+        },
+        {
+          "rule": "oxlint/react-doctor(no-array-index-as-key)",
+          "count": 15
+        }
+      ]
+    }
+  ]
+}

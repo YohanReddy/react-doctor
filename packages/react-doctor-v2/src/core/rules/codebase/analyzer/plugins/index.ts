@@ -27,10 +27,27 @@ const builtInPlugins: CodebasePlugin[] = [
     usedExports: [
       {
         pattern: "app/**/{page,layout,route}.{js,jsx,ts,tsx}",
-        exports: ["default", "metadata", "generateMetadata", "generateStaticParams", "config"],
+        exports: [
+          "default",
+          "metadata",
+          "generateMetadata",
+          "generateStaticParams",
+          "config",
+          "dynamic",
+          "revalidate",
+          "runtime",
+          "GET",
+          "POST",
+          "PUT",
+          "PATCH",
+          "DELETE",
+          "HEAD",
+          "OPTIONS",
+        ],
       },
     ],
     generatedImportSuffixes: ["/$types"],
+    virtualModulePrefixes: ["@/."],
   },
   {
     name: "vite",

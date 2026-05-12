@@ -45,6 +45,7 @@ const createGraphNode = (
   parseErrors: resolvedModule.module.parseErrors,
   usedIdentifiers: resolvedModule.module.usedIdentifiers,
   namespaceMemberReferences: resolvedModule.module.namespaceMemberReferences,
+  memberObjectReferences: resolvedModule.module.memberObjectReferences,
   namespaceObjectAliases: resolvedModule.module.namespaceObjectAliases,
   namespaceLocalAliases: resolvedModule.module.namespaceLocalAliases,
   namespaceLocalObjectAliases: resolvedModule.module.namespaceLocalObjectAliases,
@@ -148,11 +149,21 @@ const addExportMemberReferences = (
   }
 };
 
+const addAllExportMemberReferences = (exportSymbol: GraphExportSymbol): void => {
+  addExportMemberReferences(
+    exportSymbol,
+    exportSymbol.members.map((member) => member.name),
+  );
+};
+
 const getMemberReferencesForLocalName = (node: ModuleGraphNode, localName: string): string[] =>
   node.namespaceMemberReferences
     .filter((reference) => reference.namespace === localName && reference.memberPath.length >= 1)
     .map((reference) => reference.memberPath[0])
     .filter((memberName): memberName is string => Boolean(memberName));
+
+const getMemberObjectReferencesForLocalName = (node: ModuleGraphNode, localName: string) =>
+  node.memberObjectReferences.filter((reference) => reference.namespace === localName);
 
 const getNamespaceMemberReferencesForLocalName = (node: ModuleGraphNode, localName: string) => [
   ...node.namespaceMemberReferences.filter((reference) => reference.namespace === localName),
@@ -164,6 +175,19 @@ const getNamespaceMemberReferencesForLocalName = (node: ModuleGraphNode, localNa
     .flatMap((alias) =>
       node.namespaceMemberReferences.filter((reference) => reference.namespace === alias.aliasName),
     ),
+];
+
+const getNamespaceMemberObjectReferencesForLocalName = (
+  node: ModuleGraphNode,
+  localName: string,
+) => [
+  ...getMemberObjectReferencesForLocalName(node, localName),
+  ...node.namespaceLocalAliases
+    .filter(
+      (alias) =>
+        alias.namespaceLocalName === localName && node.usedIdentifiers.has(alias.aliasName),
+    )
+    .flatMap((alias) => getMemberObjectReferencesForLocalName(node, alias.aliasName)),
 ];
 
 const addImportReferences = (nodes: Map<number, ModuleGraphNode>): void => {
@@ -181,7 +205,8 @@ const addImportReferences = (nodes: Map<number, ModuleGraphNode>): void => {
           continue;
         }
         const isReExport = resolvedImport.importRecord.kind === "re-export";
-        if (!isReExport && !node.usedIdentifiers.has(binding.localName)) {
+        const isCommentReference = resolvedImport.importRecord.kind === "comment";
+        if (!isReExport && !isCommentReference && !node.usedIdentifiers.has(binding.localName)) {
           continue;
         }
         if (binding.isNamespace) {
@@ -189,8 +214,12 @@ const addImportReferences = (nodes: Map<number, ModuleGraphNode>): void => {
             node,
             binding.localName,
           );
+          const namespaceObjectReferences = getNamespaceMemberObjectReferencesForLocalName(
+            node,
+            binding.localName,
+          );
           const referencedMemberNames = new Set(
-            namespaceReferences
+            [...namespaceReferences, ...namespaceObjectReferences]
               .map((reference) => reference.memberPath[0])
               .filter((memberName): memberName is string => Boolean(memberName)),
           );
@@ -224,6 +253,15 @@ const addImportReferences = (nodes: Map<number, ModuleGraphNode>): void => {
                 .map((reference) => reference.memberPath[1])
                 .filter((memberName): memberName is string => Boolean(memberName)),
             );
+            for (const objectReference of namespaceObjectReferences) {
+              if (objectReference.memberPath.length === 0) {
+                addAllExportMemberReferences(exportSymbol);
+                continue;
+              }
+              if (objectReference.memberPath[0] === exportSymbol.exportedName) {
+                addAllExportMemberReferences(exportSymbol);
+              }
+            }
             addExportReference(exportSymbol, {
               fromFileId: node.file.id,
               kind: referencedMemberNames.size > 0 ? "namespace-member" : "namespace",
@@ -238,6 +276,13 @@ const addImportReferences = (nodes: Map<number, ModuleGraphNode>): void => {
             exportSymbol,
             getMemberReferencesForLocalName(node, binding.localName),
           );
+          if (
+            getMemberObjectReferencesForLocalName(node, binding.localName).some(
+              (reference) => reference.memberPath.length === 0,
+            )
+          ) {
+            addAllExportMemberReferences(exportSymbol);
+          }
           addExportReference(exportSymbol, {
             fromFileId: node.file.id,
             kind: binding.importedName === "default" ? "default" : "named",
@@ -254,6 +299,13 @@ const addLocalExportMemberReferences = (nodes: Map<number, ModuleGraphNode>): vo
     for (const exportSymbol of node.exports.values()) {
       const localName = exportSymbol.localName ?? exportSymbol.exportedName;
       addExportMemberReferences(exportSymbol, getMemberReferencesForLocalName(node, localName));
+      if (
+        getMemberObjectReferencesForLocalName(node, localName).some(
+          (reference) => reference.memberPath.length === 0,
+        )
+      ) {
+        addAllExportMemberReferences(exportSymbol);
+      }
     }
   }
 };

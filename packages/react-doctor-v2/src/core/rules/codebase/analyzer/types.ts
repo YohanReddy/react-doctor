@@ -104,6 +104,7 @@ export interface ImportRecord {
   kind:
     | "static"
     | "dynamic"
+    | "comment"
     | "re-export"
     | "require"
     | "require-resolve"
@@ -144,6 +145,7 @@ export interface ExportRecord {
   symbolKind: "value" | "type" | "interface" | "enum" | "class" | "namespace" | "unknown";
   isTypeOnly: boolean;
   isReExport: boolean;
+  isCommonJs: boolean;
   isNamespace: boolean;
   isReactComponentLike: boolean;
   jsDocTags: Set<string>;
@@ -157,6 +159,11 @@ export interface ExportRecord {
 export interface NamespaceMemberReference {
   namespace: string;
   memberName: string;
+  memberPath: string[];
+}
+
+export interface MemberObjectReference {
+  namespace: string;
   memberPath: string[];
 }
 
@@ -184,6 +191,7 @@ export interface CodebaseModule {
   directives: Set<string>;
   usedIdentifiers: Set<string>;
   namespaceMemberReferences: NamespaceMemberReference[];
+  memberObjectReferences: MemberObjectReference[];
   namespaceObjectAliases: NamespaceObjectAlias[];
   namespaceLocalAliases: NamespaceLocalAlias[];
   namespaceLocalObjectAliases: NamespaceLocalObjectAlias[];
@@ -233,6 +241,7 @@ export interface ModuleGraphNode {
   parseErrors: string[];
   usedIdentifiers: Set<string>;
   namespaceMemberReferences: NamespaceMemberReference[];
+  memberObjectReferences: MemberObjectReference[];
   namespaceObjectAliases: NamespaceObjectAlias[];
   namespaceLocalAliases: NamespaceLocalAlias[];
   namespaceLocalObjectAliases: NamespaceLocalObjectAlias[];

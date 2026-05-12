@@ -144,15 +144,29 @@ const toReactDoctorIssue = (
   };
 };
 
-const parseOxlintOutput = (stdout: string, rootDirectory: string): ReactDoctorIssue[] => {
+const formatOxlintOutputPreview = (stdout: string, stderr = ""): string => {
+  const combinedOutput = [stdout, stderr].filter((value) => value.trim().length > 0).join("\n");
+  return combinedOutput.trim().slice(0, OXLINT_STDERR_PREVIEW_LENGTH);
+};
+
+const parseOxlintOutput = (
+  stdout: string,
+  rootDirectory: string,
+  stderr = "",
+): ReactDoctorIssue[] => {
   if (!stdout.trim()) return [];
   let output: OxlintOutput;
   try {
     output = JSON.parse(stdout);
   } catch (error) {
-    throw new ReactDoctorCheckFailedError(OXLINT_CHECK_ID, "Oxlint returned invalid JSON.", {
-      cause: error,
-    });
+    const preview = formatOxlintOutputPreview(stdout, stderr);
+    throw new ReactDoctorCheckFailedError(
+      OXLINT_CHECK_ID,
+      preview ? `Oxlint failed before returning JSON: ${preview}` : "Oxlint returned invalid JSON.",
+      {
+        cause: error,
+      },
+    );
   }
   return (output.diagnostics ?? []).map((diagnostic) =>
     toReactDoctorIssue(diagnostic, rootDirectory),
@@ -163,7 +177,7 @@ const spawnOxlint = (
   args: string[],
   rootDirectory: string,
   signal: AbortSignal | undefined,
-): Promise<string> =>
+): Promise<{ stdout: string; stderr: string }> =>
   new Promise((resolve, reject) => {
     const child = spawn(process.execPath, args, {
       cwd: rootDirectory,
@@ -184,7 +198,7 @@ const spawnOxlint = (
     child.on("error", reject);
     child.on("close", (exitCode) => {
       if (exitCode === 0 || exitCode === 1) {
-        resolve(stdout);
+        resolve({ stdout, stderr });
         return;
       }
       reject(
@@ -207,9 +221,9 @@ export const runOxlint = async (options: RunOxlintOptions): Promise<ReactDoctorI
     customRulesOnly: options.customRulesOnly,
     includeEcosystemRules: options.includeEcosystemRules,
     extendsPaths:
-      options.adoptExistingLintConfig === false || options.customRulesOnly
-        ? []
-        : detectUserLintConfigPaths(options.rootDirectory),
+      options.adoptExistingLintConfig === true && !options.customRulesOnly
+        ? detectUserLintConfigPaths(options.rootDirectory)
+        : [],
     ignoredTags: options.ignoredTags,
   });
   await fs.writeFile(configPath, JSON.stringify(config), { mode: 0o600 });
@@ -224,8 +238,8 @@ export const runOxlint = async (options: RunOxlintOptions): Promise<ReactDoctorI
       ...(options.excludePatterns ?? []).flatMap((pattern) => ["--ignore-pattern", pattern]),
       ...(options.includePaths?.length ? options.includePaths : ["."]),
     ];
-    const stdout = await spawnOxlint(args, options.rootDirectory, options.signal);
-    return parseOxlintOutput(stdout, options.rootDirectory);
+    const { stdout, stderr } = await spawnOxlint(args, options.rootDirectory, options.signal);
+    return parseOxlintOutput(stdout, options.rootDirectory, stderr);
   } finally {
     await fs.rm(configDirectory, { recursive: true, force: true });
   }

@@ -235,6 +235,7 @@ export const collectManifestDependencyNames = (
   for (const field of MANIFEST_CONFIG_DEPENDENCY_FIELDS) {
     collectManifestDependencyNamesFromValue(manifest[field], dependencyNames, references);
   }
+  collectManifestDependencyNamesFromValue(manifest.imports, dependencyNames, references);
   return references;
 };
 

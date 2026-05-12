@@ -1,0 +1,129 @@
+{
+  "repository": "typebot",
+  "path": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/typebot-io",
+  "v1": {
+    "ok": true,
+    "error": null,
+    "score": 54,
+    "scoreLabel": "Needs work",
+    "totalCount": 1059,
+    "errorCount": 8,
+    "warningCount": 1051,
+    "affectedFileCount": 343,
+    "projectFramework": "nextjs",
+    "topRules": [
+      {
+        "rule": "react-doctor/rendering-svg-precision",
+        "count": 477
+      },
+      {
+        "rule": "effect/no-event-handler",
+        "count": 90
+      },
+      {
+        "rule": "react-doctor/no-react19-deprecated-apis",
+        "count": 52
+      },
+      {
+        "rule": "react-doctor/js-combine-iterations",
+        "count": 46
+      },
+      {
+        "rule": "react-doctor/rerender-functional-setstate",
+        "count": 32
+      },
+      {
+        "rule": "react-doctor/rerender-state-only-in-handlers",
+        "count": 22
+      },
+      {
+        "rule": "effect/no-derived-state",
+        "count": 21
+      },
+      {
+        "rule": "effect/no-chain-state-updates",
+        "count": 20
+      },
+      {
+        "rule": "react-doctor/design-no-default-tailwind-palette",
+        "count": 20
+      },
+      {
+        "rule": "react-doctor/nextjs-no-img-element",
+        "count": 20
+      }
+    ]
+  },
+  "v2": {
+    "ok": false,
+    "score": 0,
+    "scoreLabel": "Critical",
+    "totalCount": 6320,
+    "errorCount": 1137,
+    "warningCount": 5183,
+    "affectedFileCount": 1694,
+    "projectFramework": "unknown",
+    "failedChecks": [],
+    "topRules": [
+      {
+        "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+        "count": 1332
+      },
+      {
+        "rule": "unresolved-import",
+        "count": 1128
+      },
+      {
+        "rule": "unused-file",
+        "count": 831
+      },
+      {
+        "rule": "oxlint/react-doctor(rendering-svg-precision)",
+        "count": 516
+      },
+      {
+        "rule": "oxlint/react(no-unknown-property)",
+        "count": 320
+      },
+      {
+        "rule": "unlisted-dependency",
+        "count": 273
+      },
+      {
+        "rule": "oxlint/react-doctor(no-icon-only-button-without-label)",
+        "count": 221
+      },
+      {
+        "rule": "oxlint/react-doctor(server-serialization)",
+        "count": 170
+      },
+      {
+        "rule": "oxlint/react-doctor(rendering-content-visibility)",
+        "count": 115
+      },
+      {
+        "rule": "oxlint/react-doctor(js-combine-iterations)",
+        "count": 114
+      }
+    ]
+  },
+  "durations": {
+    "v1Milliseconds": 1895,
+    "v2Milliseconds": 3374
+  },
+  "exit": {
+    "v1": {
+      "exitCode": 0,
+      "signal": null
+    },
+    "v2": {
+      "exitCode": 0,
+      "signal": null
+    }
+  },
+  "regressionFlags": [
+    "v2 score is 54 points lower",
+    "v2 has 1129 more errors",
+    "v2 issue count is much higher (1059 -> 6320)"
+  ]
+}

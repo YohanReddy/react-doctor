@@ -1,0 +1,328 @@
+{
+  "repository": "mastra",
+  "projectCount": 5,
+  "totalCount": 10173,
+  "errorCount": 2493,
+  "warningCount": 7680,
+  "failedChecks": [],
+  "unknownFrameworkCount": 0,
+  "topRules": [
+    {
+      "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+      "count": 2808
+    },
+    {
+      "rule": "unresolved-import",
+      "count": 2445
+    },
+    {
+      "rule": "duplicate-export",
+      "count": 649
+    },
+    {
+      "rule": "unused-export",
+      "count": 464
+    },
+    {
+      "rule": "oxlint/react-doctor(design-no-redundant-size-axes)",
+      "count": 453
+    },
+    {
+      "rule": "unlisted-dependency",
+      "count": 326
+    },
+    {
+      "rule": "oxlint/react-doctor(rendering-content-visibility)",
+      "count": 256
+    },
+    {
+      "rule": "unused-type-export",
+      "count": 225
+    },
+    {
+      "rule": "oxlint/react-doctor(rerender-split-combined-hooks)",
+      "count": 184
+    },
+    {
+      "rule": "oxlint/react-doctor(rendering-svg-precision)",
+      "count": 142
+    }
+  ],
+  "projects": [
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/mastra/docs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 473,
+      "parsed": true,
+      "framework": "react",
+      "score": 0,
+      "totalCount": 1593,
+      "errorCount": 749,
+      "warningCount": 844,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 745
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 318
+        },
+        {
+          "rule": "unused-file",
+          "count": 125
+        },
+        {
+          "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+          "count": 60
+        },
+        {
+          "rule": "unused-export",
+          "count": 49
+        },
+        {
+          "rule": "oxlint/react-doctor(server-serialization)",
+          "count": 44
+        },
+        {
+          "rule": "oxlint/react-doctor(design-no-redundant-size-axes)",
+          "count": 33
+        },
+        {
+          "rule": "oxlint/react-doctor(rendering-svg-precision)",
+          "count": 31
+        },
+        {
+          "rule": "oxlint/react-doctor(no-icon-only-button-without-label)",
+          "count": 20
+        },
+        {
+          "rule": "oxlint/react-doctor(rendering-content-visibility)",
+          "count": 18
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/mastra/packages/_vendored/ai_v4",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 197,
+      "parsed": true,
+      "framework": "react",
+      "score": 62,
+      "totalCount": 36,
+      "errorCount": 10,
+      "warningCount": 26,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unused-dev-dependency",
+          "count": 11
+        },
+        {
+          "rule": "unresolved-import",
+          "count": 10
+        },
+        {
+          "rule": "unused-file",
+          "count": 4
+        },
+        {
+          "rule": "oxlint/react-doctor(async-await-in-loop)",
+          "count": 2
+        },
+        {
+          "rule": "oxlint/react-doctor(js-combine-iterations)",
+          "count": 2
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 2
+        },
+        {
+          "rule": "duplicate-dependency-declaration",
+          "count": 1
+        },
+        {
+          "rule": "oxlint/react-doctor(server-sequential-independent-await)",
+          "count": 1
+        },
+        {
+          "rule": "runtime-dev-dependency",
+          "count": 1
+        },
+        {
+          "rule": "unused-optional-peer-dependency",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/mastra/packages/playground",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 1540,
+      "parsed": true,
+      "framework": "vite",
+      "score": 0,
+      "totalCount": 5306,
+      "errorCount": 1297,
+      "warningCount": 4009,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+          "count": 1678
+        },
+        {
+          "rule": "unresolved-import",
+          "count": 1283
+        },
+        {
+          "rule": "oxlint/react-doctor(design-no-redundant-size-axes)",
+          "count": 366
+        },
+        {
+          "rule": "duplicate-export",
+          "count": 228
+        },
+        {
+          "rule": "oxlint/react-doctor(rerender-split-combined-hooks)",
+          "count": 184
+        },
+        {
+          "rule": "oxlint/react-doctor(rendering-content-visibility)",
+          "count": 166
+        },
+        {
+          "rule": "unused-export",
+          "count": 163
+        },
+        {
+          "rule": "oxlint/react-doctor(js-cache-function-results)",
+          "count": 82
+        },
+        {
+          "rule": "oxlint/react-doctor(no-icon-only-button-without-label)",
+          "count": 72
+        },
+        {
+          "rule": "unused-type-export",
+          "count": 60
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/mastra/packages/playground-ui",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 840,
+      "parsed": true,
+      "framework": "vite",
+      "score": 0,
+      "totalCount": 3070,
+      "errorCount": 372,
+      "warningCount": 2698,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+          "count": 1058
+        },
+        {
+          "rule": "duplicate-export",
+          "count": 414
+        },
+        {
+          "rule": "unresolved-import",
+          "count": 344
+        },
+        {
+          "rule": "unused-export",
+          "count": 241
+        },
+        {
+          "rule": "unused-type-export",
+          "count": 165
+        },
+        {
+          "rule": "oxlint/react-doctor(rendering-svg-precision)",
+          "count": 111
+        },
+        {
+          "rule": "oxlint/react-doctor(no-react19-deprecated-apis)",
+          "count": 94
+        },
+        {
+          "rule": "oxlint/react-doctor(rendering-content-visibility)",
+          "count": 72
+        },
+        {
+          "rule": "oxlint/react-doctor(server-serialization)",
+          "count": 56
+        },
+        {
+          "rule": "oxlint/react-doctor(design-no-redundant-size-axes)",
+          "count": 54
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/mastra/client-sdks/react",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 364,
+      "parsed": true,
+      "framework": "vite",
+      "score": 0,
+      "totalCount": 168,
+      "errorCount": 65,
+      "warningCount": 103,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 63
+        },
+        {
+          "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+          "count": 12
+        },
+        {
+          "rule": "unused-export",
+          "count": 11
+        },
+        {
+          "rule": "oxlint/react-doctor(no-swallowed-error)",
+          "count": 8
+        },
+        {
+          "rule": "duplicate-export",
+          "count": 7
+        },
+        {
+          "rule": "oxlint/react-doctor(no-icon-only-button-without-label)",
+          "count": 6
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 6
+        },
+        {
+          "rule": "oxlint/react-doctor(async-await-in-loop)",
+          "count": 5
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 5
+        },
+        {
+          "rule": "barrel-hotspot",
+          "count": 4
+        }
+      ]
+    }
+  ]
+}

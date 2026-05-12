@@ -101,7 +101,7 @@ Config lookup starts at the requested directory and walks ancestors until a proj
   "offline": true,
   "failOn": "error",
   "respectInlineDisables": true,
-  "adoptExistingLintConfig": true,
+  "adoptExistingLintConfig": false,
   "includeEcosystemRules": true,
   "ignoredTags": ["design"],
   "textComponents": ["Trans"],
@@ -125,7 +125,7 @@ Pick the narrowest ignore that fits:
 - **`ignore.files`** silences every rule on matched files.
 - **`ignore.overrides`** silences only the listed rules on the matched files, leaving every other rule active. This is what you want when a single file (or glob) legitimately needs an exemption from one or two rules but should still be scanned for everything else.
 
-React Doctor can adopt the first JSON `.oxlintrc.json` or `.eslintrc.json` found while walking ancestors. Set `adoptExistingLintConfig` to `false` to scan only React Doctor rules.
+React Doctor scans only its curated rule set by default. Set `adoptExistingLintConfig` to `true` to adopt the first JSON `.oxlintrc.json` or `.eslintrc.json` found while walking ancestors.
 
 `ignoredTags` lets you trim noisy categories without turning the whole scanner off. For example, `["design"]` keeps structural React checks while skipping subjective visual style suggestions.
 

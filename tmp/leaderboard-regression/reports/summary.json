@@ -1,0 +1,1295 @@
+[
+  {
+    "repository": "executor",
+    "path": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/executor",
+    "v1": {
+      "ok": true,
+      "error": null,
+      "score": 76,
+      "scoreLabel": "Great",
+      "totalCount": 158,
+      "errorCount": 31,
+      "warningCount": 127,
+      "affectedFileCount": 63,
+      "projectFramework": "vite",
+      "topRules": [
+        {
+          "rule": "react-hooks/rules-of-hooks",
+          "count": 30
+        },
+        {
+          "rule": "react-doctor/no-react19-deprecated-apis",
+          "count": 16
+        },
+        {
+          "rule": "react-doctor/no-array-index-as-key",
+          "count": 12
+        },
+        {
+          "rule": "react-doctor/js-combine-iterations",
+          "count": 10
+        },
+        {
+          "rule": "react-doctor/js-tosorted-immutable",
+          "count": 8
+        },
+        {
+          "rule": "effect/no-event-handler",
+          "count": 6
+        },
+        {
+          "rule": "react-doctor/async-await-in-loop",
+          "count": 6
+        },
+        {
+          "rule": "react-doctor/js-set-map-lookups",
+          "count": 5
+        },
+        {
+          "rule": "jsx-a11y/no-autofocus",
+          "count": 4
+        },
+        {
+          "rule": "react-doctor/design-no-redundant-padding-axes",
+          "count": 4
+        }
+      ]
+    },
+    "v2": {
+      "ok": false,
+      "score": 0,
+      "scoreLabel": "Critical",
+      "totalCount": 4377,
+      "errorCount": 1615,
+      "warningCount": 2762,
+      "affectedFileCount": 703,
+      "projectFramework": "unknown",
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 1571
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 638
+        },
+        {
+          "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+          "count": 400
+        },
+        {
+          "rule": "duplicate-export",
+          "count": 354
+        },
+        {
+          "rule": "unused-file",
+          "count": 281
+        },
+        {
+          "rule": "unused-export",
+          "count": 272
+        },
+        {
+          "rule": "unused-type-export",
+          "count": 146
+        },
+        {
+          "rule": "barrel-hotspot",
+          "count": 81
+        },
+        {
+          "rule": "namespace-only-export",
+          "count": 51
+        },
+        {
+          "rule": "oxlint/react-doctor(server-serialization)",
+          "count": 47
+        }
+      ]
+    },
+    "durations": {
+      "v1Milliseconds": 1357,
+      "v2Milliseconds": 1637
+    },
+    "exit": {
+      "v1": {
+        "exitCode": 0,
+        "signal": null
+      },
+      "v2": {
+        "exitCode": 0,
+        "signal": null
+      }
+    },
+    "regressionFlags": [
+      "v2 score is 76 points lower",
+      "v2 has 1584 more errors",
+      "v2 issue count is much higher (158 -> 4377)"
+    ]
+  },
+  {
+    "repository": "nodejs.org",
+    "path": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/nodejs-org",
+    "v1": {
+      "ok": true,
+      "error": null,
+      "score": 80,
+      "scoreLabel": "Great",
+      "totalCount": 307,
+      "errorCount": 7,
+      "warningCount": 300,
+      "affectedFileCount": 73,
+      "projectFramework": "nextjs",
+      "topRules": [
+        {
+          "rule": "react-doctor/rendering-svg-precision",
+          "count": 140
+        },
+        {
+          "rule": "react-doctor/design-no-redundant-size-axes",
+          "count": 56
+        },
+        {
+          "rule": "jsx-a11y/anchor-is-valid",
+          "count": 42
+        },
+        {
+          "rule": "react-doctor/js-combine-iterations",
+          "count": 9
+        },
+        {
+          "rule": "react-doctor/rerender-memo-with-default-value",
+          "count": 6
+        },
+        {
+          "rule": "effect/no-event-handler",
+          "count": 5
+        },
+        {
+          "rule": "react/no-unknown-property",
+          "count": 5
+        },
+        {
+          "rule": "react-doctor/async-defer-await",
+          "count": 4
+        },
+        {
+          "rule": "react-doctor/nextjs-no-a-element",
+          "count": 3
+        },
+        {
+          "rule": "react-doctor/server-sequential-independent-await",
+          "count": 3
+        }
+      ]
+    },
+    "v2": {
+      "ok": false,
+      "score": 0,
+      "scoreLabel": "Critical",
+      "totalCount": 2076,
+      "errorCount": 1020,
+      "warningCount": 1056,
+      "affectedFileCount": 451,
+      "projectFramework": "unknown",
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 1019
+        },
+        {
+          "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+          "count": 179
+        },
+        {
+          "rule": "unused-file",
+          "count": 178
+        },
+        {
+          "rule": "unused-export",
+          "count": 155
+        },
+        {
+          "rule": "oxlint/react-doctor(rendering-svg-precision)",
+          "count": 140
+        },
+        {
+          "rule": "oxlint/react-doctor(server-serialization)",
+          "count": 48
+        },
+        {
+          "rule": "oxlint/jsx-a11y(anchor-is-valid)",
+          "count": 42
+        },
+        {
+          "rule": "oxlint/react-doctor(rendering-content-visibility)",
+          "count": 38
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 36
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 33
+        }
+      ]
+    },
+    "durations": {
+      "v1Milliseconds": 1408,
+      "v2Milliseconds": 822
+    },
+    "exit": {
+      "v1": {
+        "exitCode": 0,
+        "signal": null
+      },
+      "v2": {
+        "exitCode": 0,
+        "signal": null
+      }
+    },
+    "regressionFlags": [
+      "v2 score is 80 points lower",
+      "v2 has 1013 more errors",
+      "v2 issue count is much higher (307 -> 2076)"
+    ]
+  },
+  {
+    "repository": "tldraw",
+    "path": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw",
+    "v1": {
+      "ok": true,
+      "error": null,
+      "score": 61,
+      "scoreLabel": "Needs work",
+      "totalCount": 1496,
+      "errorCount": 390,
+      "warningCount": 1106,
+      "affectedFileCount": 514,
+      "projectFramework": "vite",
+      "topRules": [
+        {
+          "rule": "eslint/no-undef",
+          "count": 122
+        },
+        {
+          "rule": "react-doctor/async-await-in-loop",
+          "count": 114
+        },
+        {
+          "rule": "effect/no-event-handler",
+          "count": 89
+        },
+        {
+          "rule": "react-doctor/js-combine-iterations",
+          "count": 78
+        },
+        {
+          "rule": "react-doctor/no-generic-handler-names",
+          "count": 62
+        },
+        {
+          "rule": "react-doctor/no-react19-deprecated-apis",
+          "count": 61
+        },
+        {
+          "rule": "react-doctor/async-parallel",
+          "count": 57
+        },
+        {
+          "rule": "tldraw/prefer-class-methods",
+          "count": 53
+        },
+        {
+          "rule": "react-doctor/no-array-index-as-key",
+          "count": 52
+        },
+        {
+          "rule": "react-doctor/js-cache-property-access",
+          "count": 49
+        }
+      ]
+    },
+    "v2": {
+      "ok": false,
+      "score": 0,
+      "scoreLabel": "Critical",
+      "totalCount": 8572,
+      "errorCount": 2188,
+      "warningCount": 6384,
+      "affectedFileCount": 1899,
+      "projectFramework": "unknown",
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "duplicate-export",
+          "count": 1835
+        },
+        {
+          "rule": "unresolved-import",
+          "count": 1143
+        },
+        {
+          "rule": "unused-file",
+          "count": 692
+        },
+        {
+          "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+          "count": 638
+        },
+        {
+          "rule": "oxlint/eslint(no-undef)",
+          "count": 382
+        },
+        {
+          "rule": "oxlint/eslint(no-console)",
+          "count": 362
+        },
+        {
+          "rule": "unused-class-member",
+          "count": 293
+        },
+        {
+          "rule": "oxlint/react-doctor(rerender-split-combined-hooks)",
+          "count": 240
+        },
+        {
+          "rule": "barrel-hotspot",
+          "count": 212
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 164
+        }
+      ]
+    },
+    "durations": {
+      "v1Milliseconds": 38279,
+      "v2Milliseconds": 7099
+    },
+    "exit": {
+      "v1": {
+        "exitCode": 0,
+        "signal": null
+      },
+      "v2": {
+        "exitCode": 0,
+        "signal": null
+      }
+    },
+    "regressionFlags": [
+      "v2 score is 61 points lower",
+      "v2 has 1798 more errors",
+      "v2 issue count is much higher (1496 -> 8572)"
+    ]
+  },
+  {
+    "repository": "t3code",
+    "path": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/t3code",
+    "v1": {
+      "ok": true,
+      "error": null,
+      "score": 54,
+      "scoreLabel": "Needs work",
+      "totalCount": 726,
+      "errorCount": 81,
+      "warningCount": 645,
+      "affectedFileCount": 90,
+      "projectFramework": "vite",
+      "topRules": [
+        {
+          "rule": "effect/no-event-handler",
+          "count": 230
+        },
+        {
+          "rule": "react-doctor/async-parallel",
+          "count": 99
+        },
+        {
+          "rule": "react-doctor/js-combine-iterations",
+          "count": 54
+        },
+        {
+          "rule": "react-hooks-js/set-state-in-effect",
+          "count": 30
+        },
+        {
+          "rule": "effect/no-adjust-state-on-prop-change",
+          "count": 29
+        },
+        {
+          "rule": "effect/no-chain-state-updates",
+          "count": 29
+        },
+        {
+          "rule": "effect/no-derived-state",
+          "count": 20
+        },
+        {
+          "rule": "react-hooks-js/todo",
+          "count": 20
+        },
+        {
+          "rule": "react-doctor/js-batch-dom-css",
+          "count": 17
+        },
+        {
+          "rule": "react-doctor/no-render-in-render",
+          "count": 17
+        }
+      ]
+    },
+    "v2": {
+      "ok": false,
+      "score": 50,
+      "scoreLabel": "Critical",
+      "totalCount": 4377,
+      "errorCount": 3392,
+      "warningCount": 985,
+      "affectedFileCount": 877,
+      "projectFramework": "unknown",
+      "failedChecks": [
+        {
+          "id": "react-doctor/oxlint",
+          "error": "Oxlint returned invalid JSON."
+        }
+      ],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 3392
+        },
+        {
+          "rule": "unused-export",
+          "count": 347
+        },
+        {
+          "rule": "barrel-hotspot",
+          "count": 200
+        },
+        {
+          "rule": "namespace-only-export",
+          "count": 159
+        },
+        {
+          "rule": "duplicate-export",
+          "count": 128
+        },
+        {
+          "rule": "unused-file",
+          "count": 43
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 38
+        },
+        {
+          "rule": "unused-type-export",
+          "count": 29
+        },
+        {
+          "rule": "runtime-dev-dependency",
+          "count": 15
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 9
+        }
+      ]
+    },
+    "durations": {
+      "v1Milliseconds": 6526,
+      "v2Milliseconds": 2461
+    },
+    "exit": {
+      "v1": {
+        "exitCode": 0,
+        "signal": null
+      },
+      "v2": {
+        "exitCode": 0,
+        "signal": null
+      }
+    },
+    "regressionFlags": [
+      "v2 failed checks: react-doctor/oxlint",
+      "v2 has 3311 more errors",
+      "v2 issue count is much higher (726 -> 4377)"
+    ]
+  },
+  {
+    "repository": "better-auth",
+    "path": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/better-auth",
+    "v1": {
+      "ok": true,
+      "error": null,
+      "score": 64,
+      "scoreLabel": "Needs work",
+      "totalCount": 664,
+      "errorCount": 8,
+      "warningCount": 656,
+      "affectedFileCount": 162,
+      "projectFramework": "nextjs",
+      "topRules": [
+        {
+          "rule": "react-doctor/server-sequential-independent-await",
+          "count": 109
+        },
+        {
+          "rule": "react-doctor/rendering-svg-precision",
+          "count": 102
+        },
+        {
+          "rule": "react-doctor/design-no-redundant-size-axes",
+          "count": 92
+        },
+        {
+          "rule": "react-doctor/async-await-in-loop",
+          "count": 74
+        },
+        {
+          "rule": "react-doctor/js-combine-iterations",
+          "count": 25
+        },
+        {
+          "rule": "react-doctor/no-barrel-import",
+          "count": 23
+        },
+        {
+          "rule": "react/no-unknown-property",
+          "count": 21
+        },
+        {
+          "rule": "react-doctor/no-secrets-in-client-code",
+          "count": 20
+        },
+        {
+          "rule": "react-doctor/js-set-map-lookups",
+          "count": 16
+        },
+        {
+          "rule": "react-doctor/no-array-index-as-key",
+          "count": 15
+        }
+      ]
+    },
+    "v2": {
+      "ok": false,
+      "score": 0,
+      "scoreLabel": "Critical",
+      "totalCount": 8676,
+      "errorCount": 2606,
+      "warningCount": 6070,
+      "affectedFileCount": 1135,
+      "projectFramework": "unknown",
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 2592
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 2530
+        },
+        {
+          "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+          "count": 656
+        },
+        {
+          "rule": "duplicate-export",
+          "count": 393
+        },
+        {
+          "rule": "oxlint/react-doctor(server-sequential-independent-await)",
+          "count": 338
+        },
+        {
+          "rule": "unused-file",
+          "count": 255
+        },
+        {
+          "rule": "unused-export",
+          "count": 235
+        },
+        {
+          "rule": "unused-type-export",
+          "count": 146
+        },
+        {
+          "rule": "oxlint/react-doctor(async-await-in-loop)",
+          "count": 143
+        },
+        {
+          "rule": "oxlint/react-doctor(rendering-content-visibility)",
+          "count": 103
+        }
+      ]
+    },
+    "durations": {
+      "v1Milliseconds": 1045,
+      "v2Milliseconds": 2848
+    },
+    "exit": {
+      "v1": {
+        "exitCode": 0,
+        "signal": null
+      },
+      "v2": {
+        "exitCode": 0,
+        "signal": null
+      }
+    },
+    "regressionFlags": [
+      "v2 score is 64 points lower",
+      "v2 has 2598 more errors",
+      "v2 issue count is much higher (664 -> 8676)"
+    ]
+  },
+  {
+    "repository": "excalidraw",
+    "path": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/excalidraw",
+    "v1": {
+      "ok": true,
+      "error": null,
+      "score": 61,
+      "scoreLabel": "Needs work",
+      "totalCount": 511,
+      "errorCount": 2,
+      "warningCount": 509,
+      "affectedFileCount": 157,
+      "projectFramework": "vite",
+      "topRules": [
+        {
+          "rule": "react-doctor/no-render-in-render",
+          "count": 84
+        },
+        {
+          "rule": "effect/no-event-handler",
+          "count": 77
+        },
+        {
+          "rule": "react-doctor/js-combine-iterations",
+          "count": 50
+        },
+        {
+          "rule": "react-doctor/no-barrel-import",
+          "count": 40
+        },
+        {
+          "rule": "react-doctor/js-batch-dom-css",
+          "count": 23
+        },
+        {
+          "rule": "effect/no-derived-state",
+          "count": 17
+        },
+        {
+          "rule": "react-doctor/no-react19-deprecated-apis",
+          "count": 17
+        },
+        {
+          "rule": "react-doctor/rendering-svg-precision",
+          "count": 17
+        },
+        {
+          "rule": "jsx-a11y/no-static-element-interactions",
+          "count": 15
+        },
+        {
+          "rule": "jsx-a11y/click-events-have-key-events",
+          "count": 14
+        }
+      ]
+    },
+    "v2": {
+      "ok": false,
+      "score": 50,
+      "scoreLabel": "Critical",
+      "totalCount": 1721,
+      "errorCount": 284,
+      "warningCount": 1437,
+      "affectedFileCount": 374,
+      "projectFramework": "vite",
+      "failedChecks": [
+        {
+          "id": "react-doctor/oxlint",
+          "error": "Oxlint returned invalid JSON."
+        }
+      ],
+      "topRules": [
+        {
+          "rule": "unlisted-dependency",
+          "count": 480
+        },
+        {
+          "rule": "unused-export",
+          "count": 412
+        },
+        {
+          "rule": "unresolved-import",
+          "count": 284
+        },
+        {
+          "rule": "duplicate-export",
+          "count": 185
+        },
+        {
+          "rule": "barrel-hotspot",
+          "count": 80
+        },
+        {
+          "rule": "namespace-only-export",
+          "count": 73
+        },
+        {
+          "rule": "unused-class-member",
+          "count": 48
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 45
+        },
+        {
+          "rule": "unused-file",
+          "count": 37
+        },
+        {
+          "rule": "unused-enum-member",
+          "count": 33
+        }
+      ]
+    },
+    "durations": {
+      "v1Milliseconds": 1075,
+      "v2Milliseconds": 972
+    },
+    "exit": {
+      "v1": {
+        "exitCode": 0,
+        "signal": null
+      },
+      "v2": {
+        "exitCode": 0,
+        "signal": null
+      }
+    },
+    "regressionFlags": [
+      "v2 failed checks: react-doctor/oxlint",
+      "v2 score is 11 points lower",
+      "v2 has 282 more errors",
+      "v2 issue count is much higher (511 -> 1721)"
+    ]
+  },
+  {
+    "repository": "mastra",
+    "path": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/mastra",
+    "v1": {
+      "ok": true,
+      "error": null,
+      "score": 51,
+      "scoreLabel": "Needs work",
+      "totalCount": 2228,
+      "errorCount": 32,
+      "warningCount": 2196,
+      "affectedFileCount": 592,
+      "projectFramework": "vite",
+      "topRules": [
+        {
+          "rule": "react-doctor/design-no-redundant-size-axes",
+          "count": 452
+        },
+        {
+          "rule": "effect/no-event-handler",
+          "count": 361
+        },
+        {
+          "rule": "react-doctor/no-react19-deprecated-apis",
+          "count": 150
+        },
+        {
+          "rule": "react-doctor/rendering-svg-precision",
+          "count": 146
+        },
+        {
+          "rule": "effect/no-derived-state",
+          "count": 70
+        },
+        {
+          "rule": "react-doctor/js-combine-iterations",
+          "count": 65
+        },
+        {
+          "rule": "react-doctor/design-no-three-period-ellipsis",
+          "count": 61
+        },
+        {
+          "rule": "react-doctor/rendering-hydration-mismatch-time",
+          "count": 61
+        },
+        {
+          "rule": "react-doctor/no-array-index-as-key",
+          "count": 59
+        },
+        {
+          "rule": "effect/no-adjust-state-on-prop-change",
+          "count": 56
+        }
+      ]
+    },
+    "v2": {
+      "ok": false,
+      "score": 0,
+      "scoreLabel": "Critical",
+      "totalCount": 23387,
+      "errorCount": 5123,
+      "warningCount": 18264,
+      "affectedFileCount": 5140,
+      "projectFramework": "vite",
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 5081
+        },
+        {
+          "rule": "duplicate-export",
+          "count": 3294
+        },
+        {
+          "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+          "count": 2808
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 1289
+        },
+        {
+          "rule": "unused-export",
+          "count": 1119
+        },
+        {
+          "rule": "oxlint/react-doctor(async-await-in-loop)",
+          "count": 1042
+        },
+        {
+          "rule": "oxlint/react-doctor(no-swallowed-error)",
+          "count": 783
+        },
+        {
+          "rule": "unused-file",
+          "count": 727
+        },
+        {
+          "rule": "unused-type-export",
+          "count": 689
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 516
+        }
+      ]
+    },
+    "durations": {
+      "v1Milliseconds": 1710,
+      "v2Milliseconds": 15367
+    },
+    "exit": {
+      "v1": {
+        "exitCode": 0,
+        "signal": null
+      },
+      "v2": {
+        "exitCode": 0,
+        "signal": null
+      }
+    },
+    "regressionFlags": [
+      "v2 score is 51 points lower",
+      "v2 has 5091 more errors",
+      "v2 issue count is much higher (2228 -> 23387)"
+    ]
+  },
+  {
+    "repository": "payload",
+    "path": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/payload",
+    "v1": {
+      "ok": true,
+      "error": null,
+      "score": 27,
+      "scoreLabel": "Critical",
+      "totalCount": 12626,
+      "errorCount": 316,
+      "warningCount": 12310,
+      "affectedFileCount": 5200,
+      "projectFramework": "nextjs",
+      "topRules": [
+        {
+          "rule": "knip/files",
+          "count": 2238
+        },
+        {
+          "rule": "knip/types",
+          "count": 2160
+        },
+        {
+          "rule": "react-doctor/no-barrel-import",
+          "count": 1910
+        },
+        {
+          "rule": "react-doctor/server-sequential-independent-await",
+          "count": 984
+        },
+        {
+          "rule": "react-doctor/async-await-in-loop",
+          "count": 916
+        },
+        {
+          "rule": "effect/no-event-handler",
+          "count": 543
+        },
+        {
+          "rule": "react-doctor/no-array-index-as-key",
+          "count": 397
+        },
+        {
+          "rule": "knip/exports",
+          "count": 368
+        },
+        {
+          "rule": "react-doctor/react-compiler-destructure-method",
+          "count": 241
+        },
+        {
+          "rule": "react-doctor/async-parallel",
+          "count": 220
+        }
+      ]
+    },
+    "v2": {
+      "ok": false,
+      "score": 0,
+      "scoreLabel": "Critical",
+      "totalCount": 17545,
+      "errorCount": 2633,
+      "warningCount": 14912,
+      "affectedFileCount": 4849,
+      "projectFramework": "nextjs",
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "duplicate-export",
+          "count": 2855
+        },
+        {
+          "rule": "unresolved-import",
+          "count": 2596
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 1866
+        },
+        {
+          "rule": "unused-file",
+          "count": 1418
+        },
+        {
+          "rule": "oxlint/react-doctor(no-barrel-import)",
+          "count": 1195
+        },
+        {
+          "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+          "count": 1074
+        },
+        {
+          "rule": "unused-export",
+          "count": 773
+        },
+        {
+          "rule": "oxlint/react-doctor(server-sequential-independent-await)",
+          "count": 532
+        },
+        {
+          "rule": "oxlint/react-doctor(rerender-split-combined-hooks)",
+          "count": 531
+        },
+        {
+          "rule": "unused-type-export",
+          "count": 479
+        }
+      ]
+    },
+    "durations": {
+      "v1Milliseconds": 16080,
+      "v2Milliseconds": 14698
+    },
+    "exit": {
+      "v1": {
+        "exitCode": 0,
+        "signal": null
+      },
+      "v2": {
+        "exitCode": 0,
+        "signal": null
+      }
+    },
+    "regressionFlags": [
+      "v2 score is 27 points lower",
+      "v2 has 2317 more errors"
+    ]
+  },
+  {
+    "repository": "typebot",
+    "path": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/typebot-io",
+    "v1": {
+      "ok": true,
+      "error": null,
+      "score": 54,
+      "scoreLabel": "Needs work",
+      "totalCount": 1059,
+      "errorCount": 8,
+      "warningCount": 1051,
+      "affectedFileCount": 343,
+      "projectFramework": "nextjs",
+      "topRules": [
+        {
+          "rule": "react-doctor/rendering-svg-precision",
+          "count": 477
+        },
+        {
+          "rule": "effect/no-event-handler",
+          "count": 90
+        },
+        {
+          "rule": "react-doctor/no-react19-deprecated-apis",
+          "count": 52
+        },
+        {
+          "rule": "react-doctor/js-combine-iterations",
+          "count": 46
+        },
+        {
+          "rule": "react-doctor/rerender-functional-setstate",
+          "count": 32
+        },
+        {
+          "rule": "react-doctor/rerender-state-only-in-handlers",
+          "count": 22
+        },
+        {
+          "rule": "effect/no-derived-state",
+          "count": 21
+        },
+        {
+          "rule": "effect/no-chain-state-updates",
+          "count": 20
+        },
+        {
+          "rule": "react-doctor/design-no-default-tailwind-palette",
+          "count": 20
+        },
+        {
+          "rule": "react-doctor/nextjs-no-img-element",
+          "count": 20
+        }
+      ]
+    },
+    "v2": {
+      "ok": false,
+      "score": 0,
+      "scoreLabel": "Critical",
+      "totalCount": 6320,
+      "errorCount": 1137,
+      "warningCount": 5183,
+      "affectedFileCount": 1694,
+      "projectFramework": "unknown",
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+          "count": 1332
+        },
+        {
+          "rule": "unresolved-import",
+          "count": 1128
+        },
+        {
+          "rule": "unused-file",
+          "count": 831
+        },
+        {
+          "rule": "oxlint/react-doctor(rendering-svg-precision)",
+          "count": 516
+        },
+        {
+          "rule": "oxlint/react(no-unknown-property)",
+          "count": 320
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 273
+        },
+        {
+          "rule": "oxlint/react-doctor(no-icon-only-button-without-label)",
+          "count": 221
+        },
+        {
+          "rule": "oxlint/react-doctor(server-serialization)",
+          "count": 170
+        },
+        {
+          "rule": "oxlint/react-doctor(rendering-content-visibility)",
+          "count": 115
+        },
+        {
+          "rule": "oxlint/react-doctor(js-combine-iterations)",
+          "count": 114
+        }
+      ]
+    },
+    "durations": {
+      "v1Milliseconds": 1895,
+      "v2Milliseconds": 3374
+    },
+    "exit": {
+      "v1": {
+        "exitCode": 0,
+        "signal": null
+      },
+      "v2": {
+        "exitCode": 0,
+        "signal": null
+      }
+    },
+    "regressionFlags": [
+      "v2 score is 54 points lower",
+      "v2 has 1129 more errors",
+      "v2 issue count is much higher (1059 -> 6320)"
+    ]
+  },
+  {
+    "repository": "plane",
+    "path": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/plane",
+    "v1": {
+      "ok": true,
+      "error": null,
+      "score": 54,
+      "scoreLabel": "Needs work",
+      "totalCount": 4154,
+      "errorCount": 137,
+      "warningCount": 4017,
+      "affectedFileCount": 1178,
+      "projectFramework": "vite",
+      "topRules": [
+        {
+          "rule": "react-doctor/rendering-svg-precision",
+          "count": 1184
+        },
+        {
+          "rule": "react-doctor/design-no-redundant-size-axes",
+          "count": 978
+        },
+        {
+          "rule": "react-doctor/design-no-default-tailwind-palette",
+          "count": 231
+        },
+        {
+          "rule": "react-doctor/no-full-lodash-import",
+          "count": 180
+        },
+        {
+          "rule": "effect/no-event-handler",
+          "count": 149
+        },
+        {
+          "rule": "react-doctor/no-react19-deprecated-apis",
+          "count": 147
+        },
+        {
+          "rule": "react-hooks/rules-of-hooks",
+          "count": 125
+        },
+        {
+          "rule": "jsx-a11y/click-events-have-key-events",
+          "count": 124
+        },
+        {
+          "rule": "jsx-a11y/no-static-element-interactions",
+          "count": 120
+        },
+        {
+          "rule": "react-doctor/no-array-index-as-key",
+          "count": 88
+        }
+      ]
+    },
+    "v2": {
+      "ok": false,
+      "score": 74,
+      "scoreLabel": "Needs work",
+      "totalCount": 37036,
+      "errorCount": 18650,
+      "warningCount": 18386,
+      "affectedFileCount": 3558,
+      "projectFramework": "unknown",
+      "failedChecks": [
+        {
+          "id": "react-doctor/oxlint",
+          "error": "Oxlint returned invalid JSON."
+        }
+      ],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 18650
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 14343
+        },
+        {
+          "rule": "unused-file",
+          "count": 3383
+        },
+        {
+          "rule": "unused-export",
+          "count": 606
+        },
+        {
+          "rule": "duplicate-export",
+          "count": 49
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 3
+        },
+        {
+          "rule": "namespace-only-export",
+          "count": 2
+        }
+      ]
+    },
+    "durations": {
+      "v1Milliseconds": 3662,
+      "v2Milliseconds": 3868
+    },
+    "exit": {
+      "v1": {
+        "exitCode": 0,
+        "signal": null
+      },
+      "v2": {
+        "exitCode": 0,
+        "signal": null
+      }
+    },
+    "regressionFlags": [
+      "v2 failed checks: react-doctor/oxlint",
+      "v2 has 18513 more errors",
+      "v2 issue count is much higher (4154 -> 37036)"
+    ]
+  }
+]

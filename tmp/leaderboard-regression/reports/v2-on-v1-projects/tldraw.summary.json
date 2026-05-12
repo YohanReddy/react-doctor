@@ -1,0 +1,1642 @@
+{
+  "repository": "tldraw",
+  "projectCount": 31,
+  "totalCount": 8614,
+  "errorCount": 2968,
+  "warningCount": 5646,
+  "failedChecks": [],
+  "unknownFrameworkCount": 0,
+  "topRules": [
+    {
+      "rule": "unresolved-import",
+      "count": 2550
+    },
+    {
+      "rule": "duplicate-export",
+      "count": 1565
+    },
+    {
+      "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+      "count": 626
+    },
+    {
+      "rule": "unused-file",
+      "count": 584
+    },
+    {
+      "rule": "unused-class-member",
+      "count": 285
+    },
+    {
+      "rule": "oxlint/react-doctor(rerender-split-combined-hooks)",
+      "count": 230
+    },
+    {
+      "rule": "barrel-hotspot",
+      "count": 165
+    },
+    {
+      "rule": "oxlint/react-doctor(no-icon-only-button-without-label)",
+      "count": 139
+    },
+    {
+      "rule": "oxlint/react-doctor(server-serialization)",
+      "count": 125
+    },
+    {
+      "rule": "oxlint/eslint(no-undef)",
+      "count": 121
+    }
+  ],
+  "projects": [
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/packages/dotcom-shared",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 1631,
+      "parsed": true,
+      "framework": "react",
+      "score": 45,
+      "totalCount": 46,
+      "errorCount": 13,
+      "warningCount": 33,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 12
+        },
+        {
+          "rule": "oxlint/react-doctor(async-parallel)",
+          "count": 5
+        },
+        {
+          "rule": "unused-type-export",
+          "count": 5
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 4
+        },
+        {
+          "rule": "unused-dependency",
+          "count": 3
+        },
+        {
+          "rule": "unused-export",
+          "count": 3
+        },
+        {
+          "rule": "barrel-hotspot",
+          "count": 2
+        },
+        {
+          "rule": "duplicate-dependency-declaration",
+          "count": 2
+        },
+        {
+          "rule": "oxlint/react-doctor(async-await-in-loop)",
+          "count": 2
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/packages/editor",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 2143,
+      "parsed": true,
+      "framework": "react",
+      "score": 0,
+      "totalCount": 1091,
+      "errorCount": 366,
+      "warningCount": 725,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "duplicate-export",
+          "count": 425
+        },
+        {
+          "rule": "unresolved-import",
+          "count": 294
+        },
+        {
+          "rule": "unused-class-member",
+          "count": 48
+        },
+        {
+          "rule": "oxlint/eslint(no-undef)",
+          "count": 41
+        },
+        {
+          "rule": "barrel-hotspot",
+          "count": 27
+        },
+        {
+          "rule": "oxlint/react-doctor(js-cache-property-access)",
+          "count": 25
+        },
+        {
+          "rule": "oxlint/react-doctor(rerender-split-combined-hooks)",
+          "count": 25
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 22
+        },
+        {
+          "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+          "count": 17
+        },
+        {
+          "rule": "oxlint/react-doctor(js-set-map-lookups)",
+          "count": 13
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/packages/mermaid",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 1911,
+      "parsed": true,
+      "framework": "react",
+      "score": 48,
+      "totalCount": 67,
+      "errorCount": 29,
+      "warningCount": 38,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 28
+        },
+        {
+          "rule": "duplicate-export",
+          "count": 17
+        },
+        {
+          "rule": "oxlint/react-doctor(js-cache-property-access)",
+          "count": 4
+        },
+        {
+          "rule": "barrel-hotspot",
+          "count": 3
+        },
+        {
+          "rule": "oxlint/react-doctor(js-batch-dom-css)",
+          "count": 3
+        },
+        {
+          "rule": "oxlint/react-doctor(no-swallowed-error)",
+          "count": 3
+        },
+        {
+          "rule": "unused-peer-dependency",
+          "count": 2
+        },
+        {
+          "rule": "oxlint/react-doctor(js-combine-iterations)",
+          "count": 1
+        },
+        {
+          "rule": "oxlint/react-doctor(js-set-map-lookups)",
+          "count": 1
+        },
+        {
+          "rule": "oxlint/typescript(tsconfig-error)",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/packages/namespaced-tldraw",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 1598,
+      "parsed": true,
+      "framework": "react",
+      "score": 66,
+      "totalCount": 20,
+      "errorCount": 4,
+      "warningCount": 16,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unused-dev-dependency",
+          "count": 6
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 3
+        },
+        {
+          "rule": "unresolved-import",
+          "count": 3
+        },
+        {
+          "rule": "duplicate-dependency-declaration",
+          "count": 2
+        },
+        {
+          "rule": "unused-file",
+          "count": 2
+        },
+        {
+          "rule": "unused-peer-dependency",
+          "count": 2
+        },
+        {
+          "rule": "oxlint/react-doctor(no-barrel-import)",
+          "count": 1
+        },
+        {
+          "rule": "oxlint/typescript(tsconfig-error)",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/packages/state-react",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 1708,
+      "parsed": true,
+      "framework": "react",
+      "score": 51,
+      "totalCount": 70,
+      "errorCount": 29,
+      "warningCount": 41,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 28
+        },
+        {
+          "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+          "count": 19
+        },
+        {
+          "rule": "duplicate-export",
+          "count": 7
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 5
+        },
+        {
+          "rule": "duplicate-dependency-declaration",
+          "count": 2
+        },
+        {
+          "rule": "oxlint/react-doctor(rendering-content-visibility)",
+          "count": 2
+        },
+        {
+          "rule": "oxlint/react-doctor(no-swallowed-error)",
+          "count": 1
+        },
+        {
+          "rule": "oxlint/react-doctor(rerender-split-combined-hooks)",
+          "count": 1
+        },
+        {
+          "rule": "oxlint/typescript(tsconfig-error)",
+          "count": 1
+        },
+        {
+          "rule": "runtime-dev-dependency",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/packages/store",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 1917,
+      "parsed": true,
+      "framework": "react",
+      "score": 29,
+      "totalCount": 132,
+      "errorCount": 38,
+      "warningCount": 94,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "duplicate-export",
+          "count": 71
+        },
+        {
+          "rule": "unresolved-import",
+          "count": 34
+        },
+        {
+          "rule": "barrel-hotspot",
+          "count": 6
+        },
+        {
+          "rule": "oxlint/react-doctor(js-combine-iterations)",
+          "count": 4
+        },
+        {
+          "rule": "oxlint/eslint(no-undef)",
+          "count": 2
+        },
+        {
+          "rule": "oxlint/react-doctor(js-index-maps)",
+          "count": 2
+        },
+        {
+          "rule": "oxlint/react-doctor(no-swallowed-error)",
+          "count": 2
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 2
+        },
+        {
+          "rule": "circular-import",
+          "count": 1
+        },
+        {
+          "rule": "oxlint/react-doctor(js-cache-function-results)",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/packages/sync",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 1788,
+      "parsed": true,
+      "framework": "react",
+      "score": 32,
+      "totalCount": 44,
+      "errorCount": 16,
+      "warningCount": 28,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "duplicate-export",
+          "count": 9
+        },
+        {
+          "rule": "unresolved-import",
+          "count": 9
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 5
+        },
+        {
+          "rule": "oxlint/eslint(no-undef)",
+          "count": 4
+        },
+        {
+          "rule": "unused-dependency",
+          "count": 3
+        },
+        {
+          "rule": "duplicate-dependency-declaration",
+          "count": 2
+        },
+        {
+          "rule": "oxlint/react-doctor(advanced-use-latest)",
+          "count": 2
+        },
+        {
+          "rule": "oxlint/typescript(no-require-imports)",
+          "count": 2
+        },
+        {
+          "rule": "barrel-hotspot",
+          "count": 1
+        },
+        {
+          "rule": "oxlint/react-doctor(rerender-split-combined-hooks)",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/packages/sync-core",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 1844,
+      "parsed": true,
+      "framework": "react",
+      "score": 23,
+      "totalCount": 229,
+      "errorCount": 104,
+      "warningCount": 125,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 86
+        },
+        {
+          "rule": "duplicate-export",
+          "count": 73
+        },
+        {
+          "rule": "oxlint/eslint(no-undef)",
+          "count": 12
+        },
+        {
+          "rule": "oxlint/react-doctor(js-cache-function-results)",
+          "count": 12
+        },
+        {
+          "rule": "barrel-hotspot",
+          "count": 9
+        },
+        {
+          "rule": "oxlint/react-doctor(js-cache-property-access)",
+          "count": 5
+        },
+        {
+          "rule": "oxlint/typescript(no-require-imports)",
+          "count": 5
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 5
+        },
+        {
+          "rule": "oxlint/react-doctor(no-swallowed-error)",
+          "count": 4
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/packages/tldraw",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 2934,
+      "parsed": true,
+      "framework": "react",
+      "score": 0,
+      "totalCount": 1950,
+      "errorCount": 607,
+      "warningCount": 1343,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "duplicate-export",
+          "count": 685
+        },
+        {
+          "rule": "unresolved-import",
+          "count": 540
+        },
+        {
+          "rule": "unused-class-member",
+          "count": 171
+        },
+        {
+          "rule": "oxlint/react-doctor(rerender-split-combined-hooks)",
+          "count": 98
+        },
+        {
+          "rule": "oxlint/react-doctor(no-icon-only-button-without-label)",
+          "count": 56
+        },
+        {
+          "rule": "oxlint/react-doctor(i18n-no-dynamic-translation-key)",
+          "count": 45
+        },
+        {
+          "rule": "barrel-hotspot",
+          "count": 38
+        },
+        {
+          "rule": "oxlint/react-doctor(js-cache-function-results)",
+          "count": 32
+        },
+        {
+          "rule": "oxlint/eslint(no-undef)",
+          "count": 28
+        },
+        {
+          "rule": "oxlint/react-doctor(server-serialization)",
+          "count": 28
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/packages/tlschema",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 2024,
+      "parsed": true,
+      "framework": "react",
+      "score": 48,
+      "totalCount": 437,
+      "errorCount": 118,
+      "warningCount": 319,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "duplicate-export",
+          "count": 267
+        },
+        {
+          "rule": "unresolved-import",
+          "count": 117
+        },
+        {
+          "rule": "barrel-hotspot",
+          "count": 35
+        },
+        {
+          "rule": "oxlint/react-doctor(js-set-map-lookups)",
+          "count": 4
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 3
+        },
+        {
+          "rule": "unused-class-member",
+          "count": 2
+        },
+        {
+          "rule": "unused-peer-dependency",
+          "count": 2
+        },
+        {
+          "rule": "circular-import",
+          "count": 1
+        },
+        {
+          "rule": "duplicate-dependency-declaration",
+          "count": 1
+        },
+        {
+          "rule": "oxlint/react-doctor(js-cache-function-results)",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/apps/bemo-worker",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 1882,
+      "parsed": true,
+      "framework": "react",
+      "score": 57,
+      "totalCount": 35,
+      "errorCount": 16,
+      "warningCount": 19,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 15
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 6
+        },
+        {
+          "rule": "unused-dependency",
+          "count": 4
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 3
+        },
+        {
+          "rule": "circular-import",
+          "count": 1
+        },
+        {
+          "rule": "duplicate-export",
+          "count": 1
+        },
+        {
+          "rule": "oxlint/react-doctor(js-request-idle-callback)",
+          "count": 1
+        },
+        {
+          "rule": "oxlint/react-doctor(no-swallowed-error)",
+          "count": 1
+        },
+        {
+          "rule": "oxlint/typescript(tsconfig-error)",
+          "count": 1
+        },
+        {
+          "rule": "runtime-dev-dependency",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/apps/docs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 932,
+      "parsed": true,
+      "framework": "nextjs",
+      "score": 0,
+      "totalCount": 411,
+      "errorCount": 123,
+      "warningCount": 288,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 108
+        },
+        {
+          "rule": "unused-file",
+          "count": 43
+        },
+        {
+          "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+          "count": 37
+        },
+        {
+          "rule": "oxlint/react-doctor(async-await-in-loop)",
+          "count": 22
+        },
+        {
+          "rule": "oxlint/react-doctor(no-array-index-as-key)",
+          "count": 20
+        },
+        {
+          "rule": "oxlint/react-doctor(no-icon-only-button-without-label)",
+          "count": 16
+        },
+        {
+          "rule": "oxlint/react-doctor(rendering-content-visibility)",
+          "count": 15
+        },
+        {
+          "rule": "oxlint/react-doctor(server-serialization)",
+          "count": 11
+        },
+        {
+          "rule": "oxlint/react-doctor(async-suspense-boundaries)",
+          "count": 10
+        },
+        {
+          "rule": "oxlint/eslint(no-undef)",
+          "count": 9
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/apps/examples",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 828,
+      "parsed": true,
+      "framework": "vite",
+      "score": 0,
+      "totalCount": 1480,
+      "errorCount": 436,
+      "warningCount": 1044,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 412
+        },
+        {
+          "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+          "count": 384
+        },
+        {
+          "rule": "unused-file",
+          "count": 294
+        },
+        {
+          "rule": "oxlint/react-doctor(server-serialization)",
+          "count": 48
+        },
+        {
+          "rule": "oxlint/react-doctor(rendering-content-visibility)",
+          "count": 28
+        },
+        {
+          "rule": "oxlint/react-doctor(no-inline-exhaustive-style)",
+          "count": 26
+        },
+        {
+          "rule": "oxlint/react-doctor(rerender-split-combined-hooks)",
+          "count": 24
+        },
+        {
+          "rule": "oxlint/react-doctor(no-icon-only-button-without-label)",
+          "count": 23
+        },
+        {
+          "rule": "oxlint/react-doctor(async-await-in-loop)",
+          "count": 22
+        },
+        {
+          "rule": "oxlint/tldraw(no-exported-arrow-const)",
+          "count": 16
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/apps/mcp-app",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 1949,
+      "parsed": true,
+      "framework": "vite",
+      "score": 6,
+      "totalCount": 117,
+      "errorCount": 35,
+      "warningCount": 82,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 33
+        },
+        {
+          "rule": "unused-file",
+          "count": 24
+        },
+        {
+          "rule": "oxlint/react-doctor(js-combine-iterations)",
+          "count": 8
+        },
+        {
+          "rule": "oxlint/react-doctor(rerender-split-combined-hooks)",
+          "count": 7
+        },
+        {
+          "rule": "oxlint/react-doctor(no-swallowed-error)",
+          "count": 5
+        },
+        {
+          "rule": "barrel-hotspot",
+          "count": 4
+        },
+        {
+          "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+          "count": 4
+        },
+        {
+          "rule": "oxlint/react-doctor(js-cache-function-results)",
+          "count": 4
+        },
+        {
+          "rule": "runtime-dev-dependency",
+          "count": 3
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/apps/vscode/editor",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 339,
+      "parsed": true,
+      "framework": "react",
+      "score": 62,
+      "totalCount": 34,
+      "errorCount": 9,
+      "warningCount": 25,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 9
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 5
+        },
+        {
+          "rule": "unused-file",
+          "count": 5
+        },
+        {
+          "rule": "runtime-dev-dependency",
+          "count": 4
+        },
+        {
+          "rule": "oxlint/react-doctor(client-event-listeners)",
+          "count": 3
+        },
+        {
+          "rule": "oxlint/react-doctor(async-await-in-loop)",
+          "count": 2
+        },
+        {
+          "rule": "oxlint/react-doctor(rerender-split-combined-hooks)",
+          "count": 2
+        },
+        {
+          "rule": "oxlint/react-doctor(effect-no-adjust-state-on-prop-change)",
+          "count": 1
+        },
+        {
+          "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+          "count": 1
+        },
+        {
+          "rule": "oxlint/react-doctor(rerender-state-only-in-handlers)",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/apps/vscode/extension",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 333,
+      "parsed": true,
+      "framework": "react",
+      "score": 62,
+      "totalCount": 64,
+      "errorCount": 13,
+      "warningCount": 51,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unused-file",
+          "count": 16
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 15
+        },
+        {
+          "rule": "unresolved-import",
+          "count": 13
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 9
+        },
+        {
+          "rule": "duplicate-dependency-declaration",
+          "count": 2
+        },
+        {
+          "rule": "oxlint/react-doctor(js-index-maps)",
+          "count": 2
+        },
+        {
+          "rule": "oxlint/react-doctor(rhf-no-watch-render)",
+          "count": 2
+        },
+        {
+          "rule": "unused-peer-dependency",
+          "count": 2
+        },
+        {
+          "rule": "oxlint/react-doctor(no-full-lodash-import)",
+          "count": 1
+        },
+        {
+          "rule": "oxlint/react-doctor(no-swallowed-error)",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/apps/dotcom/client",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 1145,
+      "parsed": true,
+      "framework": "vite",
+      "score": 0,
+      "totalCount": 947,
+      "errorCount": 409,
+      "warningCount": 538,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 353
+        },
+        {
+          "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+          "count": 65
+        },
+        {
+          "rule": "oxlint/react-doctor(rerender-split-combined-hooks)",
+          "count": 64
+        },
+        {
+          "rule": "oxlint/react-doctor(no-icon-only-button-without-label)",
+          "count": 40
+        },
+        {
+          "rule": "oxlint/react-doctor(server-serialization)",
+          "count": 38
+        },
+        {
+          "rule": "oxlint/react-doctor(async-parallel)",
+          "count": 35
+        },
+        {
+          "rule": "unused-export",
+          "count": 33
+        },
+        {
+          "rule": "oxlint/react-doctor(js-cache-function-results)",
+          "count": 29
+        },
+        {
+          "rule": "oxlint/eslint(no-undef)",
+          "count": 25
+        },
+        {
+          "rule": "oxlint/react-doctor(rendering-content-visibility)",
+          "count": 21
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/apps/dotcom/image-resize-worker",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 1894,
+      "parsed": true,
+      "framework": "react",
+      "score": 72,
+      "totalCount": 16,
+      "errorCount": 6,
+      "warningCount": 10,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 5
+        },
+        {
+          "rule": "unused-dependency",
+          "count": 3
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 3
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 2
+        },
+        {
+          "rule": "unused-file",
+          "count": 2
+        },
+        {
+          "rule": "oxlint/typescript(tsconfig-error)",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/apps/dotcom/sync-worker",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 1838,
+      "parsed": true,
+      "framework": "react",
+      "score": 30,
+      "totalCount": 235,
+      "errorCount": 150,
+      "warningCount": 85,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 149
+        },
+        {
+          "rule": "oxlint/react-doctor(async-await-in-loop)",
+          "count": 15
+        },
+        {
+          "rule": "oxlint/react-doctor(no-swallowed-error)",
+          "count": 13
+        },
+        {
+          "rule": "barrel-hotspot",
+          "count": 9
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 9
+        },
+        {
+          "rule": "duplicate-export",
+          "count": 5
+        },
+        {
+          "rule": "oxlint/react-doctor(js-combine-iterations)",
+          "count": 5
+        },
+        {
+          "rule": "unused-dependency",
+          "count": 5
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 5
+        },
+        {
+          "rule": "oxlint/react-doctor(async-parallel)",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/templates/agent",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 1826,
+      "parsed": true,
+      "framework": "vite",
+      "score": 0,
+      "totalCount": 350,
+      "errorCount": 109,
+      "warningCount": 241,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unused-file",
+          "count": 153
+        },
+        {
+          "rule": "unresolved-import",
+          "count": 87
+        },
+        {
+          "rule": "namespace-only-export",
+          "count": 17
+        },
+        {
+          "rule": "barrel-hotspot",
+          "count": 12
+        },
+        {
+          "rule": "oxlint/react-doctor(js-combine-iterations)",
+          "count": 9
+        },
+        {
+          "rule": "oxlint/react-doctor(rendering-content-visibility)",
+          "count": 9
+        },
+        {
+          "rule": "oxlint/tldraw(method-signature-style)",
+          "count": 7
+        },
+        {
+          "rule": "oxlint/tldraw(no-direct-storage)",
+          "count": 7
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 5
+        },
+        {
+          "rule": "unused-dependency",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/templates/branching-chat",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 360,
+      "parsed": true,
+      "framework": "vite",
+      "score": 39,
+      "totalCount": 76,
+      "errorCount": 29,
+      "warningCount": 47,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 28
+        },
+        {
+          "rule": "unused-file",
+          "count": 23
+        },
+        {
+          "rule": "barrel-hotspot",
+          "count": 4
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 3
+        },
+        {
+          "rule": "unused-dependency",
+          "count": 3
+        },
+        {
+          "rule": "oxlint/react-doctor(js-cache-function-results)",
+          "count": 2
+        },
+        {
+          "rule": "oxlint/react-doctor(rendering-svg-precision)",
+          "count": 2
+        },
+        {
+          "rule": "runtime-dev-dependency",
+          "count": 2
+        },
+        {
+          "rule": "circular-import",
+          "count": 1
+        },
+        {
+          "rule": "oxlint/react-doctor(async-await-in-loop)",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/templates/chat",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 380,
+      "parsed": true,
+      "framework": "nextjs",
+      "score": 19,
+      "totalCount": 77,
+      "errorCount": 27,
+      "warningCount": 50,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 17
+        },
+        {
+          "rule": "oxlint/react-doctor(rendering-svg-precision)",
+          "count": 11
+        },
+        {
+          "rule": "oxlint/tldraw(method-signature-style)",
+          "count": 9
+        },
+        {
+          "rule": "unused-export",
+          "count": 7
+        },
+        {
+          "rule": "oxlint/react-doctor(rerender-split-combined-hooks)",
+          "count": 4
+        },
+        {
+          "rule": "unused-dependency",
+          "count": 4
+        },
+        {
+          "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+          "count": 3
+        },
+        {
+          "rule": "oxlint/react-doctor(async-suspense-boundaries)",
+          "count": 2
+        },
+        {
+          "rule": "oxlint/react-doctor(effect-no-event-handler)",
+          "count": 2
+        },
+        {
+          "rule": "oxlint/react-doctor(nextjs-no-img-element)",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/templates/image-pipeline",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 2058,
+      "parsed": true,
+      "framework": "vite",
+      "score": 7,
+      "totalCount": 273,
+      "errorCount": 77,
+      "warningCount": 196,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+          "count": 87
+        },
+        {
+          "rule": "unresolved-import",
+          "count": 67
+        },
+        {
+          "rule": "unused-class-member",
+          "count": 42
+        },
+        {
+          "rule": "oxlint/react-doctor(rendering-content-visibility)",
+          "count": 12
+        },
+        {
+          "rule": "unused-file",
+          "count": 10
+        },
+        {
+          "rule": "barrel-hotspot",
+          "count": 8
+        },
+        {
+          "rule": "oxlint/tldraw(method-signature-style)",
+          "count": 7
+        },
+        {
+          "rule": "oxlint/react-doctor(js-combine-iterations)",
+          "count": 4
+        },
+        {
+          "rule": "oxlint/react-doctor(no-icon-only-button-without-label)",
+          "count": 4
+        },
+        {
+          "rule": "oxlint/react-doctor(rerender-split-combined-hooks)",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/templates/nextjs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 309,
+      "parsed": true,
+      "framework": "nextjs",
+      "score": 83,
+      "totalCount": 11,
+      "errorCount": 1,
+      "warningCount": 10,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unused-dependency",
+          "count": 5
+        },
+        {
+          "rule": "unused-export",
+          "count": 4
+        },
+        {
+          "rule": "oxlint/react-doctor(nextjs-missing-metadata)",
+          "count": 1
+        },
+        {
+          "rule": "unresolved-import",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/templates/shader",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 399,
+      "parsed": true,
+      "framework": "vite",
+      "score": 18,
+      "totalCount": 155,
+      "errorCount": 89,
+      "warningCount": 66,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "oxlint/tldraw(prefer-class-methods)",
+          "count": 51
+        },
+        {
+          "rule": "oxlint/react-doctor(no-generic-handler-names)",
+          "count": 32
+        },
+        {
+          "rule": "unresolved-import",
+          "count": 22
+        },
+        {
+          "rule": "oxlint/tldraw(no-direct-storage)",
+          "count": 8
+        },
+        {
+          "rule": "oxlint/react-doctor(client-event-listeners)",
+          "count": 6
+        },
+        {
+          "rule": "oxlint/react-doctor(no-array-index-as-key)",
+          "count": 6
+        },
+        {
+          "rule": "duplicate-export",
+          "count": 5
+        },
+        {
+          "rule": "oxlint/eslint(no-console)",
+          "count": 5
+        },
+        {
+          "rule": "oxlint/react-doctor(js-cache-function-results)",
+          "count": 4
+        },
+        {
+          "rule": "oxlint/react-doctor(no-swallowed-error)",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/templates/simple-server-example",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 310,
+      "parsed": true,
+      "framework": "vite",
+      "score": 69,
+      "totalCount": 23,
+      "errorCount": 13,
+      "warningCount": 10,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 9
+        },
+        {
+          "rule": "oxlint/eslint(no-console)",
+          "count": 4
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 4
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 2
+        },
+        {
+          "rule": "unused-dependency",
+          "count": 2
+        },
+        {
+          "rule": "type-only-dependency",
+          "count": 1
+        },
+        {
+          "rule": "unused-file",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/templates/socketio-server-example",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 315,
+      "parsed": true,
+      "framework": "vite",
+      "score": 64,
+      "totalCount": 31,
+      "errorCount": 23,
+      "warningCount": 8,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "oxlint/eslint(no-console)",
+          "count": 11
+        },
+        {
+          "rule": "unresolved-import",
+          "count": 10
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 4
+        },
+        {
+          "rule": "oxlint/tldraw(method-signature-style)",
+          "count": 2
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 2
+        },
+        {
+          "rule": "unused-dependency",
+          "count": 1
+        },
+        {
+          "rule": "unused-file",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/templates/sync-cloudflare",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 1844,
+      "parsed": true,
+      "framework": "vite",
+      "score": 63,
+      "totalCount": 42,
+      "errorCount": 20,
+      "warningCount": 22,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 17
+        },
+        {
+          "rule": "unused-file",
+          "count": 9
+        },
+        {
+          "rule": "oxlint/tldraw(no-direct-storage)",
+          "count": 3
+        },
+        {
+          "rule": "runtime-dev-dependency",
+          "count": 3
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 3
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 3
+        },
+        {
+          "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+          "count": 2
+        },
+        {
+          "rule": "unused-dependency",
+          "count": 1
+        },
+        {
+          "rule": "unused-export",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/templates/vite",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 304,
+      "parsed": true,
+      "framework": "vite",
+      "score": 86,
+      "totalCount": 5,
+      "errorCount": 2,
+      "warningCount": 3,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "runtime-dev-dependency",
+          "count": 2
+        },
+        {
+          "rule": "unresolved-import",
+          "count": 2
+        },
+        {
+          "rule": "unused-export",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/templates/vue",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 298,
+      "parsed": true,
+      "framework": "vite",
+      "score": 69,
+      "totalCount": 18,
+      "errorCount": 7,
+      "warningCount": 11,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 5
+        },
+        {
+          "rule": "runtime-dev-dependency",
+          "count": 4
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 3
+        },
+        {
+          "rule": "oxlint/typescript(no-empty-object-type)",
+          "count": 2
+        },
+        {
+          "rule": "unused-dependency",
+          "count": 2
+        },
+        {
+          "rule": "unused-export",
+          "count": 1
+        },
+        {
+          "rule": "unused-file",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/tldraw/templates/workflow",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 432,
+      "parsed": true,
+      "framework": "vite",
+      "score": 28,
+      "totalCount": 128,
+      "errorCount": 50,
+      "warningCount": 78,
+      "failedChecks": [],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 37
+        },
+        {
+          "rule": "oxlint/react-doctor(rendering-svg-precision)",
+          "count": 22
+        },
+        {
+          "rule": "unused-class-member",
+          "count": 22
+        },
+        {
+          "rule": "oxlint/tldraw(method-signature-style)",
+          "count": 12
+        },
+        {
+          "rule": "barrel-hotspot",
+          "count": 7
+        },
+        {
+          "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+          "count": 7
+        },
+        {
+          "rule": "oxlint/react-doctor(rendering-content-visibility)",
+          "count": 3
+        },
+        {
+          "rule": "unused-export",
+          "count": 3
+        },
+        {
+          "rule": "oxlint/react-doctor(js-batch-dom-css)",
+          "count": 2
+        },
+        {
+          "rule": "oxlint/react-doctor(no-array-index-as-key)",
+          "count": 2
+        }
+      ]
+    }
+  ]
+}

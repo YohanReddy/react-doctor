@@ -1,0 +1,119 @@
+{
+  "repository": "t3code",
+  "projectCount": 1,
+  "totalCount": 989,
+  "errorCount": 717,
+  "warningCount": 272,
+  "failedChecks": [
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/t3code/apps/web",
+      "id": "react-doctor/oxlint",
+      "error": "Oxlint returned invalid JSON."
+    }
+  ],
+  "unknownFrameworkCount": 0,
+  "topRules": [
+    {
+      "rule": "unresolved-import",
+      "count": 717
+    },
+    {
+      "rule": "unused-export",
+      "count": 103
+    },
+    {
+      "rule": "barrel-hotspot",
+      "count": 70
+    },
+    {
+      "rule": "duplicate-export",
+      "count": 56
+    },
+    {
+      "rule": "unused-file",
+      "count": 20
+    },
+    {
+      "rule": "unlisted-dependency",
+      "count": 11
+    },
+    {
+      "rule": "runtime-dev-dependency",
+      "count": 5
+    },
+    {
+      "rule": "unused-type-export",
+      "count": 3
+    },
+    {
+      "rule": "circular-import",
+      "count": 2
+    },
+    {
+      "rule": "unused-dev-dependency",
+      "count": 2
+    }
+  ],
+  "projects": [
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/t3code/apps/web",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 822,
+      "parsed": true,
+      "framework": "vite",
+      "score": 65,
+      "totalCount": 989,
+      "errorCount": 717,
+      "warningCount": 272,
+      "failedChecks": [
+        {
+          "id": "react-doctor/oxlint",
+          "error": "Oxlint returned invalid JSON."
+        }
+      ],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 717
+        },
+        {
+          "rule": "unused-export",
+          "count": 103
+        },
+        {
+          "rule": "barrel-hotspot",
+          "count": 70
+        },
+        {
+          "rule": "duplicate-export",
+          "count": 56
+        },
+        {
+          "rule": "unused-file",
+          "count": 20
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 11
+        },
+        {
+          "rule": "runtime-dev-dependency",
+          "count": 5
+        },
+        {
+          "rule": "unused-type-export",
+          "count": 3
+        },
+        {
+          "rule": "circular-import",
+          "count": 2
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 2
+        }
+      ]
+    }
+  ]
+}

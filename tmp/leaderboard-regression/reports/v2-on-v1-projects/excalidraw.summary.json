@@ -1,0 +1,270 @@
+{
+  "repository": "excalidraw",
+  "projectCount": 4,
+  "totalCount": 911,
+  "errorCount": 234,
+  "warningCount": 677,
+  "failedChecks": [
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/excalidraw/excalidraw-app",
+      "id": "react-doctor/oxlint",
+      "error": "Oxlint returned invalid JSON."
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/excalidraw/packages/excalidraw",
+      "id": "react-doctor/oxlint",
+      "error": "Oxlint returned invalid JSON."
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/excalidraw/examples/with-nextjs",
+      "id": "react-doctor/oxlint",
+      "error": "Oxlint returned invalid JSON."
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/excalidraw/examples/with-script-in-browser",
+      "id": "react-doctor/oxlint",
+      "error": "Oxlint returned invalid JSON."
+    }
+  ],
+  "unknownFrameworkCount": 0,
+  "topRules": [
+    {
+      "rule": "unlisted-dependency",
+      "count": 241
+    },
+    {
+      "rule": "unresolved-import",
+      "count": 234
+    },
+    {
+      "rule": "unused-export",
+      "count": 163
+    },
+    {
+      "rule": "duplicate-export",
+      "count": 128
+    },
+    {
+      "rule": "barrel-hotspot",
+      "count": 46
+    },
+    {
+      "rule": "unused-class-member",
+      "count": 19
+    },
+    {
+      "rule": "unused-type-export",
+      "count": 19
+    },
+    {
+      "rule": "namespace-only-export",
+      "count": 17
+    },
+    {
+      "rule": "unused-dev-dependency",
+      "count": 17
+    },
+    {
+      "rule": "unused-file",
+      "count": 13
+    }
+  ],
+  "projects": [
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/excalidraw/excalidraw-app",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 186,
+      "parsed": true,
+      "framework": "react",
+      "score": 71,
+      "totalCount": 247,
+      "errorCount": 33,
+      "warningCount": 214,
+      "failedChecks": [
+        {
+          "id": "react-doctor/oxlint",
+          "error": "Oxlint returned invalid JSON."
+        }
+      ],
+      "topRules": [
+        {
+          "rule": "unlisted-dependency",
+          "count": 193
+        },
+        {
+          "rule": "unresolved-import",
+          "count": 33
+        },
+        {
+          "rule": "unused-class-member",
+          "count": 8
+        },
+        {
+          "rule": "barrel-hotspot",
+          "count": 7
+        },
+        {
+          "rule": "unused-export",
+          "count": 2
+        },
+        {
+          "rule": "unused-type-export",
+          "count": 2
+        },
+        {
+          "rule": "circular-import",
+          "count": 1
+        },
+        {
+          "rule": "unused-file",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/excalidraw/packages/excalidraw",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 639,
+      "parsed": true,
+      "framework": "react",
+      "score": 56,
+      "totalCount": 630,
+      "errorCount": 186,
+      "warningCount": 444,
+      "failedChecks": [
+        {
+          "id": "react-doctor/oxlint",
+          "error": "Oxlint returned invalid JSON."
+        }
+      ],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 186
+        },
+        {
+          "rule": "unused-export",
+          "count": 156
+        },
+        {
+          "rule": "duplicate-export",
+          "count": 128
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 43
+        },
+        {
+          "rule": "barrel-hotspot",
+          "count": 39
+        },
+        {
+          "rule": "namespace-only-export",
+          "count": 17
+        },
+        {
+          "rule": "unused-type-export",
+          "count": 17
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 12
+        },
+        {
+          "rule": "unused-class-member",
+          "count": 11
+        },
+        {
+          "rule": "unused-file",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/excalidraw/examples/with-nextjs",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 141,
+      "parsed": true,
+      "framework": "nextjs",
+      "score": 77,
+      "totalCount": 17,
+      "errorCount": 2,
+      "warningCount": 15,
+      "failedChecks": [
+        {
+          "id": "react-doctor/oxlint",
+          "error": "Oxlint returned invalid JSON."
+        }
+      ],
+      "topRules": [
+        {
+          "rule": "unlisted-dependency",
+          "count": 4
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 4
+        },
+        {
+          "rule": "unused-export",
+          "count": 4
+        },
+        {
+          "rule": "unresolved-import",
+          "count": 2
+        },
+        {
+          "rule": "unused-dependency",
+          "count": 2
+        },
+        {
+          "rule": "unused-file",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "directory": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/excalidraw/examples/with-script-in-browser",
+      "exitCode": 0,
+      "signal": null,
+      "durationMilliseconds": 144,
+      "parsed": true,
+      "framework": "vite",
+      "score": 80,
+      "totalCount": 17,
+      "errorCount": 13,
+      "warningCount": 4,
+      "failedChecks": [
+        {
+          "id": "react-doctor/oxlint",
+          "error": "Oxlint returned invalid JSON."
+        }
+      ],
+      "topRules": [
+        {
+          "rule": "unresolved-import",
+          "count": 13
+        },
+        {
+          "rule": "unlisted-dependency",
+          "count": 1
+        },
+        {
+          "rule": "unused-dev-dependency",
+          "count": 1
+        },
+        {
+          "rule": "unused-export",
+          "count": 1
+        },
+        {
+          "rule": "unused-file",
+          "count": 1
+        }
+      ]
+    }
+  ]
+}

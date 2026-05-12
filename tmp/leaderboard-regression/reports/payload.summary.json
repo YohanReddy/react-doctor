@@ -1,0 +1,128 @@
+{
+  "repository": "payload",
+  "path": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/payload",
+  "v1": {
+    "ok": true,
+    "error": null,
+    "score": 27,
+    "scoreLabel": "Critical",
+    "totalCount": 12626,
+    "errorCount": 316,
+    "warningCount": 12310,
+    "affectedFileCount": 5200,
+    "projectFramework": "nextjs",
+    "topRules": [
+      {
+        "rule": "knip/files",
+        "count": 2238
+      },
+      {
+        "rule": "knip/types",
+        "count": 2160
+      },
+      {
+        "rule": "react-doctor/no-barrel-import",
+        "count": 1910
+      },
+      {
+        "rule": "react-doctor/server-sequential-independent-await",
+        "count": 984
+      },
+      {
+        "rule": "react-doctor/async-await-in-loop",
+        "count": 916
+      },
+      {
+        "rule": "effect/no-event-handler",
+        "count": 543
+      },
+      {
+        "rule": "react-doctor/no-array-index-as-key",
+        "count": 397
+      },
+      {
+        "rule": "knip/exports",
+        "count": 368
+      },
+      {
+        "rule": "react-doctor/react-compiler-destructure-method",
+        "count": 241
+      },
+      {
+        "rule": "react-doctor/async-parallel",
+        "count": 220
+      }
+    ]
+  },
+  "v2": {
+    "ok": false,
+    "score": 0,
+    "scoreLabel": "Critical",
+    "totalCount": 17545,
+    "errorCount": 2633,
+    "warningCount": 14912,
+    "affectedFileCount": 4849,
+    "projectFramework": "nextjs",
+    "failedChecks": [],
+    "topRules": [
+      {
+        "rule": "duplicate-export",
+        "count": 2855
+      },
+      {
+        "rule": "unresolved-import",
+        "count": 2596
+      },
+      {
+        "rule": "unlisted-dependency",
+        "count": 1866
+      },
+      {
+        "rule": "unused-file",
+        "count": 1418
+      },
+      {
+        "rule": "oxlint/react-doctor(no-barrel-import)",
+        "count": 1195
+      },
+      {
+        "rule": "oxlint/react-doctor(i18n-no-literal-jsx-text)",
+        "count": 1074
+      },
+      {
+        "rule": "unused-export",
+        "count": 773
+      },
+      {
+        "rule": "oxlint/react-doctor(server-sequential-independent-await)",
+        "count": 532
+      },
+      {
+        "rule": "oxlint/react-doctor(rerender-split-combined-hooks)",
+        "count": 531
+      },
+      {
+        "rule": "unused-type-export",
+        "count": 479
+      }
+    ]
+  },
+  "durations": {
+    "v1Milliseconds": 16080,
+    "v2Milliseconds": 14698
+  },
+  "exit": {
+    "v1": {
+      "exitCode": 0,
+      "signal": null
+    },
+    "v2": {
+      "exitCode": 0,
+      "signal": null
+    }
+  },
+  "regressionFlags": [
+    "v2 score is 27 points lower",
+    "v2 has 2317 more errors"
+  ]
+}

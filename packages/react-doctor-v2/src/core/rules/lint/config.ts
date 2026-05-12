@@ -328,6 +328,8 @@ const RULE_METADATA: ReadonlyMap<string, RuleMetadataEntry> = new Map([
     tags: DESIGN_AND_TEST_NOISE_TAGS,
   }),
   withReactDoctorRuleKey("design-no-three-period-ellipsis", { tags: PEDANTIC_TAGS }),
+  withReactDoctorRuleKey("i18n-no-literal-jsx-text", { tags: PEDANTIC_TAGS }),
+  withReactDoctorRuleKey("rendering-content-visibility", { tags: PEDANTIC_TAGS }),
   withReactDoctorRuleKey("design-no-default-tailwind-palette", {
     tags: DESIGN_AND_TEST_NOISE_TAGS,
   }),

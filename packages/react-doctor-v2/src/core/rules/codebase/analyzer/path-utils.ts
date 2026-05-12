@@ -54,7 +54,13 @@ export const getSourcePosition = (sourceText: string, index: number): SourcePosi
   getSourcePositionFromLineStarts(buildLineStarts(sourceText), index);
 
 export const isBareSpecifier = (specifier: string): boolean =>
-  !specifier.startsWith(".") && !specifier.startsWith("/") && !specifier.startsWith("#");
+  !specifier.startsWith(".") &&
+  !specifier.startsWith("/") &&
+  !specifier.startsWith("#") &&
+  !/^[A-Za-z][A-Za-z\d+.-]*:/.test(specifier);
+
+export const isUrlLikeSpecifier = (specifier: string): boolean =>
+  /^[A-Za-z][A-Za-z\d+.-]*:/.test(specifier);
 
 export const getPackageNameFromSpecifier = (specifier: string): string | null => {
   if (!isBareSpecifier(specifier)) return null;

@@ -1,0 +1,122 @@
+{
+  "repository": "plane",
+  "path": "/Users/aidenybai/Developer/react-doctor-2/tmp/leaderboard-regression/plane",
+  "v1": {
+    "ok": true,
+    "error": null,
+    "score": 54,
+    "scoreLabel": "Needs work",
+    "totalCount": 4154,
+    "errorCount": 137,
+    "warningCount": 4017,
+    "affectedFileCount": 1178,
+    "projectFramework": "vite",
+    "topRules": [
+      {
+        "rule": "react-doctor/rendering-svg-precision",
+        "count": 1184
+      },
+      {
+        "rule": "react-doctor/design-no-redundant-size-axes",
+        "count": 978
+      },
+      {
+        "rule": "react-doctor/design-no-default-tailwind-palette",
+        "count": 231
+      },
+      {
+        "rule": "react-doctor/no-full-lodash-import",
+        "count": 180
+      },
+      {
+        "rule": "effect/no-event-handler",
+        "count": 149
+      },
+      {
+        "rule": "react-doctor/no-react19-deprecated-apis",
+        "count": 147
+      },
+      {
+        "rule": "react-hooks/rules-of-hooks",
+        "count": 125
+      },
+      {
+        "rule": "jsx-a11y/click-events-have-key-events",
+        "count": 124
+      },
+      {
+        "rule": "jsx-a11y/no-static-element-interactions",
+        "count": 120
+      },
+      {
+        "rule": "react-doctor/no-array-index-as-key",
+        "count": 88
+      }
+    ]
+  },
+  "v2": {
+    "ok": false,
+    "score": 74,
+    "scoreLabel": "Needs work",
+    "totalCount": 37036,
+    "errorCount": 18650,
+    "warningCount": 18386,
+    "affectedFileCount": 3558,
+    "projectFramework": "unknown",
+    "failedChecks": [
+      {
+        "id": "react-doctor/oxlint",
+        "error": "Oxlint returned invalid JSON."
+      }
+    ],
+    "topRules": [
+      {
+        "rule": "unresolved-import",
+        "count": 18650
+      },
+      {
+        "rule": "unlisted-dependency",
+        "count": 14343
+      },
+      {
+        "rule": "unused-file",
+        "count": 3383
+      },
+      {
+        "rule": "unused-export",
+        "count": 606
+      },
+      {
+        "rule": "duplicate-export",
+        "count": 49
+      },
+      {
+        "rule": "unused-dev-dependency",
+        "count": 3
+      },
+      {
+        "rule": "namespace-only-export",
+        "count": 2
+      }
+    ]
+  },
+  "durations": {
+    "v1Milliseconds": 3662,
+    "v2Milliseconds": 3868
+  },
+  "exit": {
+    "v1": {
+      "exitCode": 0,
+      "signal": null
+    },
+    "v2": {
+      "exitCode": 0,
+      "signal": null
+    }
+  },
+  "regressionFlags": [
+    "v2 failed checks: react-doctor/oxlint",
+    "v2 has 18513 more errors",
+    "v2 issue count is much higher (4154 -> 37036)"
+  ]
+}

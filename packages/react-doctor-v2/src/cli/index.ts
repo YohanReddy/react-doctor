@@ -9,10 +9,24 @@ import {
   createReactDoctor,
   loadReactDoctorConfig,
 } from "../sdk/index.js";
+import { createCodebaseAnalysisConfig } from "../core/rules/codebase/analyzer/config.js";
+import { discoverWorkspaces } from "../core/rules/codebase/analyzer/workspace.js";
 import type { ReactDoctorFailOnLevel, ReactDoctorIssue, ReactDoctorResult } from "../sdk/index.js";
+import type { WorkspaceInfo } from "../core/rules/codebase/analyzer/index.js";
 
 const VERSION = process.env.VERSION ?? "0.0.0";
 const SOURCE_FILE_PATTERN = /\.(cjs|cts|js|jsx|mjs|mts|ts|tsx)$/;
+const REACT_PROJECT_DEPENDENCIES = new Set([
+  "@remix-run/react",
+  "@tanstack/react-start",
+  "expo",
+  "gatsby",
+  "next",
+  "react",
+  "react-native",
+  "react-scripts",
+  "vite",
+]);
 
 interface CliFlags {
   json: boolean;
@@ -29,6 +43,28 @@ interface CliFlags {
 }
 
 const isSourceFile = (filePath: string): boolean => SOURCE_FILE_PATTERN.test(filePath);
+
+const isReactWorkspace = (workspace: WorkspaceInfo): boolean =>
+  [...REACT_PROJECT_DEPENDENCIES].some((dependencyName) =>
+    workspace.dependencyNames.has(dependencyName),
+  );
+
+const resolveProjectDirectories = async (
+  rootDirectory: string,
+  configHasRootDirectory: boolean,
+  shouldUseSingleProject: boolean,
+): Promise<string[]> => {
+  if (configHasRootDirectory || shouldUseSingleProject) return [rootDirectory];
+  const workspaces = await discoverWorkspaces(
+    createCodebaseAnalysisConfig({
+      rootDirectory,
+    }),
+  );
+  const reactWorkspaces = workspaces.filter(isReactWorkspace);
+  if (reactWorkspaces.length === 0) return [rootDirectory];
+  if (reactWorkspaces.length === 1) return [reactWorkspaces[0].directory];
+  return reactWorkspaces.map((workspace) => workspace.directory);
+};
 
 const getGitFiles = (rootDirectory: string, args: string[]): string[] => {
   const result = spawnSync("git", args, {
@@ -156,6 +192,73 @@ const printInspectionResult = (result: ReactDoctorResult, flags: CliFlags): void
   }
 };
 
+const toAggregateJsonReport = (results: ReactDoctorResult[]) => {
+  const reports = results.map(buildReactDoctorJsonReport);
+  const issues = results.flatMap((result) => result.issues);
+  const checks = results.flatMap((result) => result.checks);
+  const affectedFiles = new Set(
+    issues.flatMap((issue) => (issue.location?.filePath ? [issue.location.filePath] : [])),
+  );
+  const scores = results
+    .map((result) => result.score?.value)
+    .filter((score): score is number => typeof score === "number");
+  const worstScore = scores.length ? Math.min(...scores) : null;
+  const worstScoreLabel =
+    results.find((result) => result.score?.value === worstScore)?.score?.label ?? null;
+  return {
+    schemaVersion: 1,
+    ok: reports.every((report) => report.ok),
+    projects: reports.map((report) => ({
+      project: report.project,
+      issues: report.issues,
+      checks: report.checks,
+      summary: report.summary,
+      startedAt: report.startedAt,
+      completedAt: report.completedAt,
+      durationMilliseconds: report.durationMilliseconds,
+    })),
+    issues,
+    checks,
+    summary: {
+      errorCount: issues.filter((issue) => issue.severity === "error").length,
+      warningCount: issues.filter((issue) => issue.severity === "warning").length,
+      affectedFileCount: affectedFiles.size,
+      totalIssueCount: issues.length,
+      score: worstScore,
+      scoreLabel: worstScoreLabel,
+    },
+    startedAt: results[0]?.startedAt,
+    completedAt: results.at(-1)?.completedAt,
+    durationMilliseconds: results.reduce((total, result) => total + result.durationMilliseconds, 0),
+  };
+};
+
+const printInspectionResults = (results: ReactDoctorResult[], flags: CliFlags): void => {
+  if (results.length === 1) {
+    printInspectionResult(results[0], flags);
+    return;
+  }
+  if (flags.json) {
+    const report = toAggregateJsonReport(results);
+    process.stdout.write(
+      `${flags.jsonCompact ? JSON.stringify(report) : JSON.stringify(report, null, 2)}\n`,
+    );
+    return;
+  }
+
+  console.log(`react-doctor ${highlighter.dim(`v${VERSION}`)}`);
+  console.log("");
+  for (const result of results) {
+    console.log(
+      `${highlighter.bold(result.project.projectName)} ${highlighter.dim(result.project.rootDirectory)}`,
+    );
+    console.log(
+      `${result.score?.value ?? 100}/100 ${highlighter.dim(result.score?.label ?? "Great")} · ${result.issues.length} issue${result.issues.length === 1 ? "" : "s"}`,
+    );
+    console.log("");
+  }
+};
+
 const program = new Command()
   .name("react-doctor")
   .description("Inspect React codebase health")
@@ -187,11 +290,12 @@ const program = new Command()
         : normalizeFailOnLevel(config.failOn ?? flags.failOn);
     const includePaths = resolveIncludePaths(rootDirectory, effectiveFlags);
     const shouldSkipSourceChecks = isChangedFileMode(effectiveFlags) && includePaths?.length === 0;
-    const reactDoctor = createReactDoctor({
-      rootDirectory: directory,
-      includePaths: shouldSkipSourceChecks ? undefined : includePaths,
-    });
-    const result = await reactDoctor.inspect({
+    const projectDirectories = await resolveProjectDirectories(
+      rootDirectory,
+      Boolean(config.rootDir),
+      isChangedFileMode(effectiveFlags),
+    );
+    const inspectOptions = {
       lint: shouldSkipSourceChecks
         ? false
         : resolveBooleanInspectOption(command, "lint", flags.lint, config.lint, true),
@@ -212,10 +316,23 @@ const program = new Command()
         config.offline,
         false,
       ),
-    });
+    };
+    const results = await Promise.all(
+      projectDirectories.map((projectDirectory) =>
+        createReactDoctor({
+          rootDirectory: projectDirectory,
+          includePaths: shouldSkipSourceChecks ? undefined : includePaths,
+        }).inspect(inspectOptions),
+      ),
+    );
 
-    printInspectionResult(result, effectiveFlags);
-    if (shouldFailForIssues(result.issues, failOn)) {
+    printInspectionResults(results, effectiveFlags);
+    if (
+      shouldFailForIssues(
+        results.flatMap((result) => result.issues),
+        failOn,
+      )
+    ) {
       process.exitCode = EXIT_FAILURE_CODE;
     }
   })

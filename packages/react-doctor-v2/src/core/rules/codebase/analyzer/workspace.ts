@@ -85,7 +85,7 @@ const parsePnpmWorkspacePatterns = (sourceText: string): string[] => {
       continue;
     }
 
-    if (!isInPackagesSection || indent <= packagesSectionIndent || !trimmedLine.startsWith("-")) {
+    if (!isInPackagesSection || indent < packagesSectionIndent || !trimmedLine.startsWith("-")) {
       continue;
     }
 
@@ -172,10 +172,8 @@ const resolveReferencedTypeScriptConfigPath = async (
   return null;
 };
 
-const toDirectoryOption = (
-  value: unknown,
-  directory: string,
-): string | undefined => (typeof value === "string" && value.length > 0 ? path.resolve(directory, value) : undefined);
+const toDirectoryOption = (value: unknown, directory: string): string | undefined =>
+  typeof value === "string" && value.length > 0 ? path.resolve(directory, value) : undefined;
 
 const toDefinitelyTypedPackageName = (typeName: string): string => {
   if (typeName.startsWith("@types/")) return typeName;
@@ -198,7 +196,10 @@ const collectTypeScriptConfigDependencyNames = (config: TypeScriptConfigJson): S
   const dependencyNames = collectExtendsDependencyNames(config.extends);
   const compilerOptions = config.compilerOptions;
   if (!compilerOptions) return dependencyNames;
-  if (typeof compilerOptions.jsxImportSource === "string" && compilerOptions.jsxImportSource.length > 0) {
+  if (
+    typeof compilerOptions.jsxImportSource === "string" &&
+    compilerOptions.jsxImportSource.length > 0
+  ) {
     dependencyNames.add(compilerOptions.jsxImportSource);
   }
   if (compilerOptions.importHelpers === true) {
@@ -235,7 +236,9 @@ const readTypeScriptDirectoryOptions = async (
   visitedPaths.add(tsconfigPath);
   try {
     const directory = path.dirname(tsconfigPath);
-    const config = parseJsonWithComments(await fs.readFile(tsconfigPath, "utf8")) as TypeScriptConfigJson;
+    const config = parseJsonWithComments(
+      await fs.readFile(tsconfigPath, "utf8"),
+    ) as TypeScriptConfigJson;
     const extendedPath = await resolveExtendedTypeScriptConfigPath(tsconfigPath, config.extends);
     const inheritedOptions = extendedPath
       ? await readTypeScriptDirectoryOptions(extendedPath, visitedPaths)
@@ -248,11 +251,15 @@ const readTypeScriptDirectoryOptions = async (
       ]),
       rootDir:
         toDirectoryOption(config.compilerOptions?.rootDir, directory) ?? inheritedOptions?.rootDir,
-      outDir: toDirectoryOption(config.compilerOptions?.outDir, directory) ?? inheritedOptions?.outDir,
+      outDir:
+        toDirectoryOption(config.compilerOptions?.outDir, directory) ?? inheritedOptions?.outDir,
     };
     if (options.rootDir && options.outDir) return options;
     for (const reference of config.references ?? []) {
-      const referencedPath = await resolveReferencedTypeScriptConfigPath(tsconfigPath, reference.path);
+      const referencedPath = await resolveReferencedTypeScriptConfigPath(
+        tsconfigPath,
+        reference.path,
+      );
       if (!referencedPath) continue;
       const referencedOptions = await readTypeScriptDirectoryOptions(referencedPath, visitedPaths);
       for (const dependencyName of referencedOptions?.dependencyNames ?? []) {
@@ -269,7 +276,9 @@ const readTypeScriptDirectoryOptions = async (
 };
 
 const readTypeScriptSourceMaps = async (directory: string): Promise<WorkspaceSourceMap[]> => {
-  const directoryOptions = await readTypeScriptDirectoryOptions(path.join(directory, "tsconfig.json"));
+  const directoryOptions = await readTypeScriptDirectoryOptions(
+    path.join(directory, "tsconfig.json"),
+  );
   if (!directoryOptions?.outDir) return [];
   const sourceDirectory =
     directoryOptions.rootDir ??
@@ -283,7 +292,8 @@ const readTypeScriptSourceMaps = async (directory: string): Promise<WorkspaceSou
 };
 
 const readTypeScriptConfigDependencyNames = async (directory: string): Promise<Set<string>> =>
-  (await readTypeScriptDirectoryOptions(path.join(directory, "tsconfig.json")))?.dependencyNames ?? new Set();
+  (await readTypeScriptDirectoryOptions(path.join(directory, "tsconfig.json")))?.dependencyNames ??
+  new Set();
 
 const expandSimpleWorkspacePattern = async (
   rootDirectory: string,
@@ -403,7 +413,9 @@ export const discoverWorkspaces = async (
       dependencyNames,
       manifestDependencyNames: collectManifestDependencyNames(fallbackManifest, dependencyNames),
       scriptDependencyNames: collectScriptDependencyNames(fallbackManifest, dependencyNames),
-      typeScriptConfigDependencyNames: await readTypeScriptConfigDependencyNames(config.rootDirectory),
+      typeScriptConfigDependencyNames: await readTypeScriptConfigDependencyNames(
+        config.rootDirectory,
+      ),
       sourceMaps: await readTypeScriptSourceMaps(config.rootDirectory),
     },
   ];
