@@ -739,19 +739,35 @@ const isAwaitingSleepLikeCall = (awaitNode: EsTreeNode): boolean => {
   return false;
 };
 
+const collectPatternIdentifiers = (pattern: EsTreeNode, target: Set<string>): void => {
+  if (pattern.type === "Identifier") {
+    target.add(pattern.name);
+  } else if (pattern.type === "ObjectPattern") {
+    for (const property of pattern.properties ?? []) {
+      if (property.type === "Property" && property.value) {
+        collectPatternIdentifiers(property.value, target);
+      } else if (property.type === "RestElement" && property.argument) {
+        collectPatternIdentifiers(property.argument, target);
+      }
+    }
+  } else if (pattern.type === "ArrayPattern") {
+    for (const element of pattern.elements ?? []) {
+      if (element) collectPatternIdentifiers(element, target);
+    }
+  } else if (pattern.type === "AssignmentPattern" && pattern.left) {
+    collectPatternIdentifiers(pattern.left, target);
+  }
+};
+
 const collectAssignedIdentifiers = (block: EsTreeNode): Set<string> => {
   const assigned = new Set<string>();
   walkAst(block, (child: EsTreeNode): boolean | void => {
     if (isFunctionishExpression(child) || child.type === "FunctionDeclaration") return false;
-    if (child.type === "AssignmentExpression" && child.left?.type === "Identifier") {
-      assigned.add(child.left.name);
+    if (child.type === "AssignmentExpression" && child.left) {
+      collectPatternIdentifiers(child.left, assigned);
     }
-    if (
-      child.type === "VariableDeclarator" &&
-      child.id?.type === "Identifier" &&
-      child.init?.type === "AwaitExpression"
-    ) {
-      assigned.add(child.id.name);
+    if (child.type === "VariableDeclarator" && child.id && child.init?.type === "AwaitExpression") {
+      collectPatternIdentifiers(child.id, assigned);
     }
   });
   return assigned;
