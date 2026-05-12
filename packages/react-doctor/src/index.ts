@@ -154,6 +154,8 @@ export const diagnose = async (
   const effectiveRespectInlineDisables =
     options.respectInlineDisables ?? userConfig?.respectInlineDisables ?? true;
 
+  const ignoredTags = new Set<string>(userConfig?.ignore?.tags ?? []);
+
   const lintPromise = effectiveLint
     ? runOxlint({
         rootDirectory: resolvedDirectory,
@@ -162,6 +164,7 @@ export const diagnose = async (
         customRulesOnly: userConfig?.customRulesOnly ?? false,
         respectInlineDisables: effectiveRespectInlineDisables,
         adoptExistingLintConfig: userConfig?.adoptExistingLintConfig ?? true,
+        ignoredTags,
       }).catch((error: unknown) => {
         console.error("Lint failed:", error);
         return EMPTY_DIAGNOSTICS;
@@ -170,7 +173,7 @@ export const diagnose = async (
 
   const deadCodePromise =
     effectiveDeadCode && !isDiffMode
-      ? runKnip(resolvedDirectory).catch((error: unknown) => {
+      ? runKnip(resolvedDirectory, userConfig?.entryFiles).catch((error: unknown) => {
           console.error("Dead code analysis failed:", error);
           return EMPTY_DIAGNOSTICS;
         })
