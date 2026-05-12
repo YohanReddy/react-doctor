@@ -904,9 +904,8 @@ export const asyncAwaitInLoop: Rule = {
         ) {
           return;
         }
-        // `body` is either a BlockStatement (block body) or any
-        // expression (concise body, e.g. `async x => fetch(x)`); walkAst
-        // handles both, so we just walk `body` directly.
+        if (loopBodyHasOnlySleepLikeAwaits(body)) return;
+        if (hasLoopCarriedDependency(body)) return;
         const firstAwait = findFirstAwaitOutsideNestedFunctions(body);
         if (firstAwait) {
           const message =
