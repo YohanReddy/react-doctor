@@ -8,7 +8,7 @@ import {
   createDependencyBuckets,
   readPackageJson,
 } from "./manifest.js";
-import { matchesGlob, toRelativePath } from "./path-utils.js";
+import { getPackageNameFromSpecifier, matchesGlob, toRelativePath } from "./path-utils.js";
 import type {
   CodebaseAnalysisConfig,
   PackageJsonObject,
@@ -19,13 +19,18 @@ import type {
 interface TypeScriptConfigJson {
   extends?: unknown;
   compilerOptions?: {
+    importHelpers?: unknown;
+    jsxImportSource?: unknown;
     outDir?: unknown;
+    plugins?: unknown;
     rootDir?: unknown;
+    types?: unknown;
   };
   references?: Array<{ path?: unknown }>;
 }
 
 interface TypeScriptDirectoryOptions {
+  dependencyNames: Set<string>;
   outDir?: string;
   rootDir?: string;
 }
@@ -172,6 +177,56 @@ const toDirectoryOption = (
   directory: string,
 ): string | undefined => (typeof value === "string" && value.length > 0 ? path.resolve(directory, value) : undefined);
 
+const toDefinitelyTypedPackageName = (typeName: string): string => {
+  if (typeName.startsWith("@types/")) return typeName;
+  if (typeName.startsWith("@")) return `@types/${typeName.slice(1).replace("/", "__")}`;
+  return `@types/${typeName}`;
+};
+
+const collectExtendsDependencyNames = (extendsValue: unknown): Set<string> => {
+  const dependencyNames = new Set<string>();
+  const specifiers = Array.isArray(extendsValue) ? extendsValue : [extendsValue];
+  for (const specifier of specifiers) {
+    if (typeof specifier !== "string" || specifier.length === 0) continue;
+    const packageName = getPackageNameFromSpecifier(specifier);
+    if (packageName) dependencyNames.add(packageName);
+  }
+  return dependencyNames;
+};
+
+const collectTypeScriptConfigDependencyNames = (config: TypeScriptConfigJson): Set<string> => {
+  const dependencyNames = collectExtendsDependencyNames(config.extends);
+  const compilerOptions = config.compilerOptions;
+  if (!compilerOptions) return dependencyNames;
+  if (typeof compilerOptions.jsxImportSource === "string" && compilerOptions.jsxImportSource.length > 0) {
+    dependencyNames.add(compilerOptions.jsxImportSource);
+  }
+  if (compilerOptions.importHelpers === true) {
+    dependencyNames.add("tslib");
+  }
+  if (Array.isArray(compilerOptions.types)) {
+    for (const typeName of compilerOptions.types) {
+      if (typeof typeName === "string" && typeName.length > 0) {
+        dependencyNames.add(toDefinitelyTypedPackageName(typeName));
+      }
+    }
+  }
+  if (Array.isArray(compilerOptions.plugins)) {
+    for (const plugin of compilerOptions.plugins) {
+      if (
+        plugin &&
+        typeof plugin === "object" &&
+        "name" in plugin &&
+        typeof plugin.name === "string" &&
+        plugin.name.length > 0
+      ) {
+        dependencyNames.add(plugin.name);
+      }
+    }
+  }
+  return dependencyNames;
+};
+
 const readTypeScriptDirectoryOptions = async (
   tsconfigPath: string,
   visitedPaths = new Set<string>(),
@@ -187,6 +242,10 @@ const readTypeScriptDirectoryOptions = async (
       : null;
     const options = {
       ...inheritedOptions,
+      dependencyNames: new Set([
+        ...(inheritedOptions?.dependencyNames ?? []),
+        ...collectTypeScriptConfigDependencyNames(config),
+      ]),
       rootDir:
         toDirectoryOption(config.compilerOptions?.rootDir, directory) ?? inheritedOptions?.rootDir,
       outDir: toDirectoryOption(config.compilerOptions?.outDir, directory) ?? inheritedOptions?.outDir,
@@ -196,6 +255,9 @@ const readTypeScriptDirectoryOptions = async (
       const referencedPath = await resolveReferencedTypeScriptConfigPath(tsconfigPath, reference.path);
       if (!referencedPath) continue;
       const referencedOptions = await readTypeScriptDirectoryOptions(referencedPath, visitedPaths);
+      for (const dependencyName of referencedOptions?.dependencyNames ?? []) {
+        options.dependencyNames.add(dependencyName);
+      }
       options.rootDir ??= referencedOptions?.rootDir;
       options.outDir ??= referencedOptions?.outDir;
       if (options.rootDir && options.outDir) break;
@@ -219,6 +281,9 @@ const readTypeScriptSourceMaps = async (directory: string): Promise<WorkspaceSou
     },
   ];
 };
+
+const readTypeScriptConfigDependencyNames = async (directory: string): Promise<Set<string>> =>
+  (await readTypeScriptDirectoryOptions(path.join(directory, "tsconfig.json")))?.dependencyNames ?? new Set();
 
 const expandSimpleWorkspacePattern = async (
   rootDirectory: string,
@@ -317,6 +382,7 @@ export const discoverWorkspaces = async (
       dependencyNames,
       manifestDependencyNames: collectManifestDependencyNames(manifest, dependencyNames),
       scriptDependencyNames: collectScriptDependencyNames(manifest, dependencyNames),
+      typeScriptConfigDependencyNames: await readTypeScriptConfigDependencyNames(directory),
       sourceMaps: await readTypeScriptSourceMaps(directory),
     });
   }
@@ -337,6 +403,7 @@ export const discoverWorkspaces = async (
       dependencyNames,
       manifestDependencyNames: collectManifestDependencyNames(fallbackManifest, dependencyNames),
       scriptDependencyNames: collectScriptDependencyNames(fallbackManifest, dependencyNames),
+      typeScriptConfigDependencyNames: await readTypeScriptConfigDependencyNames(config.rootDirectory),
       sourceMaps: await readTypeScriptSourceMaps(config.rootDirectory),
     },
   ];

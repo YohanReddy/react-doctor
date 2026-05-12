@@ -88,6 +88,7 @@ export const REACT_COMPILER_OXLINT_RULES: OxlintRuleSeverityMap = {
 
 export const BUILTIN_REACT_OXLINT_RULES: OxlintRuleSeverityMap = {
   "react/rules-of-hooks": "error",
+  "react/exhaustive-deps": "warn",
   "react/no-direct-mutation-state": "error",
   "react/jsx-no-duplicate-props": "error",
   "react/jsx-key": "error",
@@ -288,7 +289,9 @@ interface RuleGroupConfig {
 }
 
 const EMPTY_TAGS: ReadonlySet<string> = new Set();
+const DEFAULT_IGNORED_TAGS: ReadonlySet<string> = new Set(["pedantic"]);
 const TEST_NOISE_TAGS: ReadonlySet<string> = new Set(["test-noise"]);
+const PEDANTIC_TAGS: ReadonlySet<string> = new Set(["pedantic"]);
 const DESIGN_AND_TEST_NOISE_TAGS: ReadonlySet<string> = new Set(["design", "test-noise"]);
 const TAILWIND_VERSION_PATTERN = /(?:^|[^\d])(\d+)(?:\.(\d+))?/;
 const PEER_COMPARATOR_SEPARATOR = /[\s,|]+/;
@@ -324,9 +327,7 @@ const RULE_METADATA: ReadonlyMap<string, RuleMetadataEntry> = new Map([
   withReactDoctorRuleKey("design-no-space-on-flex-children", {
     tags: DESIGN_AND_TEST_NOISE_TAGS,
   }),
-  withReactDoctorRuleKey("design-no-three-period-ellipsis", {
-    tags: DESIGN_AND_TEST_NOISE_TAGS,
-  }),
+  withReactDoctorRuleKey("design-no-three-period-ellipsis", { tags: PEDANTIC_TAGS }),
   withReactDoctorRuleKey("design-no-default-tailwind-palette", {
     tags: DESIGN_AND_TEST_NOISE_TAGS,
   }),
@@ -535,7 +536,7 @@ export const createReactDoctorOxlintConfig = ({
   hasTanStackQuery = false,
   includeEcosystemRules = true,
   extendsPaths = [],
-  ignoredTags = new Set(),
+  ignoredTags = DEFAULT_IGNORED_TAGS,
 }: ReactDoctorOxlintConfigOptions): ReactDoctorOxlintGeneratedConfig => {
   const projectInfo: ReactDoctorOxlintProjectInfo = project ?? {
     framework,

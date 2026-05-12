@@ -84,6 +84,11 @@ export const FRAMEWORK_ROUTE_ENTRY_STEMS = new Set([
 
 export const TEST_ENTRY_MARKERS = [".test.", ".spec.", ".testcase.", ".stories.", ".story."];
 
+export const SUPPORT_ENTRY_PATTERNS = [
+  "**/*.eval.{js,jsx,ts,tsx}",
+  "evalite.config.{js,mjs,cjs,ts,mts,cts}",
+];
+
 export const PUBLIC_VISIBILITY_TAGS = new Set(["public", "alpha", "beta"]);
 export const INTERNAL_VISIBILITY_TAG = "internal";
 export const EXPECTED_UNUSED_VISIBILITY_TAG = "expected-unused";

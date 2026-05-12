@@ -16,6 +16,7 @@ export type {
   DiscoveredSourceFile,
   EntryPoint,
   EntryPointRole,
+  ExportMemberRecord,
   ExportRecord,
   GraphExportSymbol,
   ImportedBinding,

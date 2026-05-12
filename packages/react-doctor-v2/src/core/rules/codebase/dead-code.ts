@@ -1,7 +1,18 @@
-import { DEAD_CODE_CHECK_ID, EXPECTED_UNUSED_VISIBILITY_TAG } from "./analyzer/constants.js";
+import {
+  DEAD_CODE_CHECK_ID,
+  EXPECTED_UNUSED_VISIBILITY_TAG,
+  INTERNAL_VISIBILITY_TAG,
+  PUBLIC_VISIBILITY_TAGS,
+} from "./analyzer/constants.js";
 import { isVisibilityProtected } from "./analyzer/graph.js";
 import { runCodebaseAnalysis } from "./analyzer/index.js";
-import type { GraphExportSymbol, ModuleGraph, ProjectFile } from "./analyzer/index.js";
+import type {
+  ExportMemberRecord,
+  GraphExportSymbol,
+  ModuleGraph,
+  ModuleGraphNode,
+  ProjectFile,
+} from "./analyzer/index.js";
 import { defineRule } from "../registry.js";
 import type { ReactDoctorIssue } from "../../types.js";
 
@@ -14,6 +25,12 @@ interface UnusedFileFinding {
 interface UnusedExportFinding {
   file: ProjectFile;
   exportSymbol: GraphExportSymbol;
+}
+
+interface UnusedExportMemberFinding {
+  file: ProjectFile;
+  exportSymbol: GraphExportSymbol;
+  member: ExportMemberRecord;
 }
 
 interface DuplicateExportFinding {
@@ -61,8 +78,16 @@ const hasUsageReference = (exportSymbol: GraphExportSymbol): boolean =>
 const isExpectedUnused = (exportSymbol: GraphExportSymbol): boolean =>
   exportSymbol.jsDocTags.has(EXPECTED_UNUSED_VISIBILITY_TAG);
 
+const isMemberVisibilityProtected = (member: ExportMemberRecord): boolean =>
+  [...member.jsDocTags].some(
+    (tag) => PUBLIC_VISIBILITY_TAGS.has(tag) || tag === INTERNAL_VISIBILITY_TAG,
+  );
+
 const isPackageEntrypoint = (entrySources: ReadonlySet<string>): boolean =>
   entrySources.has("package.json");
+
+const isExternalEntrypointExportSurface = (node: ModuleGraphNode): boolean =>
+  isPackageEntrypoint(node.entrySources) || node.entryRoles.has("support");
 
 const collectDuplicateExports = (graph: ModuleGraph): DuplicateExportFinding[] => {
   const exportsByName = new Map<string, DuplicateExportFinding["exports"]>();
@@ -99,7 +124,7 @@ const collectUnusedExports = (graph: ModuleGraph): UnusedExportFinding[] =>
           (exportSymbol) =>
             exportSymbol.exportedName !== NAMESPACE_EXPORT_NAME &&
             !isExportUsed(exportSymbol) &&
-            !isPackageEntrypoint(node.entrySources),
+            !isExternalEntrypointExportSurface(node),
         )
         .map((exportSymbol) => ({ file: node.file, exportSymbol })),
     );
@@ -114,6 +139,25 @@ const collectNamespaceOnlyExports = (graph: ModuleGraph): UnusedExportFinding[] 
       )
       .map((exportSymbol) => ({ file: node.file, exportSymbol })),
   );
+
+const isMemberUsed = (exportSymbol: GraphExportSymbol, member: ExportMemberRecord): boolean =>
+  member.hasLocalReferences ||
+  exportSymbol.referencedMemberNames.has(member.name) ||
+  member.jsDocTags.has(EXPECTED_UNUSED_VISIBILITY_TAG) ||
+  isMemberVisibilityProtected(member);
+
+const collectUnusedExportMembers = (graph: ModuleGraph): UnusedExportMemberFinding[] =>
+  [...graph.nodes.values()]
+    .filter((node) => node.isReachable && !isExternalEntrypointExportSurface(node))
+    .flatMap((node) =>
+      [...node.exports.values()]
+        .filter((exportSymbol) => isExportUsed(exportSymbol))
+        .flatMap((exportSymbol) =>
+          exportSymbol.members
+            .filter((member) => !isMemberUsed(exportSymbol, member))
+            .map((member) => ({ file: node.file, exportSymbol, member })),
+        ),
+    );
 
 const collectStaleExpectedUnusedExports = (graph: ModuleGraph): UnusedExportFinding[] =>
   [...graph.nodes.values()].flatMap((node) =>
@@ -166,6 +210,20 @@ const toDuplicateExportIssue = (finding: DuplicateExportFinding): ReactDoctorIss
     source: { checkId: DEAD_CODE_CHECK_ID, ruleId: "duplicate-export" },
   });
 
+const toUnusedExportMemberIssue = (finding: UnusedExportMemberFinding): ReactDoctorIssue =>
+  createCodebaseIssue({
+    id: `${DEAD_CODE_CHECK_ID}/unused-${finding.member.kind}-member/${finding.file.relativePath}/${finding.exportSymbol.exportedName}.${finding.member.name}`,
+    title: `Unused ${finding.member.kind} member`,
+    message: `The exported ${finding.member.kind} member "${finding.exportSymbol.exportedName}.${finding.member.name}" is not referenced by reachable modules.`,
+    location: {
+      filePath: finding.file.relativePath,
+      line: finding.member.position.line,
+      column: finding.member.position.column,
+    },
+    recommendation: "Remove the member or reference it from reachable code.",
+    source: { checkId: DEAD_CODE_CHECK_ID, ruleId: `unused-${finding.member.kind}-member` },
+  });
+
 const toStaleExpectedUnusedIssue = (finding: UnusedExportFinding): ReactDoctorIssue =>
   createCodebaseIssue({
     id: `${DEAD_CODE_CHECK_ID}/stale-expected-unused/${finding.file.relativePath}/${finding.exportSymbol.exportedName}`,
@@ -193,6 +251,7 @@ const inspectDeadCode = (graph: ModuleGraph): ReactDoctorIssue[] => {
     ...collectNamespaceOnlyExports(graph).map((finding) =>
       toUnusedExportIssue(finding, "namespace-only-export", "Namespace-only export"),
     ),
+    ...collectUnusedExportMembers(graph).map(toUnusedExportMemberIssue),
     ...collectStaleExpectedUnusedExports(graph).map(toStaleExpectedUnusedIssue),
     ...collectDuplicateExports(graph).map(toDuplicateExportIssue),
   ]);

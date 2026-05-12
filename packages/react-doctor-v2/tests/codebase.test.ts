@@ -57,6 +57,24 @@ describe("codebase rules", () => {
     ]);
   });
 
+  it("treats runner files as support entrypoints", async () => {
+    const rootDirectory = await createFixtureProject({
+      "src/main.ts": "console.log('main');\n",
+      "src/model.eval.ts": "export const evalScenario = () => 'ok';\n",
+      "evalite.config.ts": "export default { root: 'src' };\n",
+    });
+
+    const result = await inspectReactProject({
+      rootDirectory,
+      rules: {
+        disabledRuleIds: [PROJECT_STRUCTURE_RULE_ID],
+        enabledRuleIds: [DEAD_CODE_RULE_ID],
+      },
+    });
+
+    expect(result.issues.map((issue) => issue.location?.filePath).sort()).toEqual([]);
+  });
+
   it("respects gitignore patterns during source discovery", async () => {
     const rootDirectory = await createFixtureProject({
       ".gitignore": ["generated/", "!generated/keep.ts"].join("\n"),
@@ -168,6 +186,39 @@ describe("codebase rules", () => {
     ]);
   });
 
+  it("reports unused exported enum and static class members", async () => {
+    const rootDirectory = await createFixtureProject({
+      "src/main.ts": [
+        "import { FeatureFlags, Status } from './members';",
+        "console.log(Status.Active, FeatureFlags.enabled);",
+      ].join("\n"),
+      "src/members.ts": [
+        "export enum Status {",
+        "  Active = 'active',",
+        "  Inactive = 'inactive',",
+        "}",
+        "export class FeatureFlags {",
+        "  static enabled = true;",
+        "  static disabled = false;",
+        "  instanceOnly() { return true; }",
+        "}",
+      ].join("\n"),
+    });
+
+    const result = await inspectReactProject({
+      rootDirectory,
+      rules: {
+        disabledRuleIds: [PROJECT_STRUCTURE_RULE_ID],
+        enabledRuleIds: [DEAD_CODE_RULE_ID],
+      },
+    });
+
+    expect(result.issues.map((issue) => issue.id).sort()).toEqual([
+      `${DEAD_CODE_RULE_ID}/unused-class-member/src/members.ts/FeatureFlags.disabled`,
+      `${DEAD_CODE_RULE_ID}/unused-enum-member/src/members.ts/Status.Inactive`,
+    ]);
+  });
+
   it("propagates namespace object alias member usage to source exports", async () => {
     const rootDirectory = await createFixtureProject({
       "src/main.ts": ["import { API } from './api';", "console.log(API.service.usedService);"].join(
@@ -188,6 +239,199 @@ describe("codebase rules", () => {
     });
 
     expect(result.issues.map((issue) => issue.id)).toEqual([
+      `${DEAD_CODE_RULE_ID}/unused-export/src/service.ts/unusedService`,
+    ]);
+  });
+
+  it("propagates namespace object alias member usage to exported members", async () => {
+    const rootDirectory = await createFixtureProject({
+      "src/main.ts": [
+        "import { API } from './api';",
+        "console.log(API.service.Feature.enabled);",
+      ].join("\n"),
+      "src/api.ts": "import * as service from './service';\nexport const API = { service };\n",
+      "src/service.ts": [
+        "export class Feature {",
+        "  static enabled = true;",
+        "  static disabled = false;",
+        "}",
+        "export const unusedService = 1;",
+      ].join("\n"),
+    });
+
+    const result = await inspectReactProject({
+      rootDirectory,
+      rules: {
+        disabledRuleIds: [PROJECT_STRUCTURE_RULE_ID],
+        enabledRuleIds: [DEAD_CODE_RULE_ID],
+      },
+    });
+
+    expect(result.issues.map((issue) => issue.id).sort()).toEqual([
+      `${DEAD_CODE_RULE_ID}/unused-class-member/src/service.ts/Feature.disabled`,
+      `${DEAD_CODE_RULE_ID}/unused-export/src/service.ts/unusedService`,
+    ]);
+  });
+
+  it("propagates local namespace import aliases to source exports", async () => {
+    const rootDirectory = await createFixtureProject({
+      "src/main.ts": [
+        "import * as service from './service';",
+        "const serviceAlias = service;",
+        "console.log(serviceAlias.usedService);",
+      ].join("\n"),
+      "src/service.ts": ["export const usedService = 1;", "export const unusedService = 2;"].join(
+        "\n",
+      ),
+    });
+
+    const result = await inspectReactProject({
+      rootDirectory,
+      rules: {
+        disabledRuleIds: [PROJECT_STRUCTURE_RULE_ID],
+        enabledRuleIds: [DEAD_CODE_RULE_ID],
+      },
+    });
+
+    expect(result.issues.map((issue) => issue.id)).toEqual([
+      `${DEAD_CODE_RULE_ID}/unused-export/src/service.ts/unusedService`,
+    ]);
+  });
+
+  it("propagates conditional namespace import aliases to all possible sources", async () => {
+    const rootDirectory = await createFixtureProject({
+      "src/main.ts": [
+        "import * as browserService from './browser-service';",
+        "import * as serverService from './server-service';",
+        "const service = Math.random() > 0.5 ? browserService : serverService;",
+        "console.log(service.usedService);",
+      ].join("\n"),
+      "src/browser-service.ts": [
+        "export const usedService = 1;",
+        "export const unusedBrowserService = 2;",
+      ].join("\n"),
+      "src/server-service.ts": [
+        "export const usedService = 1;",
+        "export const unusedServerService = 2;",
+      ].join("\n"),
+    });
+
+    const result = await inspectReactProject({
+      rootDirectory,
+      rules: {
+        disabledRuleIds: [PROJECT_STRUCTURE_RULE_ID],
+        enabledRuleIds: [DEAD_CODE_RULE_ID],
+      },
+    });
+
+    expect(result.issues.map((issue) => issue.id)).toEqual([
+      `${DEAD_CODE_RULE_ID}/duplicate-export/usedService`,
+      `${DEAD_CODE_RULE_ID}/unused-export/src/browser-service.ts/unusedBrowserService`,
+      `${DEAD_CODE_RULE_ID}/unused-export/src/server-service.ts/unusedServerService`,
+    ]);
+  });
+
+  it("propagates namespace object spread aliases to source exports", async () => {
+    const rootDirectory = await createFixtureProject({
+      "src/main.ts": [
+        "import * as service from './service';",
+        "const api = { ...service };",
+        "console.log(api.usedService);",
+      ].join("\n"),
+      "src/service.ts": ["export const usedService = 1;", "export const unusedService = 2;"].join(
+        "\n",
+      ),
+    });
+
+    const result = await inspectReactProject({
+      rootDirectory,
+      rules: {
+        disabledRuleIds: [PROJECT_STRUCTURE_RULE_ID],
+        enabledRuleIds: [DEAD_CODE_RULE_ID],
+      },
+    });
+
+    expect(result.issues.map((issue) => issue.id)).toEqual([
+      `${DEAD_CODE_RULE_ID}/unused-export/src/service.ts/unusedService`,
+    ]);
+  });
+
+  it("propagates destructured namespace imports to source exports", async () => {
+    const rootDirectory = await createFixtureProject({
+      "src/main.ts": [
+        "import * as service from './service';",
+        "const { usedService } = service;",
+        "console.log(usedService);",
+      ].join("\n"),
+      "src/service.ts": ["export const usedService = 1;", "export const unusedService = 2;"].join(
+        "\n",
+      ),
+    });
+
+    const result = await inspectReactProject({
+      rootDirectory,
+      rules: {
+        disabledRuleIds: [PROJECT_STRUCTURE_RULE_ID],
+        enabledRuleIds: [DEAD_CODE_RULE_ID],
+      },
+    });
+
+    expect(result.issues.map((issue) => issue.id)).toEqual([
+      `${DEAD_CODE_RULE_ID}/unused-export/src/service.ts/unusedService`,
+    ]);
+  });
+
+  it("propagates local namespace object containers to source exports", async () => {
+    const rootDirectory = await createFixtureProject({
+      "src/main.ts": [
+        "import * as service from './service';",
+        "const api = { service };",
+        "console.log(api.service.usedService);",
+      ].join("\n"),
+      "src/service.ts": ["export const usedService = 1;", "export const unusedService = 2;"].join(
+        "\n",
+      ),
+    });
+
+    const result = await inspectReactProject({
+      rootDirectory,
+      rules: {
+        disabledRuleIds: [PROJECT_STRUCTURE_RULE_ID],
+        enabledRuleIds: [DEAD_CODE_RULE_ID],
+      },
+    });
+
+    expect(result.issues.map((issue) => issue.id)).toEqual([
+      `${DEAD_CODE_RULE_ID}/unused-export/src/service.ts/unusedService`,
+    ]);
+  });
+
+  it("propagates local namespace object container member usage to exported members", async () => {
+    const rootDirectory = await createFixtureProject({
+      "src/main.ts": [
+        "import * as service from './service';",
+        "const api = { service };",
+        "console.log(api.service.Feature.enabled);",
+      ].join("\n"),
+      "src/service.ts": [
+        "export class Feature {",
+        "  static enabled = true;",
+        "  static disabled = false;",
+        "}",
+        "export const unusedService = 1;",
+      ].join("\n"),
+    });
+
+    const result = await inspectReactProject({
+      rootDirectory,
+      rules: {
+        disabledRuleIds: [PROJECT_STRUCTURE_RULE_ID],
+        enabledRuleIds: [DEAD_CODE_RULE_ID],
+      },
+    });
+
+    expect(result.issues.map((issue) => issue.id).sort()).toEqual([
+      `${DEAD_CODE_RULE_ID}/unused-class-member/src/service.ts/Feature.disabled`,
       `${DEAD_CODE_RULE_ID}/unused-export/src/service.ts/unusedService`,
     ]);
   });
@@ -246,6 +490,36 @@ describe("codebase rules", () => {
     });
 
     expect(result.issues.map((issue) => issue.id)).toEqual([
+      `${DEAD_CODE_RULE_ID}/unused-export/src/service.ts/unusedService`,
+    ]);
+  });
+
+  it("propagates namespace re-export member usage to exported members", async () => {
+    const rootDirectory = await createFixtureProject({
+      "src/main.ts": [
+        "import { Service } from './barrel';",
+        "console.log(Service.Feature.enabled);",
+      ].join("\n"),
+      "src/barrel.ts": "export * as Service from './service';\n",
+      "src/service.ts": [
+        "export class Feature {",
+        "  static enabled = true;",
+        "  static disabled = false;",
+        "}",
+        "export const unusedService = 1;",
+      ].join("\n"),
+    });
+
+    const result = await inspectReactProject({
+      rootDirectory,
+      rules: {
+        disabledRuleIds: [PROJECT_STRUCTURE_RULE_ID],
+        enabledRuleIds: [DEAD_CODE_RULE_ID],
+      },
+    });
+
+    expect(result.issues.map((issue) => issue.id).sort()).toEqual([
+      `${DEAD_CODE_RULE_ID}/unused-class-member/src/service.ts/Feature.disabled`,
       `${DEAD_CODE_RULE_ID}/unused-export/src/service.ts/unusedService`,
     ]);
   });
@@ -951,6 +1225,45 @@ describe("codebase rules", () => {
       `${DEPENDENCIES_RULE_ID}/unlisted-dependency/./eslint`,
       `${DEPENDENCIES_RULE_ID}/unlisted-dependency/./ts-node`,
       `${DEPENDENCIES_RULE_ID}/unlisted-dependency/./tsx`,
+    ]);
+  });
+
+  it("counts TypeScript config dependencies as usage", async () => {
+    const rootDirectory = await createFixtureProject({
+      "package.json": JSON.stringify({
+        devDependencies: {
+          "@emotion/react": "latest",
+          "@tsconfig/node22": "latest",
+          "@types/node": "latest",
+          "ts-plugin": "latest",
+          tslib: "latest",
+          "unused-dev": "latest",
+        },
+      }),
+      "tsconfig.json": JSON.stringify({
+        extends: ["@tsconfig/node22/tsconfig.json", "@tsconfig/missing/tsconfig.json"],
+        compilerOptions: {
+          importHelpers: true,
+          jsxImportSource: "@emotion/react",
+          plugins: [{ name: "ts-plugin" }],
+          types: ["node", "missing"],
+        },
+      }),
+      "src/main.ts": "console.log('main');\n",
+    });
+
+    const result = await inspectReactProject({
+      rootDirectory,
+      rules: {
+        disabledRuleIds: [PROJECT_STRUCTURE_RULE_ID],
+        enabledRuleIds: [DEPENDENCIES_RULE_ID],
+      },
+    });
+
+    expect(result.issues.map((issue) => issue.id)).toEqual([
+      `${DEPENDENCIES_RULE_ID}/unlisted-dependency/./@tsconfig/missing`,
+      `${DEPENDENCIES_RULE_ID}/unlisted-dependency/./@types/missing`,
+      `${DEPENDENCIES_RULE_ID}/unused-dev-dependency/./unused-dev`,
     ]);
   });
 

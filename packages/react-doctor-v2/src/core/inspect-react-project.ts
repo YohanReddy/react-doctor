@@ -28,8 +28,8 @@ const mergeConfig = (
   loadedConfig: LoadedReactDoctorConfig | null,
   options: InspectReactProjectOptions,
 ): ReactDoctorConfig => ({
-  ...(loadedConfig?.config ?? {}),
-  ...(options.config ?? {}),
+  ...loadedConfig?.config,
+  ...options.config,
   lint: options.lint ?? options.config?.lint ?? loadedConfig?.config.lint,
   deadCode: options.deadCode ?? options.config?.deadCode ?? loadedConfig?.config.deadCode,
   customRulesOnly:
@@ -40,6 +40,7 @@ const mergeConfig = (
     options.respectInlineDisables ??
     options.config?.respectInlineDisables ??
     loadedConfig?.config.respectInlineDisables,
+  offline: options.offline ?? options.config?.offline ?? loadedConfig?.config.offline,
 });
 
 const mergeRuleSelection = (
@@ -82,7 +83,7 @@ const createOxlintCheck = async (
       customRulesOnly: config.customRulesOnly,
       includeEcosystemRules: config.includeEcosystemRules,
       adoptExistingLintConfig: config.adoptExistingLintConfig,
-      ignoredTags: new Set(config.ignoredTags ?? []),
+      ignoredTags: config.ignoredTags ? new Set(config.ignoredTags) : undefined,
       signal: options.signal,
     });
     return {

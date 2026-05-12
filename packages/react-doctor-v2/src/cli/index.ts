@@ -21,7 +21,10 @@ interface CliFlags {
   deadCode: boolean;
   customRulesOnly: boolean;
   staged: boolean;
+  unstaged: boolean;
+  changed: boolean;
   diff?: boolean | string;
+  offline: boolean;
   failOn: string;
 }
 
@@ -39,9 +42,23 @@ const getGitFiles = (rootDirectory: string, args: string[]): string[] => {
     .filter((filePath) => filePath.length > 0 && isSourceFile(filePath));
 };
 
+const dedupeFilePaths = (filePaths: string[]): string[] => [...new Set(filePaths)];
+
 const resolveIncludePaths = (rootDirectory: string, flags: CliFlags): string[] | undefined => {
   if (flags.staged) {
     return getGitFiles(rootDirectory, ["diff", "--cached", "--name-only", "-z"]);
+  }
+  if (flags.unstaged) {
+    return dedupeFilePaths([
+      ...getGitFiles(rootDirectory, ["diff", "--name-only", "-z"]),
+      ...getGitFiles(rootDirectory, ["ls-files", "--others", "--exclude-standard", "-z"]),
+    ]);
+  }
+  if (flags.changed) {
+    return dedupeFilePaths([
+      ...getGitFiles(rootDirectory, ["diff", "--name-only", "-z", "HEAD"]),
+      ...getGitFiles(rootDirectory, ["ls-files", "--others", "--exclude-standard", "-z"]),
+    ]);
   }
   if (flags.diff) {
     const baseBranch = typeof flags.diff === "string" ? flags.diff : "main";
@@ -50,7 +67,8 @@ const resolveIncludePaths = (rootDirectory: string, flags: CliFlags): string[] |
   return undefined;
 };
 
-const isChangedFileMode = (flags: CliFlags): boolean => flags.staged || Boolean(flags.diff);
+const isChangedFileMode = (flags: CliFlags): boolean =>
+  flags.staged || flags.unstaged || flags.changed || Boolean(flags.diff);
 
 const getCliOptionOverride = <Value>(
   command: Command,
@@ -149,18 +167,26 @@ const program = new Command()
   .option("--no-dead-code", "skip codebase graph checks")
   .option("--custom-rules-only", "run only react-doctor custom oxlint rules")
   .option("--staged", "only inspect staged source files")
+  .option("--unstaged", "only inspect unstaged and untracked source files")
+  .option("--changed", "only inspect source files changed since HEAD")
   .option("--diff [base]", "only inspect source files changed against a base branch")
+  .option("--offline", "disable network-dependent integrations")
   .option("--fail-on <level>", "exit non-zero for error, warning, or none", "none")
   .action(async (directory: string, flags: CliFlags, command: Command) => {
     const rootDirectory = path.resolve(directory);
     const loadedConfig = await loadReactDoctorConfig(rootDirectory);
     const config = loadedConfig?.config ?? {};
+    const effectiveFlags: CliFlags = {
+      ...flags,
+      diff:
+        command.getOptionValueSource("diff") === "cli" ? flags.diff : (config.diff ?? flags.diff),
+    };
     const failOn =
       command.getOptionValueSource("failOn") === "cli"
         ? normalizeFailOnLevel(flags.failOn)
         : normalizeFailOnLevel(config.failOn ?? flags.failOn);
-    const includePaths = resolveIncludePaths(rootDirectory, flags);
-    const shouldSkipSourceChecks = isChangedFileMode(flags) && includePaths?.length === 0;
+    const includePaths = resolveIncludePaths(rootDirectory, effectiveFlags);
+    const shouldSkipSourceChecks = isChangedFileMode(effectiveFlags) && includePaths?.length === 0;
     const reactDoctor = createReactDoctor({
       rootDirectory: directory,
       includePaths: shouldSkipSourceChecks ? undefined : includePaths,
@@ -179,9 +205,16 @@ const program = new Command()
         config.customRulesOnly,
         false,
       ),
+      offline: resolveBooleanInspectOption(
+        command,
+        "offline",
+        flags.offline,
+        config.offline,
+        false,
+      ),
     });
 
-    printInspectionResult(result, flags);
+    printInspectionResult(result, effectiveFlags);
     if (shouldFailForIssues(result.issues, failOn)) {
       process.exitCode = EXIT_FAILURE_CODE;
     }

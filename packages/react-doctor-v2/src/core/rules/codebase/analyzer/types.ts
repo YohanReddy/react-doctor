@@ -63,6 +63,7 @@ export interface WorkspaceInfo {
   dependencyNames: Set<string>;
   manifestDependencyNames: Set<string>;
   scriptDependencyNames: Set<string>;
+  typeScriptConfigDependencyNames: Set<string>;
   sourceMaps: WorkspaceSourceMap[];
 }
 
@@ -165,6 +166,17 @@ export interface NamespaceObjectAlias {
   namespaceLocalName: string;
 }
 
+export interface NamespaceLocalAlias {
+  aliasName: string;
+  namespaceLocalName: string;
+}
+
+export interface NamespaceLocalObjectAlias {
+  objectLocalName: string;
+  propertyName: string;
+  namespaceLocalName: string;
+}
+
 export interface CodebaseModule {
   file: ProjectFile;
   imports: ImportRecord[];
@@ -173,6 +185,8 @@ export interface CodebaseModule {
   usedIdentifiers: Set<string>;
   namespaceMemberReferences: NamespaceMemberReference[];
   namespaceObjectAliases: NamespaceObjectAlias[];
+  namespaceLocalAliases: NamespaceLocalAlias[];
+  namespaceLocalObjectAliases: NamespaceLocalObjectAlias[];
   cjsExportNames: Set<string>;
   parseErrors: string[];
 }
@@ -207,6 +221,7 @@ export interface GraphExportSymbol extends ExportRecord {
   references: SymbolReference[];
   isPluginUsed: boolean;
   isReferencedByNamespace: boolean;
+  referencedMemberNames: Set<string>;
 }
 
 export interface ModuleGraphNode {
@@ -219,6 +234,8 @@ export interface ModuleGraphNode {
   usedIdentifiers: Set<string>;
   namespaceMemberReferences: NamespaceMemberReference[];
   namespaceObjectAliases: NamespaceObjectAlias[];
+  namespaceLocalAliases: NamespaceLocalAlias[];
+  namespaceLocalObjectAliases: NamespaceLocalObjectAlias[];
   entryRoles: Set<EntryPointRole>;
   entrySources: Set<string>;
   isReachable: boolean;

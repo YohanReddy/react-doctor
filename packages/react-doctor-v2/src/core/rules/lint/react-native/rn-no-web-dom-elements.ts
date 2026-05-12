@@ -2,6 +2,7 @@ import { defineRule } from "../../registry.js";
 import {
   REACT_NATIVE_WEB_DOM_ELEMENTS,
   hasDirective,
+  isInsideWebPlatformBranch,
   resolveJsxElementName,
 } from "./utils/index.js";
 import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
@@ -23,7 +24,7 @@ export const rnNoWebDomElements = defineRule<Rule>({
         isDomComponentFile = hasDirective(programNode, "use dom");
       },
       JSXOpeningElement(node: EsTreeNode) {
-        if (isDomComponentFile) return;
+        if (isDomComponentFile || isInsideWebPlatformBranch(node)) return;
         const elementName = resolveJsxElementName(node);
         if (!elementName || !REACT_NATIVE_WEB_DOM_ELEMENTS.has(elementName)) return;
         context.report({

@@ -9,13 +9,13 @@
 
 Your agent writes bad React, this catches it.
 
-One command scans your codebase and outputs a **0 to 100 health score** with actionable diagnostics.
+React Doctor scans React projects with native codebase analysis, a curated oxlint rule set, and actionable diagnostics.
 
-Works with Next.js, Vite, and React Native.
+Works with React, Next.js, React Native, Expo, TanStack Start, and common React ecosystem libraries.
 
-### [See it in action →](https://react.doctor)
+### [See it in action](https://react.doctor)
 
-## Install
+## Run
 
 Run this at your project root:
 
@@ -23,104 +23,119 @@ Run this at your project root:
 npx -y react-doctor@latest .
 ```
 
-You'll get a score (75+ Great, 50 to 74 Needs work, under 50 Critical) and a list of issues across state & effects, performance, architecture, security, accessibility, and dead code. Rules toggle automatically based on your framework and React version.
+By default React Doctor runs:
+
+- native project structure and codebase graph checks
+- oxlint with the React Doctor custom plugin
+- scoring and grouped human output
+
+You get a 0 to 100 score and a list of issues across state and effects, performance, architecture, security, accessibility, framework usage, dependencies, and dead code. Rules toggle automatically based on your framework, React version, and detected libraries.
 
 https://github.com/user-attachments/assets/07cc88d9-9589-44c3-aa73-5d603cb1c570
 
-## Install for your coding agent
+## React Doctor Skill
 
-Teach your coding agent React best practices so it stops writing the bad code in the first place.
+React Doctor also ships as an agent Skill. The CLI catches problems after code is written; the Skill teaches your coding agent the same React, framework, and performance guidance before it writes the next patch.
 
 ```bash
 npx -y react-doctor@latest install
 ```
 
-You'll be prompted to pick which detected agents to install for. Pass `--yes` to skip prompts.
+Use the Skill when you want agents to:
 
-Works with Claude Code, Cursor, Codex, OpenCode, and 50+ other agents.
+- avoid common state and effect mistakes
+- choose framework-native APIs for Next.js, React Native, Expo, and TanStack Start
+- keep rendering, animation, data fetching, and accessibility choices high-signal
+- understand React Doctor diagnostics and fix the underlying issue instead of hiding it
 
-## GitHub Actions
+The installer detects supported coding agents and prompts you to choose where to install the Skill. Pass `--yes` to accept the default detected targets.
 
-A composite action ships with this repository. Drop it into `.github/workflows/react-doctor.yml`:
+## CLI
 
-```yaml
-name: React Doctor
-
-on:
-  pull_request:
-  push:
-    branches: [main]
-
-permissions:
-  contents: read
-  pull-requests: write # required to post PR comments
-
-jobs:
-  react-doctor:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0 # required for `diff`
-      - uses: millionco/react-doctor@main
-        with:
-          diff: main
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+```bash
+react-doctor [directory]
 ```
 
-When `github-token` is set on `pull_request` events, findings are posted (and updated) as a PR comment. The action also exposes a `score` output (0–100) you can use in subsequent steps.
+Useful flags:
 
-**Inputs:** `directory`, `verbose`, `project`, `diff`, `github-token`, `fail-on` (`error` / `warning` / `none`), `offline`, `node-version`. See [`action.yml`](https://github.com/millionco/react-doctor/blob/main/action.yml) for full descriptions.
-
-Prefer not to add a marketplace action? The bare `npx` form works too:
-
-```yaml
-- run: npx -y react-doctor@latest --fail-on warning
+```bash
+react-doctor apps/web --json
+react-doctor apps/web --json --json-compact
+react-doctor apps/web --no-lint
+react-doctor apps/web --no-dead-code
+react-doctor apps/web --custom-rules-only
+react-doctor apps/web --staged
+react-doctor apps/web --unstaged
+react-doctor apps/web --changed
+react-doctor apps/web --diff main
+react-doctor apps/web --offline
+react-doctor apps/web --fail-on error
 ```
+
+Changed-file modes only inspect matching source files:
+
+- `--staged` scans the git index for pre-commit flows.
+- `--unstaged` scans unstaged and untracked source files.
+- `--changed` scans staged, unstaged, and untracked source files since `HEAD`.
+- `--diff [base]` scans files changed against a base branch, defaulting to `main`.
+
+If no changed source files are found, source checks are skipped instead of falling back to a full scan.
+
+`--fail-on` accepts `error`, `warning`, or `none`.
 
 ## Configuration
 
-Create a `react-doctor.config.json` in your project root:
+React Doctor looks for configuration in:
+
+- `react-doctor.config.json`
+- `package.json#reactDoctor`
+
+Config lookup starts at the requested directory and walks ancestors until a project boundary. `rootDir` is resolved relative to the config source, not the current working directory.
 
 ```json
 {
+  "rootDir": "apps/web",
+  "lint": true,
+  "deadCode": true,
+  "customRulesOnly": false,
+  "offline": true,
+  "failOn": "error",
+  "respectInlineDisables": true,
+  "adoptExistingLintConfig": true,
+  "includeEcosystemRules": true,
+  "ignoredTags": ["design"],
+  "textComponents": ["Trans"],
+  "rawTextWrapperComponents": ["Button"],
   "ignore": {
-    "rules": ["react/no-danger", "jsx-a11y/no-autofocus"],
+    "rules": ["react-doctor/no-gradient-text"],
     "files": ["src/generated/**"],
     "overrides": [
       {
-        "files": ["components/modules/diff/**"],
-        "rules": ["react-doctor/no-array-index-as-key", "react-doctor/no-render-in-render"]
-      },
-      {
-        "files": ["components/search/HighlightedSnippet.tsx"],
-        "rules": ["react/no-danger"]
+        "files": ["src/legacy/**"],
+        "rules": ["react-doctor/no-default-props"]
       }
     ]
   }
 }
 ```
 
-Three nested keys, three layers of granularity — pick the narrowest one that fits:
+Pick the narrowest ignore that fits:
 
-- **`ignore.rules`** silences a rule across the whole codebase.
-- **`ignore.files`** silences **every** rule on the matched files (use sparingly — it loses coverage for unrelated rules).
+- **`ignore.rules`** silences a rule across the codebase.
+- **`ignore.files`** silences every rule on matched files.
 - **`ignore.overrides`** silences only the listed rules on the matched files, leaving every other rule active. This is what you want when a single file (or glob) legitimately needs an exemption from one or two rules but should still be scanned for everything else.
 
-You can also use the `"reactDoctor"` key in `package.json`. CLI flags always override config values.
+React Doctor can adopt the first JSON `.oxlintrc.json` or `.eslintrc.json` found while walking ancestors. Set `adoptExistingLintConfig` to `false` to scan only React Doctor rules.
 
-React Doctor respects `.gitignore`, `.eslintignore`, `.oxlintignore`, `.prettierignore`, and `linguist-vendored` / `linguist-generated` annotations in `.gitattributes`. Inline `// eslint-disable*` and `// oxlint-disable*` comments are honored too.
+`ignoredTags` lets you trim noisy categories without turning the whole scanner off. For example, `["design"]` keeps structural React checks while skipping subjective visual style suggestions.
 
-If you have a JSON oxlint or eslint config (`.oxlintrc.json` or `.eslintrc.json`), its rules get merged into the scan automatically and count toward the score. Set `adoptExistingLintConfig: false` to opt out.
+For React Native, `textComponents` marks custom components that behave like `<Text>`, while `rawTextWrapperComponents` marks components that safely wrap string-only children in text internally.
 
-#### Optional companion plugins
+## Scoring
 
-When the following ESLint plugins are installed in the scanned project (or hoisted in your monorepo), React Doctor folds their rules into the same scan. Both are listed as **optional peer dependencies** — install only what you want.
+Scores are a simple health signal, not a moral judgment. React Doctor starts at 100, subtracts more for error-level rule families than warning-level families, and counts a repeated rule once so one noisy pattern does not dominate the whole project.
 
-| Plugin                                                                                                                                          | Adds                                                                                                                                                                                                        | Namespace          |
-| ----------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
-| [`eslint-plugin-react-hooks`](https://www.npmjs.com/package/eslint-plugin-react-hooks) (v6 or v7)                                               | The React Compiler frontend's correctness rules — fired when a React Compiler is detected in the project.                                                                                                   | `react-hooks-js/*` |
-| [`eslint-plugin-react-you-might-not-need-an-effect`](https://github.com/nickjvandyke/eslint-plugin-react-you-might-not-need-an-effect) (v0.10+) | Complementary effects-as-anti-pattern rules (`no-derived-state`, `no-chain-state-updates`, `no-event-handler`, `no-pass-data-to-parent`, …) that run alongside React Doctor's native State & Effects rules. | `effect/*`         |
+The score can move between releases as rules become more precise, new framework rules are added, or noisy checks are demoted. Treat the detailed diagnostics as the source of truth and use the score for trend tracking across repeated runs.
 
 ### Inline suppressions
 
@@ -139,15 +154,13 @@ When two rules fire on the same line, you have two equivalent options. Comma-sep
 const [localSearch, setLocalSearch] = useState(searchQuery);
 ```
 
-Or stack one comment per rule directly above the diagnostic. Stacked comments are honored as long as nothing but other `react-doctor-disable-next-line` comments sits between them and the target line:
+Or stack one comment per rule directly above the diagnostic:
 
 ```tsx
 // react-doctor-disable-next-line react-doctor/rerender-state-only-in-handlers
 // react-doctor-disable-next-line react-doctor/no-derived-useState
 const [localSearch, setLocalSearch] = useState(searchQuery);
 ```
-
-A code line between stacked comments breaks the chain: only the comment immediately above the diagnostic (and any contiguous `react-doctor-disable-next-line` comments stacked on top of it) is honored. If a comment looks adjacent but the rule still fires, run `react-doctor --explain <file:line>` — it reports whether a nearby suppression was found, what rules it covers, and why it didn't apply.
 
 Block comments work inside JSX:
 
@@ -159,159 +172,104 @@ Block comments work inside JSX:
 
 For multi-line JSX, putting the comment immediately above the opening tag covers the entire attribute list (matching ESLint convention).
 
-## Lint plugin (standalone)
+## Lint Integrations
 
 The same rule set ships as both an oxlint plugin and an ESLint plugin, so you can wire it into whichever lint engine your project already runs.
 
-**oxlint** in `.oxlintrc.json`:
+Oxlint:
 
-```jsonc
-{
-  "jsPlugins": [{ "name": "react-doctor", "specifier": "react-doctor/oxlint-plugin" }],
-  "rules": {
+```js
+import reactDoctorOxlintPlugin from "react-doctor/oxlint-plugin";
+
+export default {
+  jsPlugins: [reactDoctorOxlintPlugin],
+  rules: {
     "react-doctor/no-fetch-in-effect": "warn",
-    "react-doctor/no-derived-state-effect": "warn",
   },
-}
+};
 ```
 
-**ESLint** flat config:
+ESLint:
 
 ```js
 import reactDoctor from "react-doctor/eslint-plugin";
 
 export default [
-  reactDoctor.configs.recommended,
-  reactDoctor.configs.next,
-  reactDoctor.configs["react-native"],
-  reactDoctor.configs["tanstack-start"],
-  reactDoctor.configs["tanstack-query"],
+  {
+    plugins: {
+      "react-doctor": reactDoctor,
+    },
+    rules: {
+      "react-doctor/no-fetch-in-effect": "warn",
+    },
+  },
 ];
 ```
 
-The full rule list lives in [`oxlint-config.ts`](https://github.com/millionco/react-doctor/blob/main/packages/react-doctor/src/oxlint-config.ts).
+The ESLint wrapper reuses the same rule implementations and metadata as the oxlint plugin.
 
-## CLI reference
+## SDK
 
-```
-Usage: react-doctor [directory] [options]
+```ts
+import { createReactDoctor, inspectReactProject } from "react-doctor";
 
-Options:
-  -v, --version           display the version number
-  --no-lint               skip linting
-  --no-dead-code          skip dead code detection
-  --verbose               show every rule and per-file details (default shows top 3 rules)
-  --score                 output only the score
-  --json                  output a single structured JSON report
-  -y, --yes               skip prompts, scan all workspace projects
-  --full                  skip prompts, always run a full scan
-  --project <name>        select workspace project (comma-separated for multiple)
-  --diff [base]           scan only files changed vs base branch
-  --staged                scan only staged files (for pre-commit hooks)
-  --offline               skip telemetry
-  --fail-on <level>       exit with error on diagnostics: error, warning, none
-  --annotations           output diagnostics as GitHub Actions annotations
-  --explain <file:line>   diagnose why a rule fired or why a suppression didn't apply
-  --why <file:line>       alias for --explain
-  -h, --help              display help
+const result = await inspectReactProject({
+  rootDirectory: "apps/web",
+  lint: true,
+  deadCode: true,
+});
+
+const reactDoctor = createReactDoctor({ rootDirectory: "apps/web" });
+const nextResult = await reactDoctor.inspect();
 ```
 
-When a suppression isn't working, `--explain <file:line>` (or its alias `--why <file:line>`) reports what the scanner sees at that location, including why a nearby `react-doctor-disable-next-line` didn't apply. The diagnosis distinguishes the common failure modes — adjacent comment for a different rule (use the comma form), a code line between the comment and the diagnostic (the chain is broken), or no nearby suppression at all. The same hint surfaces inline with `--verbose` for every flagged site, and in `--json` output as `diagnostic.suppressionHint`, so a single scan doubles as a suppression audit without a separate flag.
+The result includes project metadata, check results, normalized issues, score, and timing.
 
-`--json` produces a parsable object on stdout with all human-readable output suppressed. Errors still produce a JSON object with `ok: false`, so stdout is always a valid document.
+```ts
+import { buildReactDoctorJsonReport } from "react-doctor";
 
-### Config keys
-
-| Key                        | Type                             | Default  |
-| -------------------------- | -------------------------------- | -------- |
-| `ignore.rules`             | `string[]`                       | `[]`     |
-| `ignore.files`             | `string[]`                       | `[]`     |
-| `ignore.overrides`         | `{ files, rules? }[]`            | `[]`     |
-| `lint`                     | `boolean`                        | `true`   |
-| `deadCode`                 | `boolean`                        | `true`   |
-| `verbose`                  | `boolean`                        | `false`  |
-| `diff`                     | `boolean \| string`              |          |
-| `failOn`                   | `"error" \| "warning" \| "none"` | `"none"` |
-| `customRulesOnly`          | `boolean`                        | `false`  |
-| `share`                    | `boolean`                        | `true`   |
-| `offline`                  | `boolean`                        | `false`  |
-| `textComponents`           | `string[]`                       | `[]`     |
-| `rawTextWrapperComponents` | `string[]`                       | `[]`     |
-| `respectInlineDisables`    | `boolean`                        | `true`   |
-| `adoptExistingLintConfig`  | `boolean`                        | `true`   |
-| `ignore.tags`              | `string[]`                       | `[]`     |
-| `entryFiles`               | `string[]`                       | `[]`     |
-
-`textComponents` is the broad escape hatch for `rn-no-raw-text` — list components that themselves behave like React Native's `<Text>` (custom `Typography`, `NativeTabs.Trigger.Label`, etc.) and the rule will treat them as text containers regardless of what their children look like.
-
-`rawTextWrapperComponents` is the narrower option for components that are not text elements but safely route string-only children through an internal `<Text>` (e.g. `heroui-native`'s `Button`, which stringifies its children and renders them through a `ButtonLabel`). Listed wrappers suppress `rn-no-raw-text` only when their children are entirely stringifiable. A wrapper with mixed children — e.g. `<Button>Save<Icon /></Button>` — still reports because the wrapper can't safely route raw text alongside a sibling JSX element.
-
-`ignore.tags` suppresses entire categories of rules by tag. For example, `"tags": ["design"]` disables all opinionated design rules (gradient text, pure black backgrounds, side tab borders, default Tailwind palettes). Available tags: `"design"`.
-
-`entryFiles` tells the dead-code detector about files that are executed directly but not imported (test runner configs, eval scripts, CLI entry points). These are forwarded to [knip](https://knip.dev) as additional entry points. Example: `"entryFiles": ["scripts/*.ts", "evalite.config.ts"]`. If your project already has a `knip.json`, those entry points are respected automatically.
-
-`offline` skips the score API call and calculates the score locally. Automatically enabled in CI environments (GitHub Actions, GitLab CI, CircleCI). Set `true` in config to always score locally.
-
-## Scoring
-
-The health score formula: `100 - (unique_error_rules x 1.5) - (unique_warning_rules x 0.75)`.
-
-Key details:
-
-- The score counts **unique rules triggered**, not total instances. Fixing 49 of 50 `no-barrel-import` violations does not change the score; fixing all 50 removes the 0.75 penalty for that rule.
-- Error-severity rules cost 1.5 points each. Warning-severity rules cost 0.75 points each.
-- Category breakdowns shown in the output are for display only and do not weight the score.
-- Run `--verbose` to see which exact rules contributed to the score and how the penalty was computed.
-
-Score labels: 75+ is **Great**, 50 to 74 is **Needs work**, under 50 is **Critical**.
-
-Scores may decrease across releases as new rules are added. Each new rule that fires in your codebase introduces an additional penalty. This is expected — it means the tool is catching more issues, not that your code got worse. Pin to a specific react-doctor version in CI if you need stable scores across upgrades.
-
-## Diff and staged modes
-
-React Doctor can scan only changed files instead of the full project:
-
-- **`--diff [base]`** scans files changed vs a base branch. Auto-detects `main`/`master`, or pass an explicit branch: `--diff develop`. Also available as a config key: `"diff": true` or `"diff": "develop"`.
-- **`--staged`** scans only files in the git staging area (index). Designed for pre-commit hooks — materializes staged file contents into a temp directory so the scan reflects exactly what will be committed.
-- **`--full`** forces a full scan, overriding any `diff` value in config or CLI.
-
-When on a feature branch without explicit flags, you'll be prompted: "Only scan changed files?" This prompt is suppressed in CI, `--json` mode, and non-interactive environments.
-
-`--staged` and `--diff` cannot be combined. Both modes skip dead-code detection (knip needs the full project to detect unused files).
-
-## Agent and CI integration
-
-React Doctor detects 50+ coding agents (Claude Code, Cursor, Codex, OpenCode, Windsurf, and more) and adapts its behavior automatically:
-
-- **Install for agents**: `npx react-doctor@latest install` writes agent-specific rule files (SKILL.md, AGENTS.md, .cursorrules) into your project so agents learn React best practices.
-- **JSON output**: `--json` produces a structured `JsonReport` on stdout. Errors still produce a valid JSON document with `ok: false`. Use `--json-compact` for minimal whitespace.
-- **Score-only output**: `--score` outputs just the numeric score (0-100), useful for threshold checks in agent loops.
-- **GitHub Actions annotations**: `--annotations` emits `::error` / `::warning` format for inline PR annotations.
-- **Exit codes**: `--fail-on error` (default) exits non-zero when error-severity diagnostics are found. Use `--fail-on warning` or `--fail-on none` to tune CI gating.
-- **Programmatic API**: `import { diagnose } from "react-doctor/api"` for direct integration in scripts and automation.
-
-In CI environments, prompts are automatically skipped and scoring runs locally (offline mode).
-
-## Node.js API
-
-```js
-import { diagnose, toJsonReport, summarizeDiagnostics } from "react-doctor/api";
-
-const result = await diagnose("./path/to/your/react-project");
-
-console.log(result.score); // { score: 82, label: "Great" } or null
-console.log(result.diagnostics); // Diagnostic[]
-console.log(result.project); // detected framework, React version, etc.
+const report = buildReactDoctorJsonReport(result);
 ```
 
-`diagnose` accepts a second argument: `{ lint?: boolean, deadCode?: boolean }`.
+Typed runtime errors are exported from the main SDK:
 
-```js
-const report = toJsonReport(result, { version: "1.0.0" });
-const counts = summarizeDiagnostics(result.diagnostics);
+```ts
+import { ReactDoctorInvalidConfigError, isReactDoctorError } from "react-doctor";
 ```
 
-`react-doctor/api` re-exports `JsonReport`, `JsonReportSummary`, `JsonReportProjectEntry`, `JsonReportMode`, plus the lower-level `buildJsonReport` and `buildJsonReportError` builders. See [`packages/react-doctor/src/api.ts`](https://github.com/millionco/react-doctor/blob/main/packages/react-doctor/src/api.ts) for the full types.
+## Compatibility API
+
+Deprecated compatibility APIs live under `react-doctor/api` and are intentionally isolated from the main runtime.
+
+```ts
+import { diagnose, clearCaches } from "react-doctor/api";
+
+const result = await diagnose("apps/web", {
+  lint: true,
+  deadCode: true,
+});
+
+clearCaches();
+```
+
+Prefer `createReactDoctor()` or `inspectReactProject()` for new integrations.
+
+## Development
+
+Run package checks from the package directory:
+
+```bash
+nr typecheck
+nr test
+nr build
+```
+
+Run workspace formatting and linting from the repository root:
+
+```bash
+nr format:check packages/react-doctor/src packages/react-doctor/tests
+nr lint packages/react-doctor/src packages/react-doctor/tests
+```
 
 ## Leaderboard
 
@@ -345,12 +303,14 @@ Looking to contribute back? Clone the repo, install, build, and submit a PR.
 ```bash
 git clone https://github.com/millionco/react-doctor
 cd react-doctor
-pnpm install
-pnpm build
-node packages/react-doctor/bin/react-doctor.js /path/to/your/react-project
+ni
+nr build
+node packages/react-doctor/bin/react-doctor.js apps/web
 ```
 
 Find a bug? Head to the [issue tracker](https://github.com/millionco/react-doctor/issues).
+
+Release notes are published on [GitHub Releases](https://github.com/millionco/react-doctor/releases).
 
 ### License
 

@@ -6,6 +6,14 @@ interface CompiledIgnoreOverride {
   rules: Set<string> | null;
 }
 
+interface ComponentMatch {
+  innerText: string;
+  startIndex: number;
+  endIndex: number;
+}
+
+const RN_NO_RAW_TEXT_RULE_ID = "rn-no-raw-text";
+
 const normalizePath = (filePath: string): string => filePath.replace(/\\/g, "/");
 
 const normalizeRuleId = (issue: ReactDoctorIssue): string => {
@@ -16,6 +24,8 @@ const normalizeRuleId = (issue: ReactDoctorIssue): string => {
 };
 
 const stripRuleNamespace = (ruleId: string): string => ruleId.split("/").at(-1) ?? ruleId;
+
+const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const matchesRule = (issue: ReactDoctorIssue, rulePatterns: ReadonlySet<string>): boolean => {
   const ruleId = normalizeRuleId(issue);
@@ -90,6 +100,73 @@ const isDisabledByReactDoctorComment = (
   );
 };
 
+const toLineStartIndex = (sourceLines: string[], line: number): number => {
+  let startIndex = 0;
+  for (let lineIndex = 0; lineIndex < line - 1; lineIndex++) {
+    startIndex += (sourceLines[lineIndex] ?? "").length + 1;
+  }
+  return startIndex;
+};
+
+const findComponentMatches = (sourceText: string, componentName: string): ComponentMatch[] => {
+  const escapedComponentName = escapeRegExp(componentName);
+  const componentPattern = new RegExp(
+    `<${escapedComponentName}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${escapedComponentName}>`,
+    "g",
+  );
+  const matches: ComponentMatch[] = [];
+  for (const match of sourceText.matchAll(componentPattern)) {
+    if (match.index === undefined) continue;
+    matches.push({
+      innerText: match[1] ?? "",
+      startIndex: match.index,
+      endIndex: match.index + match[0].length,
+    });
+  }
+  return matches;
+};
+
+const isStringOnlyWrapperContent = (innerText: string): boolean => {
+  const trimmedInnerText = innerText.trim();
+  return trimmedInnerText.length > 0 && !/[<{]/.test(trimmedInnerText);
+};
+
+const isInsideComponentMatch = (issueIndex: number, match: ComponentMatch): boolean =>
+  issueIndex >= match.startIndex && issueIndex <= match.endIndex;
+
+const isSuppressedRnRawTextIssue = (
+  issue: ReactDoctorIssue,
+  config: ReactDoctorConfig,
+  sourceLines: string[] | undefined,
+): boolean => {
+  if (stripRuleNamespace(normalizeRuleId(issue)) !== RN_NO_RAW_TEXT_RULE_ID) return false;
+  const line = issue.location?.line;
+  if (!line || !sourceLines) return false;
+
+  const sourceText = sourceLines.join("\n");
+  const issueIndex = toLineStartIndex(sourceLines, line);
+  for (const componentName of config.textComponents ?? []) {
+    if (
+      findComponentMatches(sourceText, componentName).some((match) =>
+        isInsideComponentMatch(issueIndex, match),
+      )
+    ) {
+      return true;
+    }
+  }
+  for (const componentName of config.rawTextWrapperComponents ?? []) {
+    if (
+      findComponentMatches(sourceText, componentName).some(
+        (match) =>
+          isInsideComponentMatch(issueIndex, match) && isStringOnlyWrapperContent(match.innerText),
+      )
+    ) {
+      return true;
+    }
+  }
+  return false;
+};
+
 export const filterReactDoctorIssues = (
   issues: ReactDoctorIssue[],
   config: ReactDoctorConfig,
@@ -114,6 +191,12 @@ export const filterReactDoctorIssues = (
       config.respectInlineDisables !== false &&
       relativeFilePath &&
       isDisabledByReactDoctorComment(issue, readSourceLines?.(relativeFilePath))
+    ) {
+      return false;
+    }
+    if (
+      relativeFilePath &&
+      isSuppressedRnRawTextIssue(issue, config, readSourceLines?.(relativeFilePath))
     ) {
       return false;
     }

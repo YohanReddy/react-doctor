@@ -10,6 +10,7 @@ export interface CreateReactDoctorOptions {
   deadCode?: boolean;
   customRulesOnly?: boolean;
   respectInlineDisables?: boolean;
+  offline?: boolean;
 }
 
 export interface ReactDoctor {

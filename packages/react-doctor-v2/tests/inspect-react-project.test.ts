@@ -2,7 +2,12 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vite-plus/test";
-import { DEAD_CODE_RULE_ID, createReactDoctor, inspectReactProject } from "../src/sdk/index.js";
+import {
+  DEAD_CODE_RULE_ID,
+  createReactDoctor,
+  inspectReactProject,
+  loadReactDoctorConfig,
+} from "../src/sdk/index.js";
 
 const createFixtureProject = async (files: Record<string, string>): Promise<string> => {
   const rootDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "react-doctor-inspect-"));
@@ -79,6 +84,47 @@ describe("inspectReactProject", () => {
     expect(result.issues.map((issue) => issue.id)).toContain(
       `${DEAD_CODE_RULE_ID}/unused-export/src/app.tsx/Unused`,
     );
+  });
+
+  it("accepts offline mode in react-doctor config", async () => {
+    const rootDirectory = await createFixtureProject({
+      "react-doctor.config.json": JSON.stringify({ offline: true }),
+      "src/main.tsx": "console.log('ok');\n",
+    });
+
+    const loadedConfig = await loadReactDoctorConfig(rootDirectory);
+
+    expect(loadedConfig?.config.offline).toBe(true);
+  });
+
+  it("resolves Bun grouped catalog versions during project discovery", async () => {
+    const rootDirectory = await createFixtureProject({
+      "package.json": JSON.stringify({
+        name: "workspace",
+        workspaces: {
+          packages: ["apps/*"],
+          catalogs: {
+            react19: {
+              react: "^19.0.0",
+            },
+          },
+        },
+      }),
+      "apps/web/package.json": JSON.stringify({
+        name: "web",
+        dependencies: {
+          react: "catalog:react19",
+        },
+      }),
+      "apps/web/src/main.tsx": "console.log('ok');\n",
+    });
+
+    const result = await inspectReactProject({
+      rootDirectory: path.join(rootDirectory, "apps/web"),
+    });
+
+    expect(result.project.reactVersion).toBe("^19.0.0");
+    expect(result.project.reactMajorVersion).toBe(19);
   });
 });
 

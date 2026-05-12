@@ -6,10 +6,32 @@ import { isMutatingMethodProperty } from "./is-mutating-method-property.js";
 import { isNodeOfType } from "./is-node-of-type.js";
 import { walkAst } from "./walk-ast.js";
 
+const HEADER_BINDING_NAMES = new Set(["headers", "responseHeaders", "resHeaders"]);
+const HEADER_MUTATION_METHOD_NAMES = new Set(["append", "delete", "set"]);
+
+const isIdentifierNamed = (node: EsTreeNode, names: ReadonlySet<string>): boolean =>
+  isNodeOfType(node, "Identifier") && names.has(node.name);
+
+const isOutboundHeadersMutationCall = (node: EsTreeNode): boolean => {
+  if (!isNodeOfType(node, "CallExpression") || !isNodeOfType(node.callee, "MemberExpression")) {
+    return false;
+  }
+  const { object, property } = node.callee;
+  if (!isIdentifierNamed(property, HEADER_MUTATION_METHOD_NAMES)) return false;
+  if (isIdentifierNamed(object, HEADER_BINDING_NAMES)) return true;
+  return (
+    isNodeOfType(object, "MemberExpression") &&
+    isIdentifierNamed(object.property, HEADER_BINDING_NAMES)
+  );
+};
+
 export const findSideEffect = (node: EsTreeNode): string | null => {
   let sideEffectDescription: string | null = null;
   walkAst(node, (child: EsTreeNode) => {
     if (sideEffectDescription) return;
+    if (isOutboundHeadersMutationCall(child)) {
+      return;
+    }
     if (isCookiesOrHeadersCall(child, "cookies")) {
       const methodName = child.callee.property.name;
       sideEffectDescription = `cookies().${methodName}()`;

@@ -2,6 +2,34 @@ import { defineRule } from "../../registry.js";
 import { CHAINABLE_ITERATION_METHODS, isNodeOfType } from "./utils/index.js";
 import type { EsTreeNode, Rule, RuleContext } from "./utils/index.js";
 
+const ITERATOR_SOURCE_METHOD_NAMES = new Set(["entries", "keys", "values"]);
+
+const isIteratorFromCall = (node: EsTreeNode): boolean =>
+  isNodeOfType(node, "CallExpression") &&
+  isNodeOfType(node.callee, "MemberExpression") &&
+  isNodeOfType(node.callee.object, "Identifier") &&
+  node.callee.object.name === "Iterator" &&
+  isNodeOfType(node.callee.property, "Identifier") &&
+  node.callee.property.name === "from";
+
+const isIteratorHelperChain = (node: EsTreeNode): boolean => {
+  let currentNode: EsTreeNode | null | undefined = node;
+  while (currentNode) {
+    if (isIteratorFromCall(currentNode)) return true;
+    if (!isNodeOfType(currentNode, "CallExpression")) return false;
+    const callee: EsTreeNode = currentNode.callee;
+    if (!isNodeOfType(callee, "MemberExpression")) return false;
+    if (
+      isNodeOfType(callee.property, "Identifier") &&
+      ITERATOR_SOURCE_METHOD_NAMES.has(callee.property.name)
+    ) {
+      return true;
+    }
+    currentNode = callee.object;
+  }
+  return false;
+};
+
 export const jsCombineIterations = defineRule<Rule>({
   recommendation:
     "Combine chained array passes when they traverse the same data and the intermediate arrays are not needed.",
@@ -33,6 +61,7 @@ const names = active.map(getName);`,
 
       const innerMethod = innerCall.callee.property.name;
       if (!CHAINABLE_ITERATION_METHODS.has(innerMethod)) return;
+      if (isIteratorHelperChain(innerCall.callee.object)) return;
 
       if (innerMethod === "map" && outerMethod === "filter") {
         const filterArgument = node.arguments?.[0];

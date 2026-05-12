@@ -2,6 +2,7 @@ import { defineRule } from "../../registry.js";
 import {
   getRawTextDescription,
   hasDirective,
+  isInsideWebPlatformBranch,
   isRawTextContent,
   isTextHandlingComponent,
   resolveJsxElementName,
@@ -30,7 +31,7 @@ export const rnNoRawText = defineRule<Rule>({
         isWebOnlyFile = WEB_FILE_EXTENSION_PATTERN.test(context.getFilename?.() ?? "");
       },
       JSXElement(node: EsTreeNode) {
-        if (isDomComponentFile || isWebOnlyFile) return;
+        if (isDomComponentFile || isWebOnlyFile || isInsideWebPlatformBranch(node)) return;
 
         const elementName = resolveJsxElementName(node.openingElement);
         if (elementName && isTextHandlingComponent(elementName)) return;

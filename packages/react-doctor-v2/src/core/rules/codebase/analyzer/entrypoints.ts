@@ -3,6 +3,7 @@ import {
   COMMON_ENTRY_STEMS,
   FRAMEWORK_ROUTE_ENTRY_STEMS,
   SOURCE_FILE_EXTENSIONS,
+  SUPPORT_ENTRY_PATTERNS,
   TEST_ENTRY_MARKERS,
   TYPESCRIPT_DECLARATION_EXTENSIONS,
 } from "./constants.js";
@@ -42,7 +43,10 @@ const isUnderDirectory = (filePath: string, directory: string): boolean => {
   return relativePath === "" || (!relativePath.startsWith("..") && !path.isAbsolute(relativePath));
 };
 
-const toConfiguredSourceMappedPath = (filePath: string, workspace: WorkspaceInfo): string | null => {
+const toConfiguredSourceMappedPath = (
+  filePath: string,
+  workspace: WorkspaceInfo,
+): string | null => {
   const sourceMap = [...workspace.sourceMaps]
     .sort((first, second) => second.outputDirectory.length - first.outputDirectory.length)
     .find((item) => isUnderDirectory(filePath, item.outputDirectory));
@@ -113,6 +117,9 @@ const isConventionalRuntimeEntry = (relativePath: string): boolean => {
 const isTestEntry = (relativePath: string): boolean =>
   TEST_ENTRY_MARKERS.some((marker) => relativePath.includes(marker));
 
+const isSupportEntry = (relativePath: string): boolean =>
+  matchesAnyGlob(relativePath, SUPPORT_ENTRY_PATTERNS);
+
 const hasGlobSyntax = (value: string): boolean => value.includes("*") || value.includes("{");
 
 const pushEntryPoint = (
@@ -177,6 +184,9 @@ export const discoverEntryPoints = (
       }
       if (isTestEntry(workspaceRelativePath)) {
         pushEntryPoint(entryPoints, file, "test", "test-pattern");
+      }
+      if (isSupportEntry(workspaceRelativePath)) {
+        pushEntryPoint(entryPoints, file, "support", "support-pattern");
       }
       if (pluginResult && matchesAnyGlob(workspaceRelativePath, pluginResult.alwaysUsedPatterns)) {
         pushEntryPoint(entryPoints, file, "support", "plugin-always-used");

@@ -18,6 +18,7 @@ export { findReturnedObject } from "./find-returned-object.js";
 export { truncateText } from "./truncate-text.js";
 export { getRawTextDescription } from "./get-raw-text-description.js";
 export { handlerMutatesIdentifier } from "./handler-mutates-identifier.js";
+export { isInsideWebPlatformBranch } from "./is-inside-web-platform-branch.js";
 export { isRawTextContent } from "./is-raw-text-content.js";
 export { isRenderItemJsxAttribute } from "./is-render-item-jsx-attribute.js";
 export { isRenderItemFunction } from "./is-render-item-function.js";

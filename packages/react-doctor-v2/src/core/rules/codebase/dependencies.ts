@@ -24,7 +24,7 @@ interface DependencyFinding {
   importRecord?: ImportRecord;
   dependencyBucket?: keyof DependencyBuckets;
   dependencyBuckets?: Array<keyof DependencyBuckets>;
-  sourceKind?: "import" | "manifest" | "script";
+  sourceKind?: "config" | "import" | "manifest" | "script";
 }
 
 interface UnresolvedImportFinding {
@@ -114,6 +114,7 @@ const getUsedPackages = (graph: ModuleGraph, workspace: WorkspaceInfo): Set<stri
       .map((usage) => usage.packageName),
     ...workspace.manifestDependencyNames,
     ...workspace.scriptDependencyNames,
+    ...workspace.typeScriptConfigDependencyNames,
     ...(graph.pluginResults.get(workspace.id)?.toolingDependencies ?? []),
   ]);
   addDefinitelyTypedCompanionPackages(workspace, usedPackages);
@@ -124,6 +125,7 @@ const getNonImportUsedPackages = (graph: ModuleGraph, workspace: WorkspaceInfo):
   new Set([
     ...workspace.manifestDependencyNames,
     ...workspace.scriptDependencyNames,
+    ...workspace.typeScriptConfigDependencyNames,
     ...(graph.pluginResults.get(workspace.id)?.toolingDependencies ?? []),
   ]);
 
@@ -217,10 +219,20 @@ const collectUnlistedScriptDependencies = (graph: ModuleGraph): DependencyFindin
       ),
   );
 
+const collectUnlistedTypeScriptConfigDependencies = (graph: ModuleGraph): DependencyFinding[] =>
+  graph.workspaces.flatMap((workspace) =>
+    [...workspace.typeScriptConfigDependencyNames]
+      .filter((packageName) => !hasDeclaredDependency(workspace, packageName))
+      .map((packageName) =>
+        createDependencyFinding(graph, workspace, packageName, undefined, "config"),
+      ),
+  );
+
 const collectUnlistedDependencies = (graph: ModuleGraph): DependencyFinding[] => [
   ...collectUnlistedImportDependencies(graph),
   ...collectUnlistedManifestDependencies(graph),
   ...collectUnlistedScriptDependencies(graph),
+  ...collectUnlistedTypeScriptConfigDependencies(graph),
 ];
 
 const collectUnusedDependencies = (
@@ -345,6 +357,9 @@ const getUnlistedDependencyMessage = (finding: DependencyFinding): string => {
   }
   if (finding.sourceKind === "manifest") {
     return `"${finding.packageName}" is referenced by package.json configuration but not listed in the workspace package.json.`;
+  }
+  if (finding.sourceKind === "config") {
+    return `"${finding.packageName}" is referenced by tsconfig.json but not listed in the workspace package.json.`;
   }
   return `"${finding.packageName}" is imported but not listed in the workspace package.json.`;
 };

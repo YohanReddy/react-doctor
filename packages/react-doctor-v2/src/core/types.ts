@@ -102,6 +102,7 @@ export interface ReactDoctorConfig {
   deadCode?: boolean;
   verbose?: boolean;
   diff?: boolean | string;
+  offline?: boolean;
   failOn?: ReactDoctorFailOnLevel;
   customRulesOnly?: boolean;
   rootDir?: string;
@@ -150,5 +151,6 @@ export interface InspectReactProjectOptions {
   deadCode?: boolean;
   customRulesOnly?: boolean;
   respectInlineDisables?: boolean;
+  offline?: boolean;
   signal?: AbortSignal;
 }

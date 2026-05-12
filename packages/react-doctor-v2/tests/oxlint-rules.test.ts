@@ -9,6 +9,9 @@ import {
   reactDoctorOxlintPlugin,
   reactDoctorOxlintRuleMetadata,
 } from "../src/sdk/index.js";
+import { findSideEffect } from "../src/core/rules/lint/utils/find-side-effect.js";
+import { isInsideWebPlatformBranch } from "../src/core/rules/lint/react-native/utils/index.js";
+import type { EsTreeNode } from "../src/core/rules/lint/utils/index.js";
 
 const toExpectedSeverity = (ruleName: string): "error" | "warning" | "info" => {
   const oxlintSeverity = REACT_DOCTOR_CUSTOM_OXLINT_RULES[`react-doctor/${ruleName}`] ?? "warn";
@@ -18,6 +21,82 @@ const toExpectedSeverity = (ruleName: string): "error" | "warning" | "info" => {
 };
 
 describe("oxlint rules", () => {
+  it("does not treat outbound response header mutations as GET side effects", () => {
+    const node: EsTreeNode = {
+      type: "CallExpression",
+      callee: {
+        type: "MemberExpression",
+        object: {
+          type: "MemberExpression",
+          object: { type: "Identifier", name: "response" },
+          property: { type: "Identifier", name: "headers" },
+        },
+        property: { type: "Identifier", name: "set" },
+      },
+    };
+
+    expect(findSideEffect(node)).toBeNull();
+  });
+
+  it("detects React Native web-only platform branches", () => {
+    const elementNode: EsTreeNode = { type: "JSXElement" };
+    const expressionNode: EsTreeNode = {
+      type: "ConditionalExpression",
+      test: {
+        type: "BinaryExpression",
+        operator: "===",
+        left: {
+          type: "MemberExpression",
+          object: { type: "Identifier", name: "Platform" },
+          property: { type: "Identifier", name: "OS" },
+        },
+        right: { type: "Literal", value: "web" },
+      },
+      consequent: elementNode,
+      alternate: { type: "Literal", value: null },
+    };
+    elementNode.parent = expressionNode;
+
+    expect(isInsideWebPlatformBranch(elementNode)).toBe(true);
+  });
+
+  it("does not flag lazy iterator helper chains as duplicate array passes", () => {
+    const reports: EsTreeNode[] = [];
+    const visitors = reactDoctorOxlintPlugin.rules["js-combine-iterations"].create({
+      report: ({ node }) => reports.push(node),
+    });
+    const valuesCall: EsTreeNode = {
+      type: "CallExpression",
+      callee: {
+        type: "MemberExpression",
+        object: { type: "Identifier", name: "numbers" },
+        property: { type: "Identifier", name: "values" },
+      },
+    };
+    const filterCall: EsTreeNode = {
+      type: "CallExpression",
+      callee: {
+        type: "MemberExpression",
+        object: valuesCall,
+        property: { type: "Identifier", name: "filter" },
+      },
+      arguments: [],
+    };
+    const mapCall: EsTreeNode = {
+      type: "CallExpression",
+      callee: {
+        type: "MemberExpression",
+        object: filterCall,
+        property: { type: "Identifier", name: "map" },
+      },
+      arguments: [],
+    };
+
+    visitors.CallExpression?.(mapCall);
+
+    expect(reports).toEqual([]);
+  });
+
   it("exports metadata for every custom oxlint plugin rule", () => {
     const pluginRuleNames = Object.keys(reactDoctorOxlintPlugin.rules).sort();
 
@@ -72,11 +151,13 @@ describe("oxlint rules", () => {
     expect(config.rules).toMatchObject({
       ...BUILTIN_REACT_OXLINT_RULES,
       ...BUILTIN_A11Y_OXLINT_RULES,
+      "react/exhaustive-deps": "warn",
       "react-doctor/nextjs-no-img-element": "warn",
       "react-doctor/effect-no-derived-state": "warn",
       "react-doctor/effect-no-initialize-state": "warn",
       "react-doctor/query-no-unstable-query-key": "error",
     });
+    expect(config.rules["react-doctor/design-no-three-period-ellipsis"]).toBeUndefined();
   });
 
   it("supports custom-rule-only oxlint configs", () => {

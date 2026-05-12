@@ -154,6 +154,7 @@ const validateConfig = (value: unknown, sourcePath: string): ReactDoctorConfig =
     deadCode: assertBoolean(value.deadCode, "deadCode", context),
     verbose: assertBoolean(value.verbose, "verbose", context),
     diff: assertDiff(value.diff, context),
+    offline: assertBoolean(value.offline, "offline", context),
     failOn: assertFailOnLevel(value.failOn, context),
     customRulesOnly: assertBoolean(value.customRulesOnly, "customRulesOnly", context),
     rootDir: assertString(value.rootDir, "rootDir", context),

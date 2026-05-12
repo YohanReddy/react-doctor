@@ -37,6 +37,7 @@ const createGraphNode = (
         references: [],
         isPluginUsed: false,
         isReferencedByNamespace: false,
+        referencedMemberNames: new Set(),
       },
     ]),
   ),
@@ -45,6 +46,8 @@ const createGraphNode = (
   usedIdentifiers: resolvedModule.module.usedIdentifiers,
   namespaceMemberReferences: resolvedModule.module.namespaceMemberReferences,
   namespaceObjectAliases: resolvedModule.module.namespaceObjectAliases,
+  namespaceLocalAliases: resolvedModule.module.namespaceLocalAliases,
+  namespaceLocalObjectAliases: resolvedModule.module.namespaceLocalObjectAliases,
   entryRoles: new Set(
     entryPoints
       .filter((entryPoint) => entryPoint.fileId === resolvedModule.module.file.id)
@@ -134,6 +137,35 @@ const addExportReference = (
   return true;
 };
 
+const addExportMemberReferences = (
+  exportSymbol: GraphExportSymbol,
+  memberNames: Iterable<string>,
+): void => {
+  for (const memberName of memberNames) {
+    if (exportSymbol.members.some((member) => member.name === memberName)) {
+      exportSymbol.referencedMemberNames.add(memberName);
+    }
+  }
+};
+
+const getMemberReferencesForLocalName = (node: ModuleGraphNode, localName: string): string[] =>
+  node.namespaceMemberReferences
+    .filter((reference) => reference.namespace === localName && reference.memberPath.length >= 1)
+    .map((reference) => reference.memberPath[0])
+    .filter((memberName): memberName is string => Boolean(memberName));
+
+const getNamespaceMemberReferencesForLocalName = (node: ModuleGraphNode, localName: string) => [
+  ...node.namespaceMemberReferences.filter((reference) => reference.namespace === localName),
+  ...node.namespaceLocalAliases
+    .filter(
+      (alias) =>
+        alias.namespaceLocalName === localName && node.usedIdentifiers.has(alias.aliasName),
+    )
+    .flatMap((alias) =>
+      node.namespaceMemberReferences.filter((reference) => reference.namespace === alias.aliasName),
+    ),
+];
+
 const addImportReferences = (nodes: Map<number, ModuleGraphNode>): void => {
   const pathToNode = createPathToNodeMap(nodes);
   for (const node of nodes.values()) {
@@ -153,16 +185,26 @@ const addImportReferences = (nodes: Map<number, ModuleGraphNode>): void => {
           continue;
         }
         if (binding.isNamespace) {
+          const namespaceReferences = getNamespaceMemberReferencesForLocalName(
+            node,
+            binding.localName,
+          );
           const referencedMemberNames = new Set(
-            node.namespaceMemberReferences
-              .filter((reference) => reference.namespace === binding.localName)
-              .map((reference) => reference.memberName),
+            namespaceReferences
+              .map((reference) => reference.memberPath[0])
+              .filter((memberName): memberName is string => Boolean(memberName)),
           );
           if (
             referencedMemberNames.size === 0 &&
-            node.namespaceObjectAliases.some(
+            (node.namespaceObjectAliases.some(
               (alias) => alias.namespaceLocalName === binding.localName,
-            )
+            ) ||
+              node.namespaceLocalAliases.some(
+                (alias) => alias.namespaceLocalName === binding.localName,
+              ) ||
+              node.namespaceLocalObjectAliases.some(
+                (alias) => alias.namespaceLocalName === binding.localName,
+              ))
           ) {
             continue;
           }
@@ -175,6 +217,13 @@ const addImportReferences = (nodes: Map<number, ModuleGraphNode>): void => {
               : [...targetNode.exports.values()];
           for (const exportSymbol of referencedExportSymbols) {
             exportSymbol.isReferencedByNamespace = true;
+            addExportMemberReferences(
+              exportSymbol,
+              namespaceReferences
+                .filter((reference) => reference.memberPath[0] === exportSymbol.exportedName)
+                .map((reference) => reference.memberPath[1])
+                .filter((memberName): memberName is string => Boolean(memberName)),
+            );
             addExportReference(exportSymbol, {
               fromFileId: node.file.id,
               kind: referencedMemberNames.size > 0 ? "namespace-member" : "namespace",
@@ -185,12 +234,64 @@ const addImportReferences = (nodes: Map<number, ModuleGraphNode>): void => {
         }
         const exportSymbol = findExportSymbol(targetNode, binding.importedName);
         if (exportSymbol && node.file.id !== targetNode.file.id) {
+          addExportMemberReferences(
+            exportSymbol,
+            getMemberReferencesForLocalName(node, binding.localName),
+          );
           addExportReference(exportSymbol, {
             fromFileId: node.file.id,
             kind: binding.importedName === "default" ? "default" : "named",
             importRecord: resolvedImport.importRecord,
           });
         }
+      }
+    }
+  }
+};
+
+const addLocalExportMemberReferences = (nodes: Map<number, ModuleGraphNode>): void => {
+  for (const node of nodes.values()) {
+    for (const exportSymbol of node.exports.values()) {
+      const localName = exportSymbol.localName ?? exportSymbol.exportedName;
+      addExportMemberReferences(exportSymbol, getMemberReferencesForLocalName(node, localName));
+    }
+  }
+};
+
+const propagateNamespaceLocalObjectAliases = (nodes: Map<number, ModuleGraphNode>): void => {
+  const pathToNode = createPathToNodeMap(nodes);
+  for (const node of nodes.values()) {
+    if (node.namespaceLocalObjectAliases.length === 0) continue;
+    for (const memberReference of node.namespaceMemberReferences.filter(
+      (reference) => !isPrefixMemberReference(reference, node.namespaceMemberReferences),
+    )) {
+      const alias = node.namespaceLocalObjectAliases.find(
+        (item) =>
+          item.objectLocalName === memberReference.namespace &&
+          item.propertyName === memberReference.memberPath[0],
+      );
+      if (!alias) continue;
+      const namespaceTargetNode = findNamespaceImportTarget(
+        node,
+        pathToNode,
+        alias.namespaceLocalName,
+      );
+      if (!namespaceTargetNode) continue;
+      const targetMemberPath = memberReference.memberPath.slice(1);
+      if (targetMemberPath.length === 0) {
+        const importRecord = findNamespaceImportRecord(node, alias.namespaceLocalName);
+        if (importRecord)
+          addNamespaceObjectReference(namespaceTargetNode, node.file.id, importRecord);
+        continue;
+      }
+      const importRecord = findNamespaceImportRecord(node, alias.namespaceLocalName);
+      if (importRecord) {
+        addNamespaceMemberPathReference(
+          namespaceTargetNode,
+          targetMemberPath,
+          node.file.id,
+          importRecord,
+        );
       }
     }
   }
@@ -214,20 +315,51 @@ const findNamespaceImportTarget = (
   return null;
 };
 
+const findNamespaceImportRecord = (
+  node: ModuleGraphNode,
+  namespaceLocalName: string,
+): ResolvedImport["importRecord"] | null => {
+  const resolvedImport = node.imports.find((item) =>
+    item.importRecord.bindings.some(
+      (binding) => binding.isNamespace && binding.localName === namespaceLocalName,
+    ),
+  );
+  return resolvedImport?.importRecord ?? null;
+};
+
 const addNamespaceMemberReference = (
   targetNode: ModuleGraphNode,
-  memberName: string,
+  exportName: string,
   fromFileId: number,
   importRecord: ResolvedImport["importRecord"],
+  exportedMemberNames: Iterable<string> = [],
 ): void => {
-  const exportSymbol = targetNode.exports.get(memberName);
+  const exportSymbol = targetNode.exports.get(exportName);
   if (!exportSymbol) return;
   exportSymbol.isReferencedByNamespace = true;
+  addExportMemberReferences(exportSymbol, exportedMemberNames);
   addExportReference(exportSymbol, {
     fromFileId,
     kind: "namespace-member",
     importRecord,
   });
+};
+
+const addNamespaceMemberPathReference = (
+  targetNode: ModuleGraphNode,
+  memberPath: string[],
+  fromFileId: number,
+  importRecord: ResolvedImport["importRecord"],
+): void => {
+  const exportName = memberPath[0];
+  if (!exportName) return;
+  addNamespaceMemberReference(
+    targetNode,
+    exportName,
+    fromFileId,
+    importRecord,
+    memberPath.slice(1),
+  );
 };
 
 const addNamespaceObjectReference = (
@@ -315,15 +447,12 @@ const propagateNamespaceObjectAliases = (nodes: Map<number, ModuleGraphNode>): v
             );
             continue;
           }
-          const referencedExportName = targetMemberPath.at(-1);
-          if (referencedExportName) {
-            addNamespaceMemberReference(
-              namespaceTargetNode,
-              referencedExportName,
-              consumerNode.file.id,
-              resolvedImport.importRecord,
-            );
-          }
+          addNamespaceMemberPathReference(
+            namespaceTargetNode,
+            targetMemberPath,
+            consumerNode.file.id,
+            resolvedImport.importRecord,
+          );
         }
       }
     }
@@ -332,7 +461,7 @@ const propagateNamespaceObjectAliases = (nodes: Map<number, ModuleGraphNode>): v
 
 interface NamespaceReExportReference {
   kind: "member" | "namespace";
-  memberName?: string;
+  memberPath?: string[];
   importRecord: ResolvedImport["importRecord"];
 }
 
@@ -371,13 +500,11 @@ const collectNamespaceReExportReferences = (
         for (const reference of standaloneExportReferences.filter(
           (item) => item.memberPath.length >= 2,
         )) {
-          const memberName = reference.memberPath.at(-1);
-          if (memberName)
-            references.push({
-              kind: "member",
-              memberName,
-              importRecord: resolvedImport.importRecord,
-            });
+          references.push({
+            kind: "member",
+            memberPath: reference.memberPath.slice(1),
+            importRecord: resolvedImport.importRecord,
+          });
         }
         continue;
       }
@@ -389,14 +516,14 @@ const collectNamespaceReExportReferences = (
         references.push({ kind: "namespace", importRecord: resolvedImport.importRecord });
         continue;
       }
-      for (const reference of bindingReferences) {
-        const memberName = reference.memberPath.at(-1);
-        if (memberName)
-          references.push({
-            kind: "member",
-            memberName,
-            importRecord: resolvedImport.importRecord,
-          });
+      for (const reference of bindingReferences.filter(
+        (item) => !isPrefixMemberReference(item, bindingReferences),
+      )) {
+        references.push({
+          kind: "member",
+          memberPath: reference.memberPath,
+          importRecord: resolvedImport.importRecord,
+        });
       }
     }
   }
@@ -495,10 +622,10 @@ const propagateNamespaceReExportReferences = (nodes: Map<number, ModuleGraphNode
               addNamespaceObjectReference(sourceNode, consumerNode.file.id, reference.importRecord);
               continue;
             }
-            if (reference.memberName) {
-              addNamespaceMemberReference(
+            if (reference.memberPath) {
+              addNamespaceMemberPathReference(
                 sourceNode,
-                reference.memberName,
+                reference.memberPath,
                 consumerNode.file.id,
                 reference.importRecord,
               );
@@ -781,6 +908,8 @@ export const buildModuleGraph = (
   connectReverseImports(nodes);
   markReachableFiles(nodes, entryPoints);
   addImportReferences(nodes);
+  addLocalExportMemberReferences(nodes);
+  propagateNamespaceLocalObjectAliases(nodes);
   propagateNamespaceObjectAliases(nodes);
   propagateNamespaceReExportReferences(nodes);
   propagateReExportReferences(nodes);

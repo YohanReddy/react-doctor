@@ -12,6 +12,8 @@ import type {
   ExportRecord,
   ImportedBinding,
   ImportRecord,
+  NamespaceLocalAlias,
+  NamespaceLocalObjectAlias,
   NamespaceMemberReference,
   NamespaceObjectAlias,
   ProjectFile,
@@ -609,6 +611,93 @@ const collectObjectNamespaceAliases = (node: EsTreeNode): NamespaceObjectAlias[]
   });
 };
 
+const collectNamespaceLocalAliases = (node: EsTreeNode): NamespaceLocalAlias[] => {
+  if (
+    node.type !== "VariableDeclarator" ||
+    !isIdentifierWithName(node.id) ||
+    !isAstNode(node.init)
+  ) {
+    return [];
+  }
+  if (isIdentifierWithName(node.init)) {
+    return [{ aliasName: node.id.name, namespaceLocalName: node.init.name }];
+  }
+  if (
+    node.init.type === "ConditionalExpression" &&
+    isIdentifierWithName(node.init.consequent) &&
+    isIdentifierWithName(node.init.alternate)
+  ) {
+    return [
+      { aliasName: node.id.name, namespaceLocalName: node.init.consequent.name },
+      { aliasName: node.id.name, namespaceLocalName: node.init.alternate.name },
+    ];
+  }
+  if (node.init.type === "ObjectExpression" && Array.isArray(node.init.properties)) {
+    return node.init.properties.flatMap((property) => {
+      if (
+        !isAstNode(property) ||
+        property.type !== "SpreadElement" ||
+        !isIdentifierWithName(property.argument)
+      ) {
+        return [];
+      }
+      return [{ aliasName: node.id.name, namespaceLocalName: property.argument.name }];
+    });
+  }
+  return [];
+};
+
+const collectNamespaceLocalObjectAliases = (node: EsTreeNode): NamespaceLocalObjectAlias[] => {
+  if (
+    node.type !== "VariableDeclarator" ||
+    !isIdentifierWithName(node.id) ||
+    !isAstNode(node.init) ||
+    node.init.type !== "ObjectExpression" ||
+    !Array.isArray(node.init.properties)
+  ) {
+    return [];
+  }
+  return node.init.properties.flatMap((property) => {
+    if (!isAstNode(property) || property.type !== "Property") return [];
+    const propertyName = toPropertyName(property.key);
+    const value = isAstNode(property.value) ? property.value : property.key;
+    if (!propertyName || !isIdentifierWithName(value)) return [];
+    return [
+      {
+        objectLocalName: node.id.name,
+        propertyName,
+        namespaceLocalName: value.name,
+      },
+    ];
+  });
+};
+
+const collectDestructuredNamespaceReferences = (node: EsTreeNode): NamespaceMemberReference[] => {
+  if (
+    node.type !== "VariableDeclarator" ||
+    !isAstNode(node.id) ||
+    node.id.type !== "ObjectPattern" ||
+    !isAstNode(node.init) ||
+    !Array.isArray(node.id.properties)
+  ) {
+    return [];
+  }
+  const initPath = toMemberExpressionPath(node.init);
+  if (!initPath) return [];
+  return node.id.properties.flatMap((property) => {
+    if (!isAstNode(property) || property.type !== "Property") return [];
+    const propertyName = toPropertyName(property.key);
+    if (!propertyName) return [];
+    return [
+      {
+        namespace: initPath.namespace,
+        memberName: propertyName,
+        memberPath: [...initPath.memberPath, propertyName],
+      },
+    ];
+  });
+};
+
 const collectAstFacts = (
   file: ProjectFile,
   program: EsTreeNode,
@@ -617,6 +706,8 @@ const collectAstFacts = (
   usedIdentifiers: Set<string>;
   namespaceMemberReferences: NamespaceMemberReference[];
   namespaceObjectAliases: NamespaceObjectAlias[];
+  namespaceLocalAliases: NamespaceLocalAlias[];
+  namespaceLocalObjectAliases: NamespaceLocalObjectAlias[];
   cjsExportNames: Set<string>;
   membersByExportName: Map<string, ExportMemberRecord[]>;
 } => {
@@ -624,6 +715,8 @@ const collectAstFacts = (
   const usedIdentifiers = new Set<string>();
   const namespaceMemberReferences: NamespaceMemberReference[] = [];
   const namespaceObjectAliases: NamespaceObjectAlias[] = [];
+  const namespaceLocalAliases: NamespaceLocalAlias[] = [];
+  const namespaceLocalObjectAliases: NamespaceLocalObjectAlias[] = [];
   const cjsExportNames = new Set<string>();
   const membersByExportName = new Map<string, ExportMemberRecord[]>();
 
@@ -710,6 +803,9 @@ const collectAstFacts = (
 
     if (node.type === "VariableDeclarator") {
       namespaceObjectAliases.push(...collectObjectNamespaceAliases(node));
+      namespaceLocalAliases.push(...collectNamespaceLocalAliases(node));
+      namespaceLocalObjectAliases.push(...collectNamespaceLocalObjectAliases(node));
+      namespaceMemberReferences.push(...collectDestructuredNamespaceReferences(node));
     }
 
     if (node.type === "MemberExpression" && isAstNode(node.object) && isAstNode(node.property)) {
@@ -743,9 +839,15 @@ const collectAstFacts = (
       typeof node.id.name === "string"
     ) {
       const members: ExportMemberRecord[] = [];
-      if (Array.isArray(node.members)) {
-        for (const member of node.members) {
+      const rawMembers =
+        node.type === "TSEnumDeclaration" && isAstNode(node.body) && Array.isArray(node.body.members)
+          ? node.body.members
+          : node.type === "ClassDeclaration" && isAstNode(node.body) && Array.isArray(node.body.body)
+            ? node.body.body
+            : [];
+      for (const member of rawMembers) {
           if (!isAstNode(member)) continue;
+          if (node.type === "ClassDeclaration" && member.static !== true) continue;
           const key = isAstNode(member.id) ? member.id : isAstNode(member.key) ? member.key : null;
           const name = key && typeof key.name === "string" ? key.name : getStringLiteralValue(key);
           if (name) {
@@ -759,7 +861,6 @@ const collectAstFacts = (
               hasLocalReferences: false,
             });
           }
-        }
       }
       membersByExportName.set(node.id.name, members);
     }
@@ -770,6 +871,8 @@ const collectAstFacts = (
     usedIdentifiers,
     namespaceMemberReferences,
     namespaceObjectAliases,
+    namespaceLocalAliases,
+    namespaceLocalObjectAliases,
     cjsExportNames,
     membersByExportName,
   };
@@ -846,6 +949,8 @@ export const extractModule = (file: ProjectFile): CodebaseModule => {
     usedIdentifiers: astFacts.usedIdentifiers,
     namespaceMemberReferences: astFacts.namespaceMemberReferences,
     namespaceObjectAliases: astFacts.namespaceObjectAliases,
+    namespaceLocalAliases: astFacts.namespaceLocalAliases,
+    namespaceLocalObjectAliases: astFacts.namespaceLocalObjectAliases,
     cjsExportNames: astFacts.cjsExportNames,
     parseErrors: parseResult.errors.map((error) => error.message),
   };
