@@ -424,12 +424,14 @@ export interface RuleMetadataEntry {
 
 const EMPTY_TAGS: ReadonlySet<string> = new Set();
 const DESIGN_TAGS: ReadonlySet<string> = new Set(["design"]);
+const TEST_NOISE_TAGS: ReadonlySet<string> = new Set(["test-noise"]);
+const DESIGN_AND_TEST_NOISE_TAGS: ReadonlySet<string> = new Set(["design", "test-noise"]);
 
 export const RULE_METADATA: ReadonlyMap<string, RuleMetadataEntry> = new Map([
-  ["react-doctor/no-react19-deprecated-apis", { requires: ["react:19"], tags: EMPTY_TAGS }],
-  ["react-doctor/no-default-props", { requires: ["react:19"], tags: EMPTY_TAGS }],
-  ["react-doctor/no-react-dom-deprecated-apis", { requires: ["react:18"], tags: EMPTY_TAGS }],
-  ["react-doctor/prefer-use-effect-event", { requires: ["react:19"], tags: EMPTY_TAGS }],
+  ["react-doctor/no-react19-deprecated-apis", { requires: ["react:19"], tags: TEST_NOISE_TAGS }],
+  ["react-doctor/no-default-props", { requires: ["react:19"], tags: TEST_NOISE_TAGS }],
+  ["react-doctor/no-react-dom-deprecated-apis", { requires: ["react:18"], tags: TEST_NOISE_TAGS }],
+  ["react-doctor/prefer-use-effect-event", { requires: ["react:19"], tags: TEST_NOISE_TAGS }],
 
   ["react-doctor/nextjs-no-img-element", { requires: ["nextjs"], tags: EMPTY_TAGS }],
   ["react-doctor/nextjs-async-client-component", { requires: ["nextjs"], tags: EMPTY_TAGS }],
@@ -567,17 +569,20 @@ export const RULE_METADATA: ReadonlyMap<string, RuleMetadataEntry> = new Map([
     { requires: ["tanstack-query"], tags: EMPTY_TAGS },
   ],
 
-  ["react-doctor/design-no-bold-heading", { tags: DESIGN_TAGS }],
-  ["react-doctor/design-no-redundant-padding-axes", { tags: DESIGN_TAGS }],
-  ["react-doctor/design-no-redundant-size-axes", { requires: ["tailwind:3.4"], tags: DESIGN_TAGS }],
-  ["react-doctor/design-no-space-on-flex-children", { tags: DESIGN_TAGS }],
-  ["react-doctor/design-no-three-period-ellipsis", { tags: DESIGN_TAGS }],
-  ["react-doctor/design-no-default-tailwind-palette", { tags: DESIGN_TAGS }],
-  ["react-doctor/design-no-vague-button-label", { tags: DESIGN_TAGS }],
-  ["react-doctor/no-side-tab-border", { tags: DESIGN_TAGS }],
-  ["react-doctor/no-pure-black-background", { tags: DESIGN_TAGS }],
-  ["react-doctor/no-gradient-text", { tags: DESIGN_TAGS }],
-  ["react-doctor/no-dark-mode-glow", { tags: DESIGN_TAGS }],
+  ["react-doctor/design-no-bold-heading", { tags: DESIGN_AND_TEST_NOISE_TAGS }],
+  ["react-doctor/design-no-redundant-padding-axes", { tags: DESIGN_AND_TEST_NOISE_TAGS }],
+  [
+    "react-doctor/design-no-redundant-size-axes",
+    { requires: ["tailwind:3.4"], tags: DESIGN_AND_TEST_NOISE_TAGS },
+  ],
+  ["react-doctor/design-no-space-on-flex-children", { tags: DESIGN_AND_TEST_NOISE_TAGS }],
+  ["react-doctor/design-no-three-period-ellipsis", { tags: DESIGN_AND_TEST_NOISE_TAGS }],
+  ["react-doctor/design-no-default-tailwind-palette", { tags: DESIGN_AND_TEST_NOISE_TAGS }],
+  ["react-doctor/design-no-vague-button-label", { tags: DESIGN_AND_TEST_NOISE_TAGS }],
+  ["react-doctor/no-side-tab-border", { tags: DESIGN_AND_TEST_NOISE_TAGS }],
+  ["react-doctor/no-pure-black-background", { tags: DESIGN_AND_TEST_NOISE_TAGS }],
+  ["react-doctor/no-gradient-text", { tags: DESIGN_AND_TEST_NOISE_TAGS }],
+  ["react-doctor/no-dark-mode-glow", { tags: DESIGN_AND_TEST_NOISE_TAGS }],
 ]);
 
 export const buildCapabilities = (project: ProjectInfo): ReadonlySet<string> => {
