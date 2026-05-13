@@ -1,7 +1,10 @@
+export { buildProgramBindingLookup } from "./build-program-binding-lookup.js";
+export { collectChainedGetHandlerBodies } from "./collect-chained-get-handler-bodies.js";
 export { describeClientSideNavigation } from "./describe-client-side-navigation.js";
 export { extractMutatingRouteSegment } from "./extract-mutating-route-segment.js";
 export { fileMentionsSuspense } from "./file-mentions-suspense.js";
-export { getExportedGetHandlerBody } from "./get-exported-get-handler-body.js";
+export { isExportedGetHandler } from "./is-exported-get-handler.js";
+export { resolveGetHandlerBodies } from "./resolve-get-handler-bodies.js";
 export {
   APP_DIRECTORY_PATTERN,
   EFFECT_HOOK_NAMES,

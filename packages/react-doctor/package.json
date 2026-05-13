@@ -71,6 +71,7 @@
     "agent-install": "0.0.5",
     "commander": "^14.0.3",
     "eslint-plugin-react-hooks": "^7.1.1",
+    "ora": "^9.4.0",
     "oxc-parser": "^0.130.0",
     "oxc-resolver": "^11.19.1",
     "oxlint": "^1.63.0",

@@ -12,7 +12,6 @@ import {
   FILESYSTEM_WALK_IGNORED_DIRECTORIES,
   MAX_CATEGORY_GROUPS_SHOWN_NON_VERBOSE,
   MAX_RULE_GROUPS_PER_CATEGORY_NON_VERBOSE,
-  MILLISECONDS_PER_SECOND,
   REACT_PROJECT_DEPENDENCIES,
   SEVERITY_ORDER,
   SHARE_BASE_URL,
@@ -26,6 +25,8 @@ import type { DiscoveredProject } from "./select-projects.js";
 import { getStagedSourceFiles, materializeStagedFiles } from "./get-staged-files.js";
 import { getDiffInfo, filterSourceFiles, type DiffInfo } from "./get-diff-files.js";
 import { prompts } from "./prompts.js";
+import { createProgressSpinner } from "./utils/create-progress-spinner.js";
+import { formatElapsedTime } from "./utils/format-elapsed-time.js";
 import {
   buildReactDoctorJsonReport,
   createReactDoctor,
@@ -355,13 +356,6 @@ const printAnnotations = (issues: ReactDoctorIssue[], routeToStderr: boolean): v
     const message = encodeAnnotationMessage(issue.message);
     writeLine(`::${level} ${fileSegment}${lineSegment}${titleSegment}::${message}`);
   }
-};
-
-const formatElapsedTime = (elapsedMilliseconds: number): string => {
-  if (elapsedMilliseconds < MILLISECONDS_PER_SECOND) {
-    return `${Math.round(elapsedMilliseconds)}ms`;
-  }
-  return `${(elapsedMilliseconds / MILLISECONDS_PER_SECOND).toFixed(1)}s`;
 };
 
 const formatFrameworkName = (framework: string): string => {
@@ -1248,10 +1242,10 @@ const program = new Command()
           return;
         }
 
-        if (!isQuiet) {
-          console.log(`Scanning ${highlighter.info(`${stagedFiles.length}`)} staged files...`);
-          console.log("");
-        }
+        const stagedFileLabel = `${stagedFiles.length} staged ${stagedFiles.length === 1 ? "file" : "files"}`;
+        const stagedSpinner = !isQuiet
+          ? createProgressSpinner(`Analyzing ${highlighter.info(stagedFileLabel)}`)
+          : null;
 
         let tempDirectory: string | null = null;
         let cleanupSnapshot: (() => void) | null = null;
@@ -1290,6 +1284,8 @@ const program = new Command()
             config,
           });
 
+          stagedSpinner?.stop();
+
           const remappedResult: ReactDoctorResult = {
             ...result,
             project: { ...result.project, rootDirectory },
@@ -1317,6 +1313,7 @@ const program = new Command()
             process.exitCode = EXIT_FAILURE_CODE;
           }
         } finally {
+          stagedSpinner?.stop();
           cleanupSnapshot?.();
         }
         return;
@@ -1388,14 +1385,31 @@ const program = new Command()
         config,
       };
 
-      const results = await Promise.all(
-        projectDirectories.map((projectDirectory) =>
-          createReactDoctor({
-            rootDirectory: projectDirectory,
-            includePaths: shouldSkipSourceChecks ? undefined : includePaths,
-          }).inspect(inspectOptions),
-        ),
-      );
+      const selectedProjectNames = projectDirectories.map((projectDirectory) => {
+        const matchedProject = discoveredProjects.find(
+          (project) => project.directory === projectDirectory,
+        );
+        return matchedProject?.name ?? path.basename(projectDirectory);
+      });
+      const scanSpinnerLabel =
+        selectedProjectNames.length === 1
+          ? `Analyzing ${highlighter.info(selectedProjectNames[0])}`
+          : `Analyzing ${highlighter.info(`${selectedProjectNames.length} projects`)}`;
+      const scanSpinner = !isQuiet ? createProgressSpinner(scanSpinnerLabel) : null;
+
+      let results: ReactDoctorResult[];
+      try {
+        results = await Promise.all(
+          projectDirectories.map((projectDirectory) =>
+            createReactDoctor({
+              rootDirectory: projectDirectory,
+              includePaths: shouldSkipSourceChecks ? undefined : includePaths,
+            }).inspect(inspectOptions),
+          ),
+        );
+      } finally {
+        scanSpinner?.stop();
+      }
 
       const allIssues = results.flatMap((result) => result.issues);
 

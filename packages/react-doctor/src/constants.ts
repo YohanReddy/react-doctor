@@ -16,6 +16,7 @@ export const PER_RULE_LOG_AMPLIFICATION_CAP = 4;
 export const SCORE_API_URL = "https://www.react.doctor/api/score";
 export const FETCH_TIMEOUT_MS = 10_000;
 export const MILLISECONDS_PER_SECOND = 1000;
+export const SPINNER_FRAME_INTERVAL_MS = 80;
 export const MAX_CATEGORY_GROUPS_SHOWN_NON_VERBOSE = 3;
 export const MAX_RULE_GROUPS_PER_CATEGORY_NON_VERBOSE = 3;
 export const DEFAULT_BRANCH_CANDIDATES = ["main", "master"];

@@ -61,6 +61,172 @@ describe("oxlint rules", () => {
     expect(isInsideWebPlatformBranch(elementNode)).toBe(true);
   });
 
+  it("flags Hono-style GET adapter exports on mutating route segments", () => {
+    const reports: { node: EsTreeNode; message: string }[] = [];
+    const visitors = reactDoctorOxlintPlugin.rules["nextjs-no-side-effect-in-get-handler"].create({
+      report: (descriptor) => reports.push(descriptor),
+      getFilename: () => "app/api/logout/route.ts",
+    });
+
+    const getExport: EsTreeNode = {
+      type: "ExportNamedDeclaration",
+      declaration: {
+        type: "VariableDeclaration",
+        declarations: [
+          {
+            type: "VariableDeclarator",
+            id: { type: "Identifier", name: "GET" },
+            init: {
+              type: "CallExpression",
+              callee: { type: "Identifier", name: "handle" },
+              arguments: [{ type: "Identifier", name: "app" }],
+            },
+          },
+        ],
+      },
+    };
+    const program: EsTreeNode = { type: "Program", body: [getExport] };
+
+    visitors.Program?.(program);
+    visitors.ExportNamedDeclaration?.(getExport);
+
+    expect(reports).toHaveLength(1);
+    expect(reports[0].message).toContain('"/logout"');
+  });
+
+  it("detects side effects through Hono-style chained router adapters", () => {
+    const reports: { node: EsTreeNode; message: string }[] = [];
+    const visitors = reactDoctorOxlintPlugin.rules["nextjs-no-side-effect-in-get-handler"].create({
+      report: (descriptor) => reports.push(descriptor),
+      getFilename: () => "app/api/repositories/route.ts",
+    });
+
+    const handlerBody: EsTreeNode = {
+      type: "BlockStatement",
+      body: [
+        {
+          type: "ExpressionStatement",
+          expression: {
+            type: "AwaitExpression",
+            argument: {
+              type: "CallExpression",
+              callee: {
+                type: "MemberExpression",
+                object: { type: "Identifier", name: "db" },
+                property: { type: "Identifier", name: "create" },
+              },
+              arguments: [],
+            },
+          },
+        },
+      ],
+    };
+    const routerInit: EsTreeNode = {
+      type: "CallExpression",
+      callee: {
+        type: "MemberExpression",
+        object: {
+          type: "NewExpression",
+          callee: { type: "Identifier", name: "Hono" },
+          arguments: [],
+        },
+        property: { type: "Identifier", name: "get" },
+      },
+      arguments: [
+        { type: "Literal", value: "/" },
+        {
+          type: "ArrowFunctionExpression",
+          params: [{ type: "Identifier", name: "ctx" }],
+          body: handlerBody,
+        },
+      ],
+    };
+    const appDeclaration: EsTreeNode = {
+      type: "VariableDeclaration",
+      declarations: [
+        {
+          type: "VariableDeclarator",
+          id: { type: "Identifier", name: "app" },
+          init: routerInit,
+        },
+      ],
+    };
+    const getExport: EsTreeNode = {
+      type: "ExportNamedDeclaration",
+      declaration: {
+        type: "VariableDeclaration",
+        declarations: [
+          {
+            type: "VariableDeclarator",
+            id: { type: "Identifier", name: "GET" },
+            init: {
+              type: "CallExpression",
+              callee: { type: "Identifier", name: "handle" },
+              arguments: [{ type: "Identifier", name: "app" }],
+            },
+          },
+        ],
+      },
+    };
+    const program: EsTreeNode = { type: "Program", body: [appDeclaration, getExport] };
+
+    visitors.Program?.(program);
+    visitors.ExportNamedDeclaration?.(getExport);
+
+    expect(reports).toHaveLength(1);
+    expect(reports[0].message).toContain("db.create()");
+  });
+
+  it("does not flag chained `.get(key)` calls that are not route definitions", () => {
+    const reports: { node: EsTreeNode; message: string }[] = [];
+    const visitors = reactDoctorOxlintPlugin.rules["nextjs-no-side-effect-in-get-handler"].create({
+      report: (descriptor) => reports.push(descriptor),
+      getFilename: () => "app/api/things/route.ts",
+    });
+
+    const mapBinding: EsTreeNode = {
+      type: "VariableDeclaration",
+      declarations: [
+        {
+          type: "VariableDeclarator",
+          id: { type: "Identifier", name: "lookupHandler" },
+          init: {
+            type: "CallExpression",
+            callee: {
+              type: "MemberExpression",
+              object: { type: "Identifier", name: "registry" },
+              property: { type: "Identifier", name: "get" },
+            },
+            arguments: [{ type: "Literal", value: "things" }],
+          },
+        },
+      ],
+    };
+    const getExport: EsTreeNode = {
+      type: "ExportNamedDeclaration",
+      declaration: {
+        type: "VariableDeclaration",
+        declarations: [
+          {
+            type: "VariableDeclarator",
+            id: { type: "Identifier", name: "GET" },
+            init: {
+              type: "CallExpression",
+              callee: { type: "Identifier", name: "handle" },
+              arguments: [{ type: "Identifier", name: "lookupHandler" }],
+            },
+          },
+        ],
+      },
+    };
+    const program: EsTreeNode = { type: "Program", body: [mapBinding, getExport] };
+
+    visitors.Program?.(program);
+    visitors.ExportNamedDeclaration?.(getExport);
+
+    expect(reports).toEqual([]);
+  });
+
   it("does not flag lazy iterator helper chains as duplicate array passes", () => {
     const reports: EsTreeNode[] = [];
     const visitors = reactDoctorOxlintPlugin.rules["js-combine-iterations"].create({
