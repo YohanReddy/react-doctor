@@ -18,13 +18,12 @@ import type {
 import { buildJsonReport } from "./core/build-json-report.js";
 import { buildJsonReportError } from "./core/build-json-report-error.js";
 import { calculateScore } from "./core/scoring/calculate-score.js";
-import { checkReducedMotion } from "./core/scoring/check-reduced-motion.js";
 import { clearIgnorePatternsCache } from "./core/config/collect-ignore-patterns.js";
+import { combineDiagnostics } from "./core/diagnostics/combine-diagnostics.js";
 import { clearAutoSuppressionCaches } from "./core/diagnostics/merge-and-filter-diagnostics.js";
 import { clearProjectCache, discoverProject } from "./core/detection/discover-project.js";
 import { computeJsxIncludePaths } from "./core/runners/jsx-include-paths.js";
 import { clearConfigCache, loadConfigWithSource } from "./core/config/load-config.js";
-import { mergeAndFilterDiagnostics } from "./core/diagnostics/merge-and-filter-diagnostics.js";
 import { clearPackageJsonCache } from "./core/detection/read-package-json.js";
 import { createNodeReadFileLinesSync } from "./core/read-file-lines-node.js";
 import { resolveConfigRootDir } from "./core/config/resolve-config-root-dir.js";
@@ -187,15 +186,16 @@ export const diagnose = async (
   const [lintSettled, deadCodeSettled] = await Promise.allSettled([lintPromise, deadCodePromise]);
   const lintDiagnostics = settledOrEmpty(lintSettled, "Lint");
   const deadCodeDiagnostics = settledOrEmpty(deadCodeSettled, "Dead code");
-  const environmentDiagnostics = isDiffMode ? [] : checkReducedMotion(resolvedDirectory);
 
-  const diagnostics = mergeAndFilterDiagnostics(
-    [...lintDiagnostics, ...deadCodeDiagnostics, ...environmentDiagnostics],
-    resolvedDirectory,
+  const diagnostics = combineDiagnostics({
+    lintDiagnostics,
+    deadCodeDiagnostics,
+    directory: resolvedDirectory,
+    isDiffMode,
     userConfig,
     readFileLinesSync,
-    { respectInlineDisables: effectiveRespectInlineDisables },
-  );
+    respectInlineDisables: effectiveRespectInlineDisables,
+  });
   const elapsedMilliseconds = globalThis.performance.now() - startTime;
   const score = await calculateScore(diagnostics);
 
