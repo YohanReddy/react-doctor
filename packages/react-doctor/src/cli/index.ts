@@ -3,9 +3,9 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
 import { Command } from "commander";
-import { CANONICAL_GITHUB_URL } from "./constants.js";
-import { runInstallSkill } from "./install-skill.js";
-import { scan } from "./scan.js";
+import { CANONICAL_GITHUB_URL } from "../constants.js";
+import { runInstallSkill } from "../install-skill.js";
+import { scan } from "../scan.js";
 import type {
   Diagnostic,
   DiffInfo,
@@ -15,22 +15,22 @@ import type {
   ReactDoctorConfig,
   ScanOptions,
   ScanResult,
-} from "./types.js";
-import { buildJsonReport } from "./utils/build-json-report.js";
-import { buildJsonReportError } from "./utils/build-json-report-error.js";
-import { filterSourceFiles, getDiffInfo } from "./utils/get-diff-files.js";
-import { getStagedSourceFiles, materializeStagedFiles } from "./utils/get-staged-files.js";
-import { handleError } from "./utils/handle-error.js";
-import { highlighter } from "./utils/highlighter.js";
-import { loadConfigWithSource } from "./utils/load-config.js";
-import { resolveConfigRootDir } from "./utils/resolve-config-root-dir.js";
-import { logger, setLoggerSilent } from "./utils/logger.js";
-import { encodeAnnotationProperty, encodeAnnotationMessage } from "./utils/annotation-encoding.js";
-import { findOwningProjectDirectory } from "./utils/find-owning-project.js";
-import { parseFileLineArgument } from "./utils/parse-file-line-argument.js";
-import { prompts } from "./utils/prompts.js";
-import { selectProjects } from "./utils/select-projects.js";
-import { toRelativePath } from "./utils/to-relative-path.js";
+} from "../types.js";
+import { buildJsonReport } from "../utils/build-json-report.js";
+import { buildJsonReportError } from "../utils/build-json-report-error.js";
+import { filterSourceFiles, getDiffInfo } from "../utils/get-diff-files.js";
+import { highlighter } from "../utils/highlighter.js";
+import { loadConfigWithSource } from "../utils/load-config.js";
+import { resolveConfigRootDir } from "../utils/resolve-config-root-dir.js";
+import { logger, setLoggerSilent } from "../utils/logger.js";
+import { prompts } from "../utils/prompts.js";
+import { toRelativePath } from "../utils/to-relative-path.js";
+import { encodeAnnotationProperty, encodeAnnotationMessage } from "./annotation-encoding.js";
+import { findOwningProjectDirectory } from "./find-owning-project.js";
+import { getStagedSourceFiles, materializeStagedFiles } from "./get-staged-files.js";
+import { handleError } from "./handle-error.js";
+import { parseFileLineArgument } from "./parse-file-line-argument.js";
+import { selectProjects } from "./select-projects.js";
 
 const VERSION = process.env.VERSION ?? "0.0.0";
 

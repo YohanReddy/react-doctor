@@ -40,7 +40,7 @@ import { createOxlintConfig } from "../../src/oxlint-config.js";
 import { batchIncludePaths } from "../../src/utils/batch-include-paths.js";
 import { discoverProject } from "../../src/utils/discover-project.js";
 import { extractFailedPluginName } from "../../src/utils/extract-failed-plugin-name.js";
-import { getStagedSourceFiles, materializeStagedFiles } from "../../src/utils/get-staged-files.js";
+import { getStagedSourceFiles, materializeStagedFiles } from "../../src/cli/get-staged-files.js";
 import { sanitizeKnipConfigPatterns } from "../../src/utils/sanitize-knip-config-patterns.js";
 import {
   buildDiagnostic,

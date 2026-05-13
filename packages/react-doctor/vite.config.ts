@@ -58,7 +58,7 @@ export default Uint8Array.from(binary, (character) => character.charCodeAt(0));`
   ],
   pack: [
     {
-      entry: { cli: "./src/cli.ts" },
+      entry: { cli: "./src/cli/index.ts" },
       deps: { neverBundle: ["oxlint", "knip", "knip/session"] },
       dts: true,
       target: "node22",
