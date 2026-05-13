@@ -7,6 +7,7 @@
   },
   "changesets": [
     "tailwind-version-detection",
+    "url-asset-imports-and-info-annotations",
     "v2-categorization-and-compat",
     "v2-rewrite"
   ]
