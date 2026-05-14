@@ -1,4 +1,4 @@
-import type { EsTreeNode } from "../types.js";
+import type { EsTreeNode } from "../utils/es-tree-node.js";
 
 export type IdentifierId = number;
 export type InstructionId = number;

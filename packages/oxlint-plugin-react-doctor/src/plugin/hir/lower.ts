@@ -1,4 +1,4 @@
-import type { EsTreeNode } from "../types.js";
+import type { EsTreeNode } from "../utils/es-tree-node.js";
 import type {
   BasicBlock,
   BlockId,
@@ -16,6 +16,15 @@ import type {
   Terminal,
 } from "./types.js";
 
+// HACK: HIR walks raw ESTree as a generic graph — every reachable
+// property is accessed dynamically by the lowering pass, which makes
+// per-node TSESTree narrowing more friction than benefit here.
+// Loosen the node type to a record indexed by string so dynamic
+// property reads compile; runtime checks (`node.type === "X"`) still
+// gate every branch.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyNode = EsTreeNode & Record<string, any>;
+
 interface LoweringEnvironment {
   // HACK: id allocators are shared across all nested envs of one
   // lowering so a captured outer binding keeps its IdentifierId when
@@ -31,7 +40,7 @@ const ZERO_LOCATION: SourceLocation = {
   end: { line: 0, column: 0 },
 };
 
-const getLocation = (node: EsTreeNode | null | undefined): SourceLocation => {
+const getLocation = (node: AnyNode | null | undefined): SourceLocation => {
   if (!node?.loc) return ZERO_LOCATION;
   return {
     start: { line: node.loc.start.line, column: node.loc.start.column },
@@ -173,16 +182,16 @@ const collectFunctionParams = (
 // ESTree, so unwrap to its `argument` to keep operand identity.
 const lowerCallArguments = (
   env: LoweringEnvironment,
-  argumentNodes: Array<EsTreeNode> | undefined,
+  argumentNodes: Array<AnyNode> | undefined,
 ): Array<Place> =>
-  (argumentNodes ?? []).map((argumentNode: EsTreeNode) => {
+  (argumentNodes ?? []).map((argumentNode: AnyNode) => {
     if (argumentNode.type === "SpreadElement") {
       return lowerExpression(env, argumentNode.argument);
     }
     return lowerExpression(env, argumentNode);
   });
 
-const lowerExpression = (env: LoweringEnvironment, node: EsTreeNode | null | undefined): Place => {
+const lowerExpression = (env: LoweringEnvironment, node: AnyNode | null | undefined): Place => {
   if (!node) {
     return emitTemporary(env, { kind: "Unsupported", reason: "missing-node" }, ZERO_LOCATION, null);
   }
@@ -433,7 +442,7 @@ const collectCapturedPlaces = (innerFn: HIRFunction): Array<Place> => {
   return captured;
 };
 
-const lowerVariableDeclaration = (env: LoweringEnvironment, node: EsTreeNode): void => {
+const lowerVariableDeclaration = (env: LoweringEnvironment, node: AnyNode): void => {
   for (const declarator of node.declarations ?? []) {
     if (!declarator) continue;
     const initPlace = declarator.init ? lowerExpression(env, declarator.init) : null;
@@ -479,7 +488,7 @@ const lowerVariableDeclaration = (env: LoweringEnvironment, node: EsTreeNode): v
   }
 };
 
-const lowerStatement = (env: LoweringEnvironment, node: EsTreeNode | null | undefined): void => {
+const lowerStatement = (env: LoweringEnvironment, node: AnyNode | null | undefined): void => {
   if (!node) return;
 
   if (node.type === "VariableDeclaration") {
@@ -595,7 +604,7 @@ const lowerStatement = (env: LoweringEnvironment, node: EsTreeNode | null | unde
 };
 
 const lowerFunctionInEnv = (
-  functionNode: EsTreeNode,
+  functionNode: AnyNode,
   parentEnv: LoweringEnvironment | null,
 ): HIRFunction => {
   const env = parentEnv ? createChildEnvironment(parentEnv) : createRootEnvironment();
@@ -639,4 +648,4 @@ const lowerFunctionInEnv = (
 };
 
 export const lowerFunction = (functionNode: EsTreeNode): HIRFunction =>
-  lowerFunctionInEnv(functionNode, null);
+  lowerFunctionInEnv(functionNode as AnyNode, null);

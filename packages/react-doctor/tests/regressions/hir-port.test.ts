@@ -2,8 +2,9 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vite-plus/test";
+import { runOxlint } from "@react-doctor/core";
+import type { ProjectInfo } from "@react-doctor/types";
 
-import { runOxlint } from "../../src/core/runners/run-oxlint.js";
 import { setupReactProject } from "./_helpers.js";
 
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "rd-hir-port-"));
@@ -15,20 +16,25 @@ afterAll(() => {
 const setupHirProject = (caseId: string, files: Record<string, string>): string =>
   setupReactProject(tempRoot, caseId, { files });
 
-const collectRuleHits = async (
+const collectRuleHitsWithLine = async (
   projectDir: string,
   ruleId: string,
 ): Promise<Array<{ filePath: string; message: string; line: number }>> => {
+  const project: ProjectInfo = {
+    rootDirectory: projectDir,
+    projectName: path.basename(projectDir),
+    reactVersion: "^19.0.0",
+    reactMajorVersion: 19,
+    tailwindVersion: null,
+    framework: "unknown",
+    hasTypeScript: true,
+    hasReactCompiler: false,
+    hasTanStackQuery: false,
+    sourceFileCount: 0,
+  };
   const diagnostics = await runOxlint({
     rootDirectory: projectDir,
-    project: {
-      hasTypeScript: true,
-      framework: "unknown",
-      hasReactCompiler: false,
-      hasTanStackQuery: false,
-      reactMajorVersion: null,
-      tailwindMajorVersion: null,
-    },
+    project,
   });
   return diagnostics
     .filter((diagnostic) => diagnostic.rule === ruleId)
@@ -54,7 +60,7 @@ export const Counter = () => {
 `,
     });
 
-    const hits = await collectRuleHits(projectDir, "hir-no-set-state-in-effect");
+    const hits = await collectRuleHitsWithLine(projectDir, "hir-no-set-state-in-effect");
     expect(hits.length).toBeGreaterThanOrEqual(1);
     expect(hits[0].message).toContain("setCount");
     expect(hits[0].message).toContain("HIR-validated");
@@ -75,7 +81,7 @@ export const Aliased = () => {
 `,
     });
 
-    const hits = await collectRuleHits(projectDir, "hir-no-set-state-in-effect");
+    const hits = await collectRuleHitsWithLine(projectDir, "hir-no-set-state-in-effect");
     expect(hits.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -93,7 +99,7 @@ export const Counter = () => {
 `,
     });
 
-    const hits = await collectRuleHits(projectDir, "hir-no-set-state-in-effect");
+    const hits = await collectRuleHitsWithLine(projectDir, "hir-no-set-state-in-effect");
     expect(hits.length).toBeGreaterThanOrEqual(1);
     expect(hits[0].line).toBe(6);
   });
@@ -114,7 +120,7 @@ export const Sync = () => {
 `,
     });
 
-    const hits = await collectRuleHits(projectDir, "hir-no-set-state-in-effect");
+    const hits = await collectRuleHitsWithLine(projectDir, "hir-no-set-state-in-effect");
     expect(hits).toHaveLength(0);
   });
 
@@ -134,7 +140,7 @@ export const Memo = () => {
 `,
     });
 
-    const hits = await collectRuleHits(projectDir, "hir-no-set-state-in-effect");
+    const hits = await collectRuleHitsWithLine(projectDir, "hir-no-set-state-in-effect");
     expect(hits).toHaveLength(0);
   });
 });
@@ -156,7 +162,10 @@ export const Form = () => {
 `,
     });
 
-    const hits = await collectRuleHits(projectDir, "hir-no-derived-computations-in-effects");
+    const hits = await collectRuleHitsWithLine(
+      projectDir,
+      "hir-no-derived-computations-in-effects",
+    );
     expect(hits).toHaveLength(0);
   });
 
@@ -177,7 +186,10 @@ export const Form = () => {
 `,
     });
 
-    const hits = await collectRuleHits(projectDir, "hir-no-derived-computations-in-effects");
+    const hits = await collectRuleHitsWithLine(
+      projectDir,
+      "hir-no-derived-computations-in-effects",
+    );
     expect(hits.length).toBeGreaterThanOrEqual(1);
     expect(hits[0].message).toContain("HIR-validated");
   });
@@ -198,7 +210,10 @@ export const Logger = ({ name }: { name: string }) => {
 `,
     });
 
-    const hits = await collectRuleHits(projectDir, "hir-no-derived-computations-in-effects");
+    const hits = await collectRuleHitsWithLine(
+      projectDir,
+      "hir-no-derived-computations-in-effects",
+    );
     expect(hits).toHaveLength(0);
   });
 });

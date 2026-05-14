@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vite-plus/test";
 import { parse } from "@typescript-eslint/parser";
-import type { EsTreeNode } from "../../src/plugin/types.js";
-import { lowerFunction } from "../../src/plugin/hir/lower.js";
-import { inferTypes } from "../../src/plugin/hir/infer-types.js";
-import { validateNoSetStateInEffects } from "../../src/plugin/hir/validators/validate-no-set-state-in-effect.js";
-import { validateNoDerivedComputationsInEffects } from "../../src/plugin/hir/validators/validate-no-derived-computations-in-effects.js";
+import type { EsTreeNode } from "../../../oxlint-plugin-react-doctor/src/plugin/utils/es-tree-node.js";
+import { lowerFunction } from "../../../oxlint-plugin-react-doctor/src/plugin/hir/lower.js";
+import { inferTypes } from "../../../oxlint-plugin-react-doctor/src/plugin/hir/infer-types.js";
+import { validateNoSetStateInEffects } from "../../../oxlint-plugin-react-doctor/src/plugin/hir/validators/validate-no-set-state-in-effect.js";
+import { validateNoDerivedComputationsInEffects } from "../../../oxlint-plugin-react-doctor/src/plugin/hir/validators/validate-no-derived-computations-in-effects.js";
 
 const lowerFromSource = (source: string) => {
   const ast = parse(source, { loc: true, range: true, jsx: true });

@@ -23,6 +23,8 @@ import { noSpaceOnFlexChildren } from "./rules/react-ui/no-space-on-flex-childre
 import { noThreePeriodEllipsis } from "./rules/react-ui/no-three-period-ellipsis.js";
 import { noVagueButtonLabel } from "./rules/react-ui/no-vague-button-label.js";
 import { effectNeedsCleanup } from "./rules/state-and-effects/effect-needs-cleanup.js";
+import { hirNoDerivedComputationsInEffects } from "./rules/state-and-effects/hir-no-derived-computations-in-effects.js";
+import { hirNoSetStateInEffect } from "./rules/state-and-effects/hir-no-set-state-in-effect.js";
 import { jsBatchDomCss } from "./rules/js-performance/js-batch-dom-css.js";
 import { jsCachePropertyAccess } from "./rules/js-performance/js-cache-property-access.js";
 import { jsCacheStorage } from "./rules/js-performance/js-cache-storage.js";
@@ -380,6 +382,32 @@ export const reactDoctorRules = [
     severity: "error",
     rule: {
       ...effectNeedsCleanup,
+      framework: "global",
+      category: "State & Effects",
+    },
+  },
+  {
+    key: "react-doctor/hir-no-derived-computations-in-effects",
+    id: "hir-no-derived-computations-in-effects",
+    source: "react-doctor",
+    framework: "global",
+    category: "State & Effects",
+    severity: "warn",
+    rule: {
+      ...hirNoDerivedComputationsInEffects,
+      framework: "global",
+      category: "State & Effects",
+    },
+  },
+  {
+    key: "react-doctor/hir-no-set-state-in-effect",
+    id: "hir-no-set-state-in-effect",
+    source: "react-doctor",
+    framework: "global",
+    category: "State & Effects",
+    severity: "warn",
+    rule: {
+      ...hirNoSetStateInEffect,
       framework: "global",
       category: "State & Effects",
     },
