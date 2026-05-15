@@ -342,6 +342,21 @@ export const token = stripeSecret;
     expect(secretIssues[0].message).toContain("Hardcoded secret detected");
   });
 
+  it("still reports camel-case api key variables through the weak variable-name heuristic", async () => {
+    const projectDir = setupReactProject(tempRoot, "client-api-key-secret", {
+      files: {
+        "src/token-display.tsx": `const apiKey = "fixture_token_1234567890abcdef";
+
+export const TokenDisplay = () => <div>{apiKey}</div>;
+`,
+      },
+    });
+
+    const secretIssues = await getSecretIssues(projectDir);
+    expect(secretIssues).toHaveLength(1);
+    expect(secretIssues[0].message).toContain("apiKey");
+  });
+
   it("does not report UI-suffixed client constants through the weak variable-name heuristic", async () => {
     const projectDir = setupReactProject(tempRoot, "client-ui-suffix-secret-false-positive", {
       files: {

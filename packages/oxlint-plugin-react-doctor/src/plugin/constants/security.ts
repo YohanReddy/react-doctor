@@ -111,7 +111,6 @@ export const SECRET_FALSE_POSITIVE_SUFFIXES = new Set([
   "title",
   "name",
   "id",
-  "key",
   "url",
   "path",
   "route",
