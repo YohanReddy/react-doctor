@@ -20,12 +20,6 @@ interface GuardExpression {
   rootIdentifierName: string;
 }
 
-const hasEventLikeConsequent = (
-  consequentNode: EsTreeNodeOfType<"IfStatement">["consequent"],
-): boolean =>
-  findTriggeredSideEffectCalleeName(consequentNode) !== null ||
-  hasDocumentClassListMutation(consequentNode);
-
 const hasEventLikeNode = (node: EsTreeNode): boolean =>
   findTriggeredSideEffectCalleeName(node) !== null || hasDocumentClassListMutation(node);
 
@@ -196,7 +190,7 @@ export const noEffectEventHandler = defineRule<Rule>({
         if (matchingPropGuardExpressions.length === 0) return;
 
         const isSingleGuardedEventLikeStatement =
-          statements.length === 1 && hasEventLikeConsequent(soleStatement.consequent);
+          statements.length === 1 && hasEventLikeNode(soleStatement.consequent);
         const isEarlyReturnGuardedEventLikeBody =
           statements.length > 1 &&
           !soleStatement.alternate &&
