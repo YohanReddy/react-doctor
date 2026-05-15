@@ -15,10 +15,23 @@ export const listWorkspacePackages = (rootDirectory: string): WorkspacePackage[]
   if (patterns.length === 0) return [];
 
   const packages: WorkspacePackage[] = [];
+  // HACK: workspace pattern lists routinely contain overlapping globs
+  // (e.g. cal.com's `["packages/*", "packages/app-store"]`). Without
+  // dedup-by-directory the same package would surface twice in
+  // discovery and downstream every diagnostic for it would be emitted
+  // twice. The seen-set is keyed on the absolute directory path so
+  // symbolic naming via package.json#name can't accidentally collapse
+  // two genuinely-distinct directories.
+  const seenDirectories = new Set<string>();
+  const pushIfNew = (workspacePackage: WorkspacePackage): void => {
+    if (seenDirectories.has(workspacePackage.directory)) return;
+    seenDirectories.add(workspacePackage.directory);
+    packages.push(workspacePackage);
+  };
 
   if (hasReactDependency(packageJson)) {
     const rootName = packageJson.name ?? path.basename(rootDirectory);
-    packages.push({ name: rootName, directory: rootDirectory });
+    pushIfNew({ name: rootName, directory: rootDirectory });
   }
 
   for (const pattern of patterns) {
@@ -29,7 +42,7 @@ export const listWorkspacePackages = (rootDirectory: string): WorkspacePackage[]
       if (!hasReactDependency(workspacePackageJson)) continue;
 
       const name = workspacePackageJson.name ?? path.basename(workspaceDirectory);
-      packages.push({ name, directory: workspaceDirectory });
+      pushIfNew({ name, directory: workspaceDirectory });
     }
   }
 

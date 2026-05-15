@@ -12,6 +12,7 @@ import { batchIncludePaths } from "./batch-include-paths.js";
 import { canOxlintExtendConfig } from "./can-oxlint-extend-config.js";
 import { collectIgnorePatterns } from "./collect-ignore-patterns.js";
 import { detectUserLintConfigPaths } from "./detect-user-lint-config.js";
+import { dedupeDiagnostics } from "./utils/dedupe-diagnostics.js";
 import { createOxlintConfig } from "./runners/oxlint/config.js";
 import { shouldSuppressLocalUseHookDiagnostic } from "./runners/oxlint/should-suppress-local-use-hook-diagnostic.js";
 import reactDoctorPlugin, {
@@ -469,7 +470,7 @@ export const runOxlint = async (options: RunOxlintOptions): Promise<Diagnostic[]
       for (const batch of fileBatches) {
         allDiagnostics.push(...(await spawnLintBatch(batch)));
       }
-      return allDiagnostics;
+      return dedupeDiagnostics(allDiagnostics);
     };
 
     writeOxlintConfig(config);

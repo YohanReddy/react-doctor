@@ -705,6 +705,37 @@ describe("listWorkspacePackages", () => {
     const packages = listWorkspacePackages(rootDirectory);
     expect(packages).toEqual([{ name: "web", directory: appDirectory }]);
   });
+
+  // HACK: cal.com's workspace patterns include both `"packages/*"` AND
+  // `"packages/app-store"` — overlapping globs that resolve the same
+  // directory through two patterns. Without dedup-by-directory the
+  // same workspace gets scanned twice and downstream every diagnostic
+  // is emitted twice. Pin the invariant that overlapping patterns
+  // produce ONE entry per directory.
+  it("dedupes packages discovered via overlapping workspace patterns (same directory matched twice)", () => {
+    const rootDirectory = path.join(tempDirectory, "overlapping-workspaces");
+    fs.mkdirSync(path.join(rootDirectory, "packages", "ui"), { recursive: true });
+    fs.writeFileSync(
+      path.join(rootDirectory, "package.json"),
+      JSON.stringify({
+        name: "monorepo-root",
+        workspaces: ["packages/*", "packages/ui"],
+      }),
+    );
+    fs.writeFileSync(
+      path.join(rootDirectory, "packages", "ui", "package.json"),
+      JSON.stringify({ name: "@example/ui", dependencies: { react: "^19.0.0" } }),
+    );
+
+    const packages = listWorkspacePackages(rootDirectory);
+    const directories = packages.map((workspacePackage) => workspacePackage.directory);
+    const uiOccurrences = directories.filter((directory) =>
+      directory.endsWith(path.join("packages", "ui")),
+    );
+
+    expect(packages, "overlapping workspace patterns should yield one entry").toHaveLength(1);
+    expect(uiOccurrences, "packages/ui should appear exactly once").toHaveLength(1);
+  });
 });
 
 const tempDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "react-doctor-discover-test-"));
