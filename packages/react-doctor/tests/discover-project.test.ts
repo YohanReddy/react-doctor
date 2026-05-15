@@ -165,6 +165,35 @@ describe("discoverProject", () => {
     expect(projectInfo.reactMajorVersion).toBe(19);
   });
 
+  it("does not apply root React catalogs to workspaces without React declarations", () => {
+    const monorepoRoot = path.join(tempDirectory, "root-catalog-skips-non-react-workspaces");
+    fs.mkdirSync(path.join(monorepoRoot, "apps", "web"), { recursive: true });
+    fs.mkdirSync(path.join(monorepoRoot, "packages", "eslint-config"), { recursive: true });
+    fs.writeFileSync(
+      path.join(monorepoRoot, "pnpm-workspace.yaml"),
+      "packages:\n  - apps/*\n  - packages/*\n\ncatalog:\n  react: ^17.0.0\n",
+    );
+    fs.writeFileSync(path.join(monorepoRoot, "package.json"), JSON.stringify({ name: "root" }));
+    fs.writeFileSync(
+      path.join(monorepoRoot, "apps", "web", "package.json"),
+      JSON.stringify({
+        name: "web",
+        dependencies: { react: "^18.3.1" },
+      }),
+    );
+    fs.writeFileSync(
+      path.join(monorepoRoot, "packages", "eslint-config", "package.json"),
+      JSON.stringify({
+        name: "eslint-config",
+        devDependencies: { eslint: "^9.0.0" },
+      }),
+    );
+
+    const projectInfo = discoverProject(monorepoRoot);
+    expect(projectInfo.reactVersion).toBe("^18.3.1");
+    expect(projectInfo.reactMajorVersion).toBe(18);
+  });
+
   it("resolves React version from pnpm workspace named catalog", () => {
     const projectInfo = discoverProject(
       path.join(FIXTURES_DIRECTORY, "pnpm-named-catalog", "packages", "app"),

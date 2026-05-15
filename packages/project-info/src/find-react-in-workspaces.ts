@@ -7,13 +7,17 @@ import { readPackageJson } from "./read-package-json.js";
 import { extractCatalogName, resolveCatalogVersion } from "./resolve-catalog-version.js";
 import { resolveWorkspaceDirectories } from "./resolve-workspace-directories.js";
 
-const getReactCatalogReference = (packageJson: PackageJson): string | null => {
+const getReactDeclaration = (packageJson: PackageJson) => {
   const allDependencies = {
     ...packageJson.peerDependencies,
     ...packageJson.dependencies,
     ...packageJson.devDependencies,
   };
-  return extractCatalogName(allDependencies.react ?? "") ?? null;
+  const reactVersion = allDependencies.react;
+  return {
+    catalogReference: extractCatalogName(reactVersion ?? "") ?? null,
+    hasDeclaration: reactVersion !== undefined,
+  };
 };
 
 const shouldReplaceReactVersion = (currentVersion: string | null, nextVersion: string): boolean => {
@@ -40,16 +44,22 @@ export const findReactInWorkspaces = (
     for (const workspaceDirectory of directories) {
       const workspacePackageJson = readPackageJson(path.join(workspaceDirectory, "package.json"));
       const info = extractDependencyInfo(workspacePackageJson);
-      const reactCatalogReference = getReactCatalogReference(workspacePackageJson);
-      const reactVersion =
-        info.reactVersion ??
-        resolveCatalogVersion(
-          workspacePackageJson,
-          "react",
-          workspaceDirectory,
-          reactCatalogReference,
-        ) ??
-        resolveCatalogVersion(packageJson, "react", rootDirectory, reactCatalogReference);
+      const reactDeclaration = getReactDeclaration(workspacePackageJson);
+      const reactVersion = reactDeclaration.hasDeclaration
+        ? (info.reactVersion ??
+          resolveCatalogVersion(
+            workspacePackageJson,
+            "react",
+            workspaceDirectory,
+            reactDeclaration.catalogReference,
+          ) ??
+          resolveCatalogVersion(
+            packageJson,
+            "react",
+            rootDirectory,
+            reactDeclaration.catalogReference,
+          ))
+        : null;
 
       if (reactVersion && shouldReplaceReactVersion(result.reactVersion, reactVersion)) {
         result.reactVersion = reactVersion;
