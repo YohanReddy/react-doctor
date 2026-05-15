@@ -31,6 +31,13 @@ import {
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..", "..", "..");
 
+// HACK: stored repo-relative paths are normalized to forward-slashes so
+// the test's comparisons (and the hardcoded `allowedRepoRelativePath`
+// in the rule table) work on Windows. `path.relative()` returns
+// `\`-separated paths on Windows, which would never match a `/`-style
+// literal at the `!==` filter and produce a false-positive failure.
+const toPosixPath = (osNativePath: string): string => osNativePath.split(path.sep).join("/");
+
 // HACK: `packages/website/` is deployed separately as a Next.js app
 // and legitimately re-declares some constants (e.g. SHARE_BASE_URL for
 // SSR rendering), so it's excluded from the CLI-relevant scan scope.
@@ -66,8 +73,8 @@ const collectTypeScriptSources = (rootDirectories: string[]): WorkspaceSourceFil
         }
         if (!entry.name.endsWith(".ts")) continue;
         sources.push({
-          repoRelativePath: path.relative(REPO_ROOT, entryPath),
-          packageRelativePath: path.relative(packageRoot, entryPath),
+          repoRelativePath: toPosixPath(path.relative(REPO_ROOT, entryPath)),
+          packageRelativePath: toPosixPath(path.relative(packageRoot, entryPath)),
           packageRoot,
           content: fs.readFileSync(entryPath, "utf8"),
         });
@@ -215,4 +222,20 @@ describe("magic string locality — each user-facing constant has exactly one so
       ).toEqual([]);
     },
   );
+
+  // HACK: PR #259 Bugbot finding — `path.relative()` returns
+  // `\`-separated paths on Windows, so a `\` in any stored
+  // `repoRelativePath` would never match the forward-slash literals in
+  // `MAGIC_STRING_LOCALITY_RULES` and produce a false-positive failure
+  // on Windows contributors' machines. Pin that the normalization
+  // (`toPosixPath` above) is actually applied.
+  it("stored repo-relative paths are always POSIX-style (cross-platform safety)", () => {
+    const pathsContainingBackslash = ALL_WORKSPACE_SOURCES.map(
+      (source) => source.repoRelativePath,
+    ).filter((repoRelativePath) => repoRelativePath.includes("\\"));
+    expect(
+      pathsContainingBackslash,
+      "repoRelativePath should never contain `\\` — apply toPosixPath() when building WorkspaceSourceFile records",
+    ).toEqual([]);
+  });
 });
