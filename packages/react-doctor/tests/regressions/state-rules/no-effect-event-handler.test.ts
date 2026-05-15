@@ -370,6 +370,64 @@ export const Page = ({ unrelated }: { unrelated: boolean }) => {
     expect(hits).toHaveLength(0);
   });
 
+  it("does NOT flag when a member dep is for a different prop field than the guard", async () => {
+    const projectDir = setupReactProject(
+      tempRoot,
+      "no-effect-event-handler-mismatched-member-dep",
+      {
+        files: {
+          "src/ProductPage.tsx": `import { useEffect } from "react";
+
+declare const showNotification: (message: string) => void;
+
+interface Product { isInCart: boolean; name: string }
+
+export const ProductPage = ({ product }: { product: Product }) => {
+  useEffect(() => {
+    if (product.name) {
+      showNotification(\`Added \${product.name} to the shopping cart!\`);
+    }
+  }, [product.isInCart]);
+
+  return <div>{product.name}</div>;
+};
+`,
+        },
+      },
+    );
+
+    const hits = await collectRuleHits(projectDir, "no-effect-event-handler");
+    expect(hits).toHaveLength(0);
+  });
+
+  it("does NOT claim mixed local-trigger and prop guards belong to the prop rule", async () => {
+    const projectDir = setupReactProject(
+      tempRoot,
+      "no-effect-event-handler-mixed-local-trigger-and-prop-guard",
+      {
+        files: {
+          "src/Wizard.tsx": `import { useEffect, useState } from "react";
+
+declare const navigate: (path: string) => void;
+
+export const Wizard = ({ isEnabled }: { isEnabled: boolean }) => {
+  const [destination, setDestination] = useState<string | null>(null);
+  useEffect(() => {
+    if (destination && isEnabled) {
+      navigate(destination);
+    }
+  }, [destination, isEnabled]);
+  return <button onClick={() => setDestination("/next")}>Next</button>;
+};
+`,
+        },
+      },
+    );
+
+    const hits = await collectRuleHits(projectDir, "no-effect-event-handler");
+    expect(hits).toHaveLength(0);
+  });
+
   it("does NOT flag event-shaped effects for custom-hook-derived data", async () => {
     const projectDir = setupReactProject(
       tempRoot,
