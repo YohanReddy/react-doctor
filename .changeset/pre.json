@@ -10,5 +10,10 @@
     "@react-doctor/types": "0.1.6",
     "website": "0.1.0"
   },
-  "changesets": ["fix-bundle-workspace-deps", "tailwind-version-detection", "thick-bars-attack"]
+  "changesets": [
+    "add-oxlint-plugin-dep",
+    "fix-bundle-workspace-deps",
+    "tailwind-version-detection",
+    "thick-bars-attack"
+  ]
 }

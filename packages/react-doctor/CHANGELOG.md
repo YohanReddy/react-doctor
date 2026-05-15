@@ -1,5 +1,16 @@
 # react-doctor
 
+## 0.2.0-beta.4
+
+### Patch Changes
+
+- Add `oxlint-plugin-react-doctor` to `dependencies` so it is installed
+  alongside the CLI. The bundler correctly externalises the plugin (oxlint
+  loads it by file path at runtime) but it was missing from the published
+  dependency list, causing `ERR_MODULE_NOT_FOUND` on `npx react-doctor`.
+- Updated dependencies []:
+  - oxlint-plugin-react-doctor@0.2.0-beta.4
+
 ## 0.2.0-beta.3
 
 ### Patch Changes
