@@ -1,10 +1,3 @@
-export const BARREL_INDEX_SUFFIXES = [
-  "/index",
-  "/index.js",
-  "/index.ts",
-  "/index.tsx",
-  "/index.mjs",
-];
 export const PASSIVE_EVENT_NAMES = new Set([
   "scroll",
   "wheel",
