@@ -17,52 +17,9 @@
 // callers should treat `null` as "unknown — do not enable version-gated
 // rules" so React-19-only migrations don't false-positive on React 18
 // projects whose exact version could not be classified.
-const UPPER_BOUND_COMPARATOR = /<\s*=?\s*\d+(?:\.\d+){0,2}(?:-[^\s,|]+)?/g;
-const HAS_UPPER_BOUND_COMPARATOR = /<\s*=?\s*\d+(?:\.\d+){0,2}(?:-[^\s,|]+)?/;
-const OR_SEPARATOR = /\s*\|\|\s*/;
-const UNRESOLVABLE_PROTOCOL_VERSION =
-  /^(?:file|git|github|https?|link|patch|portal|workspace|npm):/i;
-const DIST_TAG_VERSION = /^[a-z][a-z0-9._-]*$/i;
-const WILDCARD_VERSION = /^[*xX](?:\.[*xX])*$/;
-const NON_LOWER_BOUND_COMPARATOR = /(?:^|[\s,|])(?:>(?!=)|!={0,2})\s*\d/;
-const LOWER_BOUND_MAJOR = /(?:^|[\s,|])(?:>=\s*|[~^=v]\s*)?(\d+)(?=$|[\s,|.*xX-])/g;
-const NPM_ALIAS_VERSION = /^npm:(?:@[^/]+\/[^@]+|[^@]+)@(.+)$/i;
-
-const getBranchLowestMajor = (branch: string): number | null => {
-  if (NON_LOWER_BOUND_COMPARATOR.test(branch)) return null;
-
-  const lowerBoundComparators = branch.replace(UPPER_BOUND_COMPARATOR, " ").trim();
-  if (lowerBoundComparators.length === 0) return null;
-
-  let branchLowestMajor: number | null = null;
-  for (const match of lowerBoundComparators.matchAll(LOWER_BOUND_MAJOR)) {
-    const major = Number.parseInt(match[1], 10);
-    if (!Number.isFinite(major) || major <= 0) continue;
-    if (branchLowestMajor === null || major < branchLowestMajor) branchLowestMajor = major;
-  }
-
-  return branchLowestMajor;
-};
+import { getLowestDependencyMajor } from "./utils/dependency-version-spec.js";
 
 export const parseReactMajor = (reactVersion: string | null | undefined): number | null => {
   if (typeof reactVersion !== "string") return null;
-  const trimmed = reactVersion.trim();
-  if (trimmed.length === 0) return null;
-  const npmAliasMatch = trimmed.match(NPM_ALIAS_VERSION);
-  const normalizedVersion = npmAliasMatch?.[1]?.trim() ?? trimmed;
-  if (UNRESOLVABLE_PROTOCOL_VERSION.test(normalizedVersion)) return null;
-  if (DIST_TAG_VERSION.test(normalizedVersion) && !/^v\d/i.test(normalizedVersion)) return null;
-  if (WILDCARD_VERSION.test(normalizedVersion)) return null;
-
-  let lowestMajor: number | null = null;
-  for (const branch of normalizedVersion.split(OR_SEPARATOR).filter(Boolean)) {
-    if (UNRESOLVABLE_PROTOCOL_VERSION.test(branch.trim())) return null;
-    const branchLowestMajor = getBranchLowestMajor(branch);
-    if (branchLowestMajor === null && HAS_UPPER_BOUND_COMPARATOR.test(branch)) return null;
-    if (branchLowestMajor !== null && (lowestMajor === null || branchLowestMajor < lowestMajor)) {
-      lowestMajor = branchLowestMajor;
-    }
-  }
-
-  return lowestMajor;
+  return getLowestDependencyMajor(reactVersion);
 };
