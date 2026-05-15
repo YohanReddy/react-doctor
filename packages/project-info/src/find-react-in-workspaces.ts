@@ -1,22 +1,12 @@
 import path from "node:path";
 import type { DependencyInfo, PackageJson } from "@react-doctor/types";
 import { EMPTY_DEPENDENCY_INFO, extractDependencyInfo } from "./extract-dependency-info.js";
+import { getDependencyDeclaration } from "./get-dependency-declaration.js";
 import { getWorkspacePatterns } from "./get-workspace-patterns.js";
 import { parseReactMajor } from "./parse-react-major.js";
 import { readPackageJson } from "./read-package-json.js";
-import { extractCatalogName, resolveCatalogVersion } from "./resolve-catalog-version.js";
+import { resolveCatalogVersion } from "./resolve-catalog-version.js";
 import { resolveWorkspaceDirectories } from "./resolve-workspace-directories.js";
-
-interface DependencyDeclaration {
-  catalogReference: string | null;
-  hasDeclaration: boolean;
-}
-
-interface DependencyDeclarationOptions {
-  packageJson: PackageJson;
-  packageName: string;
-  sections: ReadonlyArray<"dependencies" | "peerDependencies" | "devDependencies">;
-}
 
 interface ResolveWorkspaceDependencyVersionOptions {
   concreteVersion: string | null;
@@ -27,27 +17,6 @@ interface ResolveWorkspaceDependencyVersionOptions {
   workspaceDirectory: string;
   workspacePackageJson: PackageJson;
 }
-
-const getDependencyDeclaration = ({
-  packageJson,
-  packageName,
-  sections,
-}: DependencyDeclarationOptions): DependencyDeclaration => {
-  for (const section of sections) {
-    const dependencyVersion = packageJson[section]?.[packageName];
-    if (dependencyVersion === undefined) continue;
-
-    return {
-      catalogReference: extractCatalogName(dependencyVersion) ?? null,
-      hasDeclaration: true,
-    };
-  }
-
-  return {
-    catalogReference: null,
-    hasDeclaration: false,
-  };
-};
 
 const resolveWorkspaceDependencyVersion = ({
   concreteVersion,

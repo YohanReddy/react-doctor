@@ -4,8 +4,9 @@ import { isFile } from "./utils/is-file.js";
 import { EMPTY_DEPENDENCY_INFO, extractDependencyInfo } from "./extract-dependency-info.js";
 import { findMonorepoRoot } from "./find-monorepo-root.js";
 import { findReactInWorkspaces } from "./find-react-in-workspaces.js";
+import { getDependencyDeclaration } from "./get-dependency-declaration.js";
 import { readPackageJson } from "./read-package-json.js";
-import { extractCatalogName, resolveCatalogVersion } from "./resolve-catalog-version.js";
+import { resolveCatalogVersion } from "./resolve-catalog-version.js";
 
 export const findDependencyInfoFromMonorepoRoot = (directory: string): DependencyInfo => {
   const monorepoRoot = findMonorepoRoot(directory);
@@ -18,34 +19,47 @@ export const findDependencyInfoFromMonorepoRoot = (directory: string): Dependenc
   const rootInfo = extractDependencyInfo(rootPackageJson);
   const leafPackageJsonPath = path.join(directory, "package.json");
   const leafPackageJson = isFile(leafPackageJsonPath) ? readPackageJson(leafPackageJsonPath) : null;
-  const leafDependencies = leafPackageJson
-    ? {
-        ...leafPackageJson.peerDependencies,
-        ...leafPackageJson.dependencies,
-        ...leafPackageJson.devDependencies,
-      }
-    : {};
-  const leafReactCatalogReference = extractCatalogName(leafDependencies.react ?? "") ?? null;
-  const leafTailwindCatalogReference =
-    extractCatalogName(leafDependencies.tailwindcss ?? "") ?? null;
-  const reactCatalogVersion = resolveCatalogVersion(
-    rootPackageJson,
-    "react",
-    monorepoRoot,
-    leafReactCatalogReference,
-  );
-  const tailwindCatalogVersion = resolveCatalogVersion(
-    rootPackageJson,
-    "tailwindcss",
-    monorepoRoot,
-    leafTailwindCatalogReference,
-  );
+  const leafReactDeclaration = leafPackageJson
+    ? getDependencyDeclaration({
+        packageJson: leafPackageJson,
+        packageName: "react",
+        sections: ["dependencies", "peerDependencies", "devDependencies"],
+      })
+    : null;
+  const leafTailwindDeclaration = leafPackageJson
+    ? getDependencyDeclaration({
+        packageJson: leafPackageJson,
+        packageName: "tailwindcss",
+        sections: ["dependencies", "devDependencies", "peerDependencies"],
+      })
+    : null;
+  const shouldUseReactFallback = leafReactDeclaration?.hasDeclaration ?? true;
+  const shouldUseTailwindFallback = leafTailwindDeclaration?.hasDeclaration ?? true;
+  const reactCatalogVersion = shouldUseReactFallback
+    ? resolveCatalogVersion(
+        rootPackageJson,
+        "react",
+        monorepoRoot,
+        leafReactDeclaration?.catalogReference,
+      )
+    : null;
+  const tailwindCatalogVersion = shouldUseTailwindFallback
+    ? resolveCatalogVersion(
+        rootPackageJson,
+        "tailwindcss",
+        monorepoRoot,
+        leafTailwindDeclaration?.catalogReference,
+      )
+    : null;
   const workspaceInfo = findReactInWorkspaces(monorepoRoot, rootPackageJson);
 
   return {
-    reactVersion: rootInfo.reactVersion ?? reactCatalogVersion ?? workspaceInfo.reactVersion,
-    tailwindVersion:
-      rootInfo.tailwindVersion ?? tailwindCatalogVersion ?? workspaceInfo.tailwindVersion,
+    reactVersion: shouldUseReactFallback
+      ? (reactCatalogVersion ?? rootInfo.reactVersion ?? workspaceInfo.reactVersion)
+      : null,
+    tailwindVersion: shouldUseTailwindFallback
+      ? (tailwindCatalogVersion ?? rootInfo.tailwindVersion ?? workspaceInfo.tailwindVersion)
+      : null,
     framework: rootInfo.framework !== "unknown" ? rootInfo.framework : workspaceInfo.framework,
   };
 };

@@ -1,5 +1,6 @@
 import type { DependencyInfo, PackageJson } from "@react-doctor/types";
 import { detectFramework } from "./detect-framework.js";
+import { getDependencyDeclaration } from "./get-dependency-declaration.js";
 import { isCatalogReference } from "./resolve-catalog-version.js";
 
 export const EMPTY_DEPENDENCY_INFO: DependencyInfo = {
@@ -13,11 +14,9 @@ const pickConcreteVersion = (
   packageName: string,
   sections: ReadonlyArray<"dependencies" | "peerDependencies" | "devDependencies">,
 ): string | null => {
-  for (const section of sections) {
-    const version = packageJson[section]?.[packageName];
-    if (version && !isCatalogReference(version)) return version;
-  }
-  return null;
+  const declaration = getDependencyDeclaration({ packageJson, packageName, sections });
+  if (!declaration.version || isCatalogReference(declaration.version)) return null;
+  return declaration.version;
 };
 
 export const extractDependencyInfo = (packageJson: PackageJson): DependencyInfo => {
