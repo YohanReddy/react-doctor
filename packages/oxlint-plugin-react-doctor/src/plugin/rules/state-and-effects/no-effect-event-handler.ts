@@ -10,6 +10,7 @@ import { hasDocumentClassListMutation } from "./utils/has-document-class-list-mu
 import type { Rule } from "../../utils/rule.js";
 import type { RuleContext } from "../../utils/rule-context.js";
 import { isNodeOfType } from "../../utils/is-node-of-type.js";
+import type { EsTreeNode } from "../../utils/es-tree-node.js";
 import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 
 const hasEventLikeConsequent = (
@@ -17,6 +18,66 @@ const hasEventLikeConsequent = (
 ): boolean =>
   findTriggeredSideEffectCalleeName(consequentNode) !== null ||
   hasDocumentClassListMutation(consequentNode);
+
+const hasEventLikeNode = (node: EsTreeNode): boolean =>
+  findTriggeredSideEffectCalleeName(node) !== null || hasDocumentClassListMutation(node);
+
+const collectConditionalRootNames = (
+  node: EsTreeNode | null | undefined,
+  into: Set<string>,
+): void => {
+  if (!node) return;
+  const rootIdentifierName = getRootIdentifierName(node);
+  if (rootIdentifierName) {
+    into.add(rootIdentifierName);
+    return;
+  }
+
+  if (isNodeOfType(node, "ChainExpression")) {
+    collectConditionalRootNames(node.expression, into);
+    return;
+  }
+
+  if (isNodeOfType(node, "UnaryExpression")) {
+    collectConditionalRootNames(node.argument, into);
+    return;
+  }
+
+  if (isNodeOfType(node, "BinaryExpression") || isNodeOfType(node, "LogicalExpression")) {
+    collectConditionalRootNames(node.left, into);
+    collectConditionalRootNames(node.right, into);
+    return;
+  }
+
+  if (isNodeOfType(node, "ConditionalExpression")) {
+    collectConditionalRootNames(node.test, into);
+    collectConditionalRootNames(node.consequent, into);
+    collectConditionalRootNames(node.alternate, into);
+  }
+};
+
+const collectDependencyRootNames = (depsNode: EsTreeNodeOfType<"ArrayExpression">): Set<string> => {
+  const dependencyNames = new Set<string>();
+  for (const element of depsNode.elements ?? []) {
+    const rootIdentifierName = getRootIdentifierName(element);
+    if (rootIdentifierName) dependencyNames.add(rootIdentifierName);
+  }
+  return dependencyNames;
+};
+
+const isReturnOnlyStatement = (node: EsTreeNode): boolean => {
+  if (isNodeOfType(node, "ReturnStatement")) return true;
+  return (
+    isNodeOfType(node, "BlockStatement") &&
+    (node.body?.length ?? 0) === 1 &&
+    isNodeOfType(node.body?.[0], "ReturnStatement")
+  );
+};
+
+const hasEventLikeRemainingStatements = (statements: EsTreeNode[]): boolean =>
+  statements.some(
+    (statement) => !isNodeOfType(statement, "ReturnStatement") && hasEventLikeNode(statement),
+  );
 
 export const noEffectEventHandler = defineRule<Rule>({
   id: "no-effect-event-handler",
@@ -37,29 +98,31 @@ export const noEffectEventHandler = defineRule<Rule>({
         const depsNode = node.arguments[1];
         if (!isNodeOfType(depsNode, "ArrayExpression") || !depsNode.elements?.length) return;
 
-        const dependencyNames = new Set<string>();
-        for (const element of depsNode.elements ?? []) {
-          if (isNodeOfType(element, "Identifier")) dependencyNames.add(element.name);
-        }
+        const dependencyNames = collectDependencyRootNames(depsNode);
 
         const statements = getCallbackStatements(callback);
-        if (statements.length !== 1) return;
+        if (statements.length === 0) return;
 
         const soleStatement = statements[0];
         if (!isNodeOfType(soleStatement, "IfStatement")) return;
 
-        // HACK: §5 of "You Might Not Need an Effect" uses
-        // `if (product.isInCart)` — a MemberExpression, not a bare
-        // Identifier. The earlier detector hard-required `Identifier`
-        // and missed the article's literal example. Walk the test
-        // down to its root identifier so both shapes match:
-        //   if (isOpen)            → root = "isOpen"
-        //   if (product.isInCart)  → root = "product"
-        const rootIdentifierName = getRootIdentifierName(soleStatement.test);
-        if (!rootIdentifierName || !dependencyNames.has(rootIdentifierName)) return;
-        if (!propStackTracker.isPropName(rootIdentifierName, node)) return;
+        const conditionalRootNames = new Set<string>();
+        collectConditionalRootNames(soleStatement.test, conditionalRootNames);
+        const hasPropDependency = [...conditionalRootNames].some(
+          (rootIdentifierName) =>
+            dependencyNames.has(rootIdentifierName) &&
+            propStackTracker.isPropName(rootIdentifierName, node),
+        );
+        if (!hasPropDependency) return;
 
-        if (!hasEventLikeConsequent(soleStatement.consequent)) return;
+        const isSingleGuardedEventLikeStatement =
+          statements.length === 1 && hasEventLikeConsequent(soleStatement.consequent);
+        const isEarlyReturnGuardedEventLikeBody =
+          statements.length > 1 &&
+          !soleStatement.alternate &&
+          isReturnOnlyStatement(soleStatement.consequent) &&
+          hasEventLikeRemainingStatements(statements.slice(1));
+        if (!isSingleGuardedEventLikeStatement && !isEarlyReturnGuardedEventLikeBody) return;
 
         context.report({
           node,

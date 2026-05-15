@@ -79,6 +79,160 @@ export const Theme = ({ isDark }: { isDark: boolean }) => {
     expect(hits).toHaveLength(1);
   });
 
+  it("flags member-expression dependency arrays", async () => {
+    const projectDir = setupReactProject(tempRoot, "no-effect-event-handler-member-dep", {
+      files: {
+        "src/ProductPage.tsx": `import { useEffect } from "react";
+
+declare const showNotification: (message: string) => void;
+
+interface Product { isInCart: boolean; name: string }
+
+export const ProductPage = ({ product }: { product: Product }) => {
+  useEffect(() => {
+    if (product.isInCart) {
+      showNotification(\`Added \${product.name} to the shopping cart!\`);
+    }
+  }, [product.isInCart]);
+
+  return <div>{product.name}</div>;
+};
+`,
+      },
+    });
+
+    const hits = await collectRuleHits(projectDir, "no-effect-event-handler");
+    expect(hits).toHaveLength(1);
+  });
+
+  it("flags non-destructured prop parameters", async () => {
+    const projectDir = setupReactProject(tempRoot, "no-effect-event-handler-props-parameter", {
+      files: {
+        "src/ProductPage.tsx": `import { useEffect } from "react";
+
+declare const showNotification: (message: string) => void;
+
+interface Product { isInCart: boolean; name: string }
+
+export const ProductPage = (props: { product: Product }) => {
+  useEffect(() => {
+    if (props.product.isInCart) {
+      showNotification(\`Added \${props.product.name} to the shopping cart!\`);
+    }
+  }, [props.product.isInCart]);
+
+  return <div>{props.product.name}</div>;
+};
+`,
+      },
+    });
+
+    const hits = await collectRuleHits(projectDir, "no-effect-event-handler");
+    expect(hits).toHaveLength(1);
+  });
+
+  it("flags aliased destructured props with binary guards", async () => {
+    const projectDir = setupReactProject(tempRoot, "no-effect-event-handler-aliased-binary", {
+      files: {
+        "src/ProductPage.tsx": `import { useEffect } from "react";
+
+declare const showNotification: (message: string) => void;
+
+interface Product { isInCart: boolean; name: string }
+
+export const ProductPage = ({ product: item }: { product: Product }) => {
+  useEffect(() => {
+    if (item.isInCart === true) {
+      showNotification(\`Added \${item.name} to the shopping cart!\`);
+    }
+  }, [item.isInCart]);
+
+  return <div>{item.name}</div>;
+};
+`,
+      },
+    });
+
+    const hits = await collectRuleHits(projectDir, "no-effect-event-handler");
+    expect(hits).toHaveLength(1);
+  });
+
+  it("flags optional-chain logical guards", async () => {
+    const projectDir = setupReactProject(tempRoot, "no-effect-event-handler-optional-logical", {
+      files: {
+        "src/ProductPage.tsx": `import { useEffect } from "react";
+
+declare const showNotification: (message: string) => void;
+
+interface Product { isInCart: boolean; name: string }
+
+export const ProductPage = ({
+  product,
+  shouldNotify,
+}: {
+  product: Product | null;
+  shouldNotify: boolean;
+}) => {
+  useEffect(() => {
+    if (product?.isInCart && shouldNotify) {
+      showNotification(\`Added \${product.name} to the shopping cart!\`);
+    }
+  }, [product?.isInCart, shouldNotify]);
+
+  return <div>{product?.name}</div>;
+};
+`,
+      },
+    });
+
+    const hits = await collectRuleHits(projectDir, "no-effect-event-handler");
+    expect(hits).toHaveLength(1);
+  });
+
+  it("flags early-return guarded event-like effects", async () => {
+    const projectDir = setupReactProject(tempRoot, "no-effect-event-handler-early-return", {
+      files: {
+        "src/Modal.tsx": `import { useEffect } from "react";
+
+export const Modal = ({ isOpen }: { isOpen: boolean }) => {
+  useEffect(() => {
+    if (!isOpen) return;
+    document.body.classList.add("modal-open");
+  }, [isOpen]);
+  return <div />;
+};
+`,
+      },
+    });
+
+    const hits = await collectRuleHits(projectDir, "no-effect-event-handler");
+    expect(hits).toHaveLength(1);
+  });
+
+  it("does NOT treat cleanup-only early returns as event-like effects", async () => {
+    const projectDir = setupReactProject(
+      tempRoot,
+      "no-effect-event-handler-early-return-cleanup-only",
+      {
+        files: {
+          "src/Modal.tsx": `import { useEffect } from "react";
+
+export const Modal = ({ isOpen }: { isOpen: boolean }) => {
+  useEffect(() => {
+    if (!isOpen) return;
+    return () => document.body.classList.remove("modal-open");
+  }, [isOpen]);
+  return <div />;
+};
+`,
+        },
+      },
+    );
+
+    const hits = await collectRuleHits(projectDir, "no-effect-event-handler");
+    expect(hits).toHaveLength(0);
+  });
+
   it("flags wrapped component assignments", async () => {
     const projectDir = setupReactProject(tempRoot, "no-effect-event-handler-memo-component", {
       files: {
@@ -97,6 +251,34 @@ export const ProductPage = memo(({ product }: { product: Product }) => {
 
   return <div>{product.name}</div>;
 });
+`,
+      },
+    });
+
+    const hits = await collectRuleHits(projectDir, "no-effect-event-handler");
+    expect(hits).toHaveLength(1);
+  });
+
+  it("flags forwardRef component assignments", async () => {
+    const projectDir = setupReactProject(tempRoot, "no-effect-event-handler-forward-ref", {
+      files: {
+        "src/ProductPage.tsx": `import { forwardRef, useEffect } from "react";
+
+declare const showNotification: (message: string) => void;
+
+interface Product { isInCart: boolean; name: string }
+
+export const ProductPage = forwardRef<HTMLDivElement, { product: Product }>(
+  ({ product }, ref) => {
+    useEffect(() => {
+      if (product.isInCart) {
+        showNotification(\`Added \${product.name} to the shopping cart!\`);
+      }
+    }, [product.isInCart]);
+
+    return <div ref={ref}>{product.name}</div>;
+  },
+);
 `,
       },
     });
@@ -207,6 +389,36 @@ export const CartNotification = () => {
       showNotification(\`Added \${product.name} to the shopping cart!\`);
     }
   }, [product]);
+
+  return <div>{product.name}</div>;
+};
+`,
+        },
+      },
+    );
+
+    const hits = await collectRuleHits(projectDir, "no-effect-event-handler");
+    expect(hits).toHaveLength(0);
+  });
+
+  it("does NOT flag early-return effects for custom-hook-derived data", async () => {
+    const projectDir = setupReactProject(
+      tempRoot,
+      "no-effect-event-handler-hook-derived-early-return",
+      {
+        files: {
+          "src/CartNotification.tsx": `import { useEffect } from "react";
+
+declare const showNotification: (message: string) => void;
+declare const useCartProduct: () => { product: { isInCart: boolean; name: string } };
+
+export const CartNotification = () => {
+  const { product } = useCartProduct();
+
+  useEffect(() => {
+    if (!product.isInCart) return;
+    showNotification(\`Added \${product.name} to the shopping cart!\`);
+  }, [product.isInCart]);
 
   return <div>{product.name}</div>;
 };

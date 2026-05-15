@@ -21,6 +21,10 @@ export const getRootIdentifierName = (
   const followCallChains = options?.followCallChains === true;
   let cursor: EsTreeNode | undefined = node;
   while (cursor) {
+    if (isNodeOfType(cursor, "ChainExpression")) {
+      cursor = cursor.expression;
+      continue;
+    }
     if (isNodeOfType(cursor, "MemberExpression")) {
       cursor = cursor.object;
       continue;
