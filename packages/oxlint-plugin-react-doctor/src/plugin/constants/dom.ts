@@ -72,3 +72,14 @@ export const EXTERNAL_SYNC_OBSERVER_CONSTRUCTORS = new Set([
 ]);
 
 export const STORAGE_OBJECTS = new Set(["localStorage", "sessionStorage"]);
+
+export const USER_EVENT_METHODS = new Set([
+  "click",
+  "dblClick",
+  "hover",
+  "keyboard",
+  "selectOptions",
+  "type",
+  "unhover",
+  "upload",
+]);

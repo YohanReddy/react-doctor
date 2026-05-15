@@ -77,6 +77,7 @@ export const SUBSCRIPTION_METHOD_NAMES = new Set([
 // than a `subscribe()` whose return value gets re-bound.
 export const UNSUBSCRIPTION_METHOD_NAMES = new Set([
   "unsubscribe",
+  "remove",
   "removeEventListener",
   "removeListener",
   "off",

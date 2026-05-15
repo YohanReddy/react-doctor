@@ -12,6 +12,8 @@ import { advancedEventHandlerRefs } from "./rules/state-and-effects/advanced-eve
 import { asyncAwaitInLoop } from "./rules/js-performance/async-await-in-loop.js";
 import { asyncDeferAwait } from "./rules/performance/async-defer-await.js";
 import { asyncParallel } from "./rules/js-performance/async-parallel.js";
+import { asyncSuspenseBoundaries } from "./rules/performance/async-suspense-boundaries.js";
+import { clientEventListeners } from "./rules/client/client-event-listeners.js";
 import { clientLocalstorageNoVersion } from "./rules/client/client-localstorage-no-version.js";
 import { clientPassiveEventListeners } from "./rules/client/client-passive-event-listeners.js";
 import { noBoldHeading } from "./rules/react-ui/no-bold-heading.js";
@@ -22,6 +24,8 @@ import { noSpaceOnFlexChildren } from "./rules/react-ui/no-space-on-flex-childre
 import { noThreePeriodEllipsis } from "./rules/react-ui/no-three-period-ellipsis.js";
 import { noVagueButtonLabel } from "./rules/react-ui/no-vague-button-label.js";
 import { effectNeedsCleanup } from "./rules/state-and-effects/effect-needs-cleanup.js";
+import { i18nNoDynamicTranslationKey } from "./rules/i18n/i18n-no-dynamic-translation-key.js";
+import { i18nNoLiteralJsxText } from "./rules/i18n/i18n-no-literal-jsx-text.js";
 import { jsBatchDomCss } from "./rules/js-performance/js-batch-dom-css.js";
 import { jsCachePropertyAccess } from "./rules/js-performance/js-cache-property-access.js";
 import { jsCacheStorage } from "./rules/js-performance/js-cache-storage.js";
@@ -33,6 +37,7 @@ import { jsHoistRegexp } from "./rules/js-performance/js-hoist-regexp.js";
 import { jsIndexMaps } from "./rules/js-performance/js-index-maps.js";
 import { jsLengthCheckFirst } from "./rules/js-performance/js-length-check-first.js";
 import { jsMinMaxLoop } from "./rules/js-performance/js-min-max-loop.js";
+import { jsRequestIdleCallback } from "./rules/js-performance/js-request-idle-callback.js";
 import { jsSetMapLookups } from "./rules/js-performance/js-set-map-lookups.js";
 import { jsTosortedImmutable } from "./rules/js-performance/js-tosorted-immutable.js";
 import { nextjsAsyncClientComponent } from "./rules/nextjs/nextjs-async-client-component.js";
@@ -121,6 +126,10 @@ import { queryNoRestDestructuring } from "./rules/tanstack-query/query-no-rest-d
 import { queryNoUseQueryForMutation } from "./rules/tanstack-query/query-no-use-query-for-mutation.js";
 import { queryNoVoidQueryFn } from "./rules/tanstack-query/query-no-void-query-fn.js";
 import { queryStableQueryClient } from "./rules/tanstack-query/query-stable-query-client.js";
+import { r3fNoCloneInFrame } from "./rules/react-three-fiber/r3f-no-clone-in-frame.js";
+import { r3fNoNewInFrame } from "./rules/react-three-fiber/r3f-no-new-in-frame.js";
+import { r3fNoSetStateInFrame } from "./rules/react-three-fiber/r3f-no-set-state-in-frame.js";
+import { radixAschildSingleChild } from "./rules/shadcn/radix-aschild-single-child.js";
 import { reactCompilerDestructureMethod } from "./rules/architecture/react-compiler-destructure-method.js";
 import { renderingAnimateSvgWrapper } from "./rules/performance/rendering-animate-svg-wrapper.js";
 import { renderingConditionalRender } from "./rules/correctness/rendering-conditional-render.js";
@@ -139,6 +148,8 @@ import { rerenderMemoBeforeEarlyReturn } from "./rules/performance/rerender-memo
 import { rerenderMemoWithDefaultValue } from "./rules/performance/rerender-memo-with-default-value.js";
 import { rerenderStateOnlyInHandlers } from "./rules/state-and-effects/rerender-state-only-in-handlers.js";
 import { rerenderTransitionsScroll } from "./rules/performance/rerender-transitions-scroll.js";
+import { rhfNoNestedObjectSetvalue } from "./rules/react-hook-form/rhf-no-nested-object-setvalue.js";
+import { rhfNoWatchRender } from "./rules/react-hook-form/rhf-no-watch-render.js";
 import { rnAnimateLayoutProperty } from "./rules/react-native/rn-animate-layout-property.js";
 import { rnAnimationReactionAsDerived } from "./rules/react-native/rn-animation-reaction-as-derived.js";
 import { rnBottomSheetPreferNative } from "./rules/react-native/rn-bottom-sheet-prefer-native.js";
@@ -165,12 +176,24 @@ import { rnScrollviewDynamicPadding } from "./rules/react-native/rn-scrollview-d
 import { rnStylePreferBoxShadow } from "./rules/react-native/rn-style-prefer-box-shadow.js";
 import { serverAfterNonblocking } from "./rules/server/server-after-nonblocking.js";
 import { serverAuthActions } from "./rules/server/server-auth-actions.js";
+import { serverCacheReact } from "./rules/server/server-cache-react.js";
 import { serverCacheWithObjectLiteral } from "./rules/server/server-cache-with-object-literal.js";
 import { serverDedupProps } from "./rules/server/server-dedup-props.js";
 import { serverFetchWithoutRevalidate } from "./rules/server/server-fetch-without-revalidate.js";
 import { serverHoistStaticIo } from "./rules/server/server-hoist-static-io.js";
 import { serverNoMutableModuleState } from "./rules/server/server-no-mutable-module-state.js";
+import { serverParallelFetching } from "./rules/server/server-parallel-fetching.js";
+import { serverParallelNestedFetching } from "./rules/server/server-parallel-nested-fetching.js";
 import { serverSequentialIndependentAwait } from "./rules/server/server-sequential-independent-await.js";
+import { shadcnNoDirectRadixImport } from "./rules/shadcn/shadcn-no-direct-radix-import.js";
+import { storybookAwaitPlayInteractions } from "./rules/storybook/storybook-await-play-interactions.js";
+import { swrNoEmptyKey } from "./rules/swr/swr-no-empty-key.js";
+import { swrNoUnstableKey } from "./rules/swr/swr-no-unstable-key.js";
+import { tanstackAiChatLifecycleMiddleware } from "./rules/tanstack-ai/tanstack-ai-chat-lifecycle-middleware.js";
+import { tanstackAiNoDirectClientImport } from "./rules/tanstack-ai/tanstack-ai-no-direct-client-import.js";
+import { tanstackAiNoManualSseResponse } from "./rules/tanstack-ai/tanstack-ai-no-manual-sse-response.js";
+import { tanstackAiNoVercelSdkPatterns } from "./rules/tanstack-ai/tanstack-ai-no-vercel-sdk-patterns.js";
+import { tanstackAiOutputSchema } from "./rules/tanstack-ai/tanstack-ai-output-schema.js";
 import { tanstackStartGetMutation } from "./rules/tanstack-start/tanstack-start-get-mutation.js";
 import { tanstackStartLoaderParallelFetch } from "./rules/tanstack-start/tanstack-start-loader-parallel-fetch.js";
 import { tanstackStartMissingHeadContent } from "./rules/tanstack-start/tanstack-start-missing-head-content.js";
@@ -185,6 +208,8 @@ import { tanstackStartRedirectInTryCatch } from "./rules/tanstack-start/tanstack
 import { tanstackStartRoutePropertyOrder } from "./rules/tanstack-start/tanstack-start-route-property-order.js";
 import { tanstackStartServerFnMethodOrder } from "./rules/tanstack-start/tanstack-start-server-fn-method-order.js";
 import { tanstackStartServerFnValidateInput } from "./rules/tanstack-start/tanstack-start-server-fn-validate-input.js";
+import { testingAwaitUserEvent } from "./rules/testing-library/testing-await-user-event.js";
+import { testingNoContainerQuery } from "./rules/testing-library/testing-no-container-query.js";
 import { useLazyMotion } from "./rules/bundle-size/use-lazy-motion.js";
 
 export const ruleRegistry: Record<string, Rule> = {
@@ -205,6 +230,16 @@ export const ruleRegistry: Record<string, Rule> = {
   },
   "async-parallel": {
     ...asyncParallel,
+    framework: "global",
+    category: "Performance",
+  },
+  "async-suspense-boundaries": {
+    ...asyncSuspenseBoundaries,
+    framework: "global",
+    category: "Performance",
+  },
+  "client-event-listeners": {
+    ...clientEventListeners,
     framework: "global",
     category: "Performance",
   },
@@ -258,6 +293,16 @@ export const ruleRegistry: Record<string, Rule> = {
     framework: "global",
     category: "State & Effects",
   },
+  "i18n-no-dynamic-translation-key": {
+    ...i18nNoDynamicTranslationKey,
+    framework: "global",
+    category: "Internationalization",
+  },
+  "i18n-no-literal-jsx-text": {
+    ...i18nNoLiteralJsxText,
+    framework: "global",
+    category: "Internationalization",
+  },
   "js-batch-dom-css": {
     ...jsBatchDomCss,
     framework: "global",
@@ -310,6 +355,11 @@ export const ruleRegistry: Record<string, Rule> = {
   },
   "js-min-max-loop": {
     ...jsMinMaxLoop,
+    framework: "global",
+    category: "Performance",
+  },
+  "js-request-idle-callback": {
+    ...jsRequestIdleCallback,
     framework: "global",
     category: "Performance",
   },
@@ -753,6 +803,26 @@ export const ruleRegistry: Record<string, Rule> = {
     framework: "tanstack-query",
     category: "TanStack Query",
   },
+  "r3f-no-clone-in-frame": {
+    ...r3fNoCloneInFrame,
+    framework: "global",
+    category: "React Three Fiber",
+  },
+  "r3f-no-new-in-frame": {
+    ...r3fNoNewInFrame,
+    framework: "global",
+    category: "React Three Fiber",
+  },
+  "r3f-no-set-state-in-frame": {
+    ...r3fNoSetStateInFrame,
+    framework: "global",
+    category: "React Three Fiber",
+  },
+  "radix-aschild-single-child": {
+    ...radixAschildSingleChild,
+    framework: "global",
+    category: "UI Components",
+  },
   "react-compiler-destructure-method": {
     ...reactCompilerDestructureMethod,
     framework: "global",
@@ -842,6 +912,16 @@ export const ruleRegistry: Record<string, Rule> = {
     ...rerenderTransitionsScroll,
     framework: "global",
     category: "Performance",
+  },
+  "rhf-no-nested-object-setvalue": {
+    ...rhfNoNestedObjectSetvalue,
+    framework: "global",
+    category: "React Hook Form",
+  },
+  "rhf-no-watch-render": {
+    ...rhfNoWatchRender,
+    framework: "global",
+    category: "React Hook Form",
   },
   "rn-animate-layout-property": {
     ...rnAnimateLayoutProperty,
@@ -973,6 +1053,11 @@ export const ruleRegistry: Record<string, Rule> = {
     framework: "global",
     category: "Server",
   },
+  "server-cache-react": {
+    ...serverCacheReact,
+    framework: "global",
+    category: "Server",
+  },
   "server-cache-with-object-literal": {
     ...serverCacheWithObjectLiteral,
     framework: "global",
@@ -998,10 +1083,65 @@ export const ruleRegistry: Record<string, Rule> = {
     framework: "global",
     category: "Server",
   },
+  "server-parallel-fetching": {
+    ...serverParallelFetching,
+    framework: "global",
+    category: "Server",
+  },
+  "server-parallel-nested-fetching": {
+    ...serverParallelNestedFetching,
+    framework: "global",
+    category: "Server",
+  },
   "server-sequential-independent-await": {
     ...serverSequentialIndependentAwait,
     framework: "global",
     category: "Server",
+  },
+  "shadcn-no-direct-radix-import": {
+    ...shadcnNoDirectRadixImport,
+    framework: "global",
+    category: "UI Components",
+  },
+  "storybook-await-play-interactions": {
+    ...storybookAwaitPlayInteractions,
+    framework: "global",
+    category: "Testing",
+  },
+  "swr-no-empty-key": {
+    ...swrNoEmptyKey,
+    framework: "global",
+    category: "SWR",
+  },
+  "swr-no-unstable-key": {
+    ...swrNoUnstableKey,
+    framework: "global",
+    category: "SWR",
+  },
+  "tanstack-ai-chat-lifecycle-middleware": {
+    ...tanstackAiChatLifecycleMiddleware,
+    framework: "global",
+    category: "TanStack AI",
+  },
+  "tanstack-ai-no-direct-client-import": {
+    ...tanstackAiNoDirectClientImport,
+    framework: "global",
+    category: "TanStack AI",
+  },
+  "tanstack-ai-no-manual-sse-response": {
+    ...tanstackAiNoManualSseResponse,
+    framework: "global",
+    category: "TanStack AI",
+  },
+  "tanstack-ai-no-vercel-sdk-patterns": {
+    ...tanstackAiNoVercelSdkPatterns,
+    framework: "global",
+    category: "TanStack AI",
+  },
+  "tanstack-ai-output-schema": {
+    ...tanstackAiOutputSchema,
+    framework: "global",
+    category: "TanStack AI",
   },
   "tanstack-start-get-mutation": {
     ...tanstackStartGetMutation,
@@ -1072,6 +1212,16 @@ export const ruleRegistry: Record<string, Rule> = {
     ...tanstackStartServerFnValidateInput,
     framework: "tanstack-start",
     category: "TanStack Start",
+  },
+  "testing-await-user-event": {
+    ...testingAwaitUserEvent,
+    framework: "global",
+    category: "Testing",
+  },
+  "testing-no-container-query": {
+    ...testingNoContainerQuery,
+    framework: "global",
+    category: "Testing",
   },
   "use-lazy-motion": {
     ...useLazyMotion,

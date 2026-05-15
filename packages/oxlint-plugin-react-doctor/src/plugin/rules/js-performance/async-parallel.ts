@@ -1,4 +1,4 @@
-import { TEST_FILE_PATTERN } from "../../constants/js.js";
+import { TEST_OR_INFRA_FILE_PATTERN } from "../../constants/js.js";
 import { SEQUENTIAL_AWAIT_THRESHOLD } from "../../constants/thresholds.js";
 import { defineRule } from "../../utils/define-rule.js";
 import { walkAst } from "../../utils/walk-ast.js";
@@ -44,11 +44,11 @@ export const asyncParallel = defineRule<Rule>({
     "Use `const [a, b] = await Promise.all([fetchA(), fetchB()])` to run independent operations concurrently",
   create: (context: RuleContext) => {
     const filename = context.getFilename?.() ?? "";
-    const isTestFile = TEST_FILE_PATTERN.test(filename);
+    const isTestOrInfraFile = TEST_OR_INFRA_FILE_PATTERN.test(filename);
 
     return {
       BlockStatement(node: EsTreeNodeOfType<"BlockStatement">) {
-        if (isTestFile) return;
+        if (isTestOrInfraFile) return;
         const consecutiveAwaitStatements: EsTreeNode[] = [];
 
         const flushConsecutiveAwaits = (): void => {

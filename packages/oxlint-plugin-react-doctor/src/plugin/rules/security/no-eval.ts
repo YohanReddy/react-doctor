@@ -7,6 +7,7 @@ import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 export const noEval = defineRule<Rule>({
   id: "no-eval",
   severity: "error",
+  tags: ["test-noise"],
   recommendation:
     "Use `JSON.parse` for serialized data, `Function(...)` (still careful) for trusted templates, or refactor to avoid dynamic code execution",
   create: (context: RuleContext) => ({

@@ -53,7 +53,8 @@ const isTextHandlingComponent = (elementName: string): boolean => {
   return [...REACT_NATIVE_TEXT_COMPONENT_KEYWORDS].some((keyword) => elementName.includes(keyword));
 };
 
-const WEB_FILE_EXTENSION_PATTERN = /\.web\.[jt]sx?$/;
+const WEB_ONLY_FILE_PATTERN =
+  /(?:\.web\.[jt]sx?$|\/(?:apps\/web|packages\/(?:web|web-app)|docusaurus|docs?|documentation|website|storybook|stories)\/)/i;
 
 export const rnNoRawText = defineRule<Rule>({
   id: "rn-no-raw-text",
@@ -69,7 +70,7 @@ export const rnNoRawText = defineRule<Rule>({
       Program(programNode: EsTreeNodeOfType<"Program">) {
         isDomComponentFile = hasDirective(programNode, "use dom");
         const filename = context.getFilename?.() ?? "";
-        isWebOnlyFile = WEB_FILE_EXTENSION_PATTERN.test(filename);
+        isWebOnlyFile = WEB_ONLY_FILE_PATTERN.test(filename);
       },
       JSXElement(node: EsTreeNodeOfType<"JSXElement">) {
         if (isDomComponentFile || isWebOnlyFile) return;

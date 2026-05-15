@@ -20,7 +20,7 @@ const UNCONTROLLED_INPUT_TAGS = new Set(["input", "textarea", "select"]);
 // rules.
 const VALUE_BYPASS_INPUT_TYPES = new Set(["hidden", "checkbox", "radio"]);
 
-const VALUE_PARTNER_ATTRIBUTES = ["onChange", "readOnly"];
+const VALUE_PARTNER_ATTRIBUTES = ["onChange", "onInput", "readOnly"];
 
 const getInputTypeLiteral = (attributes: EsTreeNode[]): string | null => {
   const typeAttribute = findJsxAttribute(attributes, "type");
@@ -76,7 +76,7 @@ export const noUncontrolledInput = defineRule<Rule>({
   id: "no-uncontrolled-input",
   severity: "warn",
   recommendation:
-    'Pass an explicit initial value to `useState` (e.g. `useState("")` instead of `useState()`), add `onChange` (or `readOnly` to opt out) when you supply `value`, and drop `defaultValue` on controlled inputs — React ignores it',
+    'Pass an explicit initial value to `useState` (e.g. `useState("")` instead of `useState()`), add `onChange`/`onInput` (or `readOnly` to opt out) when you supply `value`, and drop `defaultValue` on controlled inputs — React ignores it',
   create: (context: RuleContext) => {
     const checkComponent = (componentBody: EsTreeNode | null | undefined): void => {
       if (!componentBody) return;
@@ -117,7 +117,7 @@ export const noUncontrolledInput = defineRule<Rule>({
           const stateName = valueAttribute.value.expression.name;
           const partnerHint = hasAllowedPartner
             ? "Initialize useState with an explicit value"
-            : "Initialize useState with an explicit value AND add onChange (or readOnly)";
+            : "Initialize useState with an explicit value AND add onChange/onInput (or readOnly)";
           context.report({
             node: child,
             message: `<${tagName} value={${stateName}}> — "${stateName}" is initialized as undefined (uncontrolled), then becomes controlled on first set; React warns about this flip. ${partnerHint} (e.g. \`useState("")\`)`,
@@ -136,7 +136,7 @@ export const noUncontrolledInput = defineRule<Rule>({
         if (!hasAllowedPartner) {
           context.report({
             node: child,
-            message: `<${tagName} value={...}> with no \`onChange\` or \`readOnly\` — React renders this as a silently read-only field`,
+            message: `<${tagName} value={...}> with no \`onChange\`, \`onInput\`, or \`readOnly\` — React renders this as a silently read-only field`,
           });
         }
       });

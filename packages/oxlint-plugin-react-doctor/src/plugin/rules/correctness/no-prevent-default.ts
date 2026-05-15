@@ -40,7 +40,7 @@ const containsPreventDefaultCall = (node: EsTreeNode): boolean => {
 
 const buildPreventDefaultMessage = (elementName: string): string => {
   if (elementName === "form") {
-    return "preventDefault() on <form> onSubmit — form won't work without JavaScript. Consider using a server action for progressive enhancement";
+    return "preventDefault() on <form> onSubmit — form submission won't work without JavaScript. Prefer progressive enhancement or handle only the cases that need interception";
   }
   return "preventDefault() on <a> onClick — use a <button> or routing component instead";
 };
@@ -49,7 +49,7 @@ export const noPreventDefault = defineRule<Rule>({
   id: "no-prevent-default",
   severity: "warn",
   recommendation:
-    "Use `<form action={serverAction}>` (works without JS) or `<button>` instead of `<a>` with preventDefault",
+    "Keep native form/link behavior when possible; use a button for actions, a routing component for navigation, or intercept only the branch that truly needs preventDefault",
   create: (context: RuleContext) => ({
     JSXOpeningElement(node: EsTreeNodeOfType<"JSXOpeningElement">) {
       const elementName = isNodeOfType(node.name, "JSXIdentifier") ? node.name.name : null;

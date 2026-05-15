@@ -1,10 +1,13 @@
 export const PAGE_FILE_PATTERN = /\/page\.(tsx?|jsx?)$/;
 export const PAGE_OR_LAYOUT_FILE_PATTERN = /\/(page|layout)\.(tsx?|jsx?)$/;
+export const APP_ROUTER_FILE_PATTERN =
+  /\/app\/(?:[^/]+\/)*(?:route|page|layout|template|loading|error|default)\.(?:tsx?|jsx?)$/;
 
 export const INTERNAL_PAGE_PATH_PATTERN =
   /\/(?:(?:\((?:dashboard|admin|settings|account|internal|manage|console|portal|auth|onboarding|app|ee|protected)\))|(?:dashboard|admin|settings|account|internal|manage|console|portal))\//i;
 
-export const OG_ROUTE_PATTERN = /\/og\b/i;
+export const OG_ROUTE_PATTERN =
+  /(?:\/og\b|\/opengraph-image\.(?:tsx?|jsx?)$|\.opengraph\.(?:tsx?|jsx?)$)/i;
 
 export const PAGES_DIRECTORY_PATTERN = /\/pages\//;
 
@@ -23,6 +26,8 @@ export const POLYFILL_SCRIPT_PATTERN = /polyfill\.io|polyfill\.min\.js|cdn\.poly
 export const APP_DIRECTORY_PATTERN = /\/app\//;
 
 export const ROUTE_HANDLER_FILE_PATTERN = /\/route\.(tsx?|jsx?)$/;
+
+export const CRON_ROUTE_PATTERN = /\/cron[-_]?/i;
 
 export const MUTATING_ROUTE_SEGMENTS = new Set([
   "logout",

@@ -46,4 +46,8 @@ export const MUTATING_ARRAY_METHODS = new Set([
 
 export const CHAINABLE_ITERATION_METHODS = new Set(["map", "filter", "forEach", "flatMap"]);
 
-export const TEST_FILE_PATTERN = /\.(?:test|spec|stories)\.[tj]sx?$/;
+export const TEST_FILE_PATTERN =
+  /(?:\.(?:test|spec|stories|story|e2e|integration)\.[tj]sx?$|\/(?:__tests__|__mocks__|__fixtures__|mocks|stories|storybook)\/)/;
+
+export const TEST_OR_INFRA_FILE_PATTERN =
+  /(?:\.(?:test|spec|stories|story|e2e|integration)\.[tj]sx?$|\/(?:__tests__|__mocks__|__fixtures__|mocks|stories|storybook|e2e|integration)\/)/;

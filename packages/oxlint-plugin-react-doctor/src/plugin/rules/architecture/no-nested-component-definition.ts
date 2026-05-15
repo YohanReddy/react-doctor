@@ -11,6 +11,7 @@ export const noNestedComponentDefinition = defineRule<Rule>({
   id: "no-nested-component-definition",
   severity: "error",
   category: "Correctness",
+  tags: ["test-noise"],
   recommendation: "Move to a separate file or to module scope above the parent component",
   create: (context: RuleContext) => {
     const componentStack: string[] = [];

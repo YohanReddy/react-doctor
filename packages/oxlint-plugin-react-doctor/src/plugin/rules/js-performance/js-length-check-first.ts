@@ -7,6 +7,58 @@ import type { RuleContext } from "../../utils/rule-context.js";
 import { isNodeOfType } from "../../utils/is-node-of-type.js";
 import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 
+const isEqualityLengthComparison = (node: EsTreeNode): boolean =>
+  isNodeOfType(node, "BinaryExpression") &&
+  (node.operator === "===" || node.operator === "==") &&
+  (isMemberProperty(node.left, "length") || isMemberProperty(node.right, "length"));
+
+const isInequalityLengthComparison = (node: EsTreeNode): boolean =>
+  isNodeOfType(node, "BinaryExpression") &&
+  (node.operator === "!==" || node.operator === "!=") &&
+  (isMemberProperty(node.left, "length") || isMemberProperty(node.right, "length"));
+
+const isDescendantOf = (node: EsTreeNode, target: EsTreeNode | null | undefined): boolean => {
+  let current: EsTreeNode | null | undefined = node;
+  while (current) {
+    if (current === target) return true;
+    current = current.parent;
+  }
+  return false;
+};
+
+const isInsideLengthGuard = (node: EsTreeNode): boolean => {
+  let ancestor: EsTreeNode | null | undefined = node.parent;
+  while (ancestor) {
+    if (
+      isNodeOfType(ancestor, "LogicalExpression") &&
+      ancestor.operator === "&&" &&
+      isEqualityLengthComparison(ancestor.left)
+    ) {
+      return true;
+    }
+    if (isNodeOfType(ancestor, "IfStatement")) {
+      const isInTrueBranch = isDescendantOf(node, ancestor.consequent);
+      const isInFalseBranch = isDescendantOf(node, ancestor.alternate);
+      if (isInTrueBranch && isEqualityLengthComparison(ancestor.test)) return true;
+      if (isInFalseBranch && isInequalityLengthComparison(ancestor.test)) return true;
+    }
+    if (isNodeOfType(ancestor, "ConditionalExpression")) {
+      const isInTrueBranch = isDescendantOf(node, ancestor.consequent);
+      const isInFalseBranch = isDescendantOf(node, ancestor.alternate);
+      if (isInTrueBranch && isEqualityLengthComparison(ancestor.test)) return true;
+      if (isInFalseBranch && isInequalityLengthComparison(ancestor.test)) return true;
+    }
+    ancestor = ancestor.parent;
+  }
+  return false;
+};
+
+const isIndexedMemberAccess = (node: EsTreeNode, indexName: string): boolean =>
+  isNodeOfType(node, "MemberExpression") &&
+  node.computed &&
+  isNodeOfType(node.property, "Identifier") &&
+  node.property.name === indexName;
+
 // HACK: when comparing two arrays element-by-element via .every / .some /
 // .reduce against another array, a length mismatch is the cheapest possible
 // shortcut. e.g. `a.length === b.length && a.every((x, i) => x === b[i])`
@@ -32,42 +84,28 @@ export const jsLengthCheckFirst = defineRule<Rule>({
       const params = callback.params ?? [];
       if (params.length < 2) return; // need (item, index, ...) to address other array
 
-      // Look for `other[index]` access in the body, suggesting elementwise compare.
-      let referencesOtherArrayByIndex = false;
+      const indexParam = params[1];
+      if (!isNodeOfType(indexParam, "Identifier")) return;
+
+      let hasElementWiseComparison = false;
       walkAst(callback.body, (child: EsTreeNode) => {
-        if (referencesOtherArrayByIndex) return;
+        if (hasElementWiseComparison) return;
         if (
-          isNodeOfType(child, "MemberExpression") &&
-          child.computed &&
-          isNodeOfType(child.property, "Identifier") &&
-          isNodeOfType(params[1], "Identifier") &&
-          child.property.name === params[1].name
-        ) {
-          referencesOtherArrayByIndex = true;
-        }
-      });
-
-      if (!referencesOtherArrayByIndex) return;
-
-      // Walk up to ensure we're not already inside a length-check guard.
-      let guard: EsTreeNode | null = node.parent ?? null;
-      while (
-        guard &&
-        !isNodeOfType(guard, "LogicalExpression") &&
-        !isNodeOfType(guard, "IfStatement")
-      ) {
-        guard = guard.parent ?? null;
-      }
-      if (isNodeOfType(guard, "LogicalExpression") && guard.operator === "&&") {
-        const left = guard.left;
-        if (
-          isNodeOfType(left, "BinaryExpression") &&
-          left.operator === "===" &&
-          (isMemberProperty(left.left, "length") || isMemberProperty(left.right, "length"))
+          !isNodeOfType(child, "BinaryExpression") ||
+          (child.operator !== "===" && child.operator !== "!==")
         ) {
           return;
         }
-      }
+        if (
+          isIndexedMemberAccess(child.left, indexParam.name) ||
+          isIndexedMemberAccess(child.right, indexParam.name)
+        ) {
+          hasElementWiseComparison = true;
+        }
+      });
+
+      if (!hasElementWiseComparison) return;
+      if (isInsideLengthGuard(node)) return;
 
       context.report({
         node,

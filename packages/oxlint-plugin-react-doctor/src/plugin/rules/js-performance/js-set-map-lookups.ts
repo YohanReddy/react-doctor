@@ -1,5 +1,6 @@
 import { createLoopAwareVisitors } from "../../utils/create-loop-aware-visitors.js";
 import { defineRule } from "../../utils/define-rule.js";
+import { INLINE_ARRAY_LOOKUP_SET_THRESHOLD } from "../../constants/thresholds.js";
 import type { EsTreeNode } from "../../utils/es-tree-node.js";
 import type { Rule } from "../../utils/rule.js";
 import type { RuleContext } from "../../utils/rule-context.js";
@@ -129,6 +130,30 @@ const STRING_TYPED_IDENTIFIER_NAMES: ReadonlySet<string> = new Set([
   "needle",
 ]);
 
+const STRING_TYPED_IDENTIFIER_SUFFIXES: ReadonlyArray<string> = [
+  "Text",
+  "String",
+  "Name",
+  "Label",
+  "Title",
+  "Slug",
+  "Path",
+  "Url",
+  "Uri",
+  "Href",
+  "Src",
+  "Code",
+  "Id",
+];
+
+const isLikelyStringIdentifierName = (name: string): boolean =>
+  STRING_TYPED_IDENTIFIER_NAMES.has(name) ||
+  STRING_TYPED_IDENTIFIER_SUFFIXES.some((suffix) => name.endsWith(suffix));
+
+const isSmallInlineArrayReceiver = (receiver: EsTreeNode | null | undefined): boolean =>
+  isNodeOfType(receiver, "ArrayExpression") &&
+  (receiver.elements?.length ?? 0) < INLINE_ARRAY_LOOKUP_SET_THRESHOLD;
+
 // HACK: returns true when the receiver of `.includes()` / `.indexOf()`
 // is obviously a string, so the Set rewrite suggestion doesn't apply.
 const isLikelyStringReceiver = (receiver: EsTreeNode | null | undefined): boolean => {
@@ -160,7 +185,7 @@ const isLikelyStringReceiver = (receiver: EsTreeNode | null | undefined): boolea
   ) {
     return true;
   }
-  if (isNodeOfType(receiver, "Identifier") && STRING_TYPED_IDENTIFIER_NAMES.has(receiver.name)) {
+  if (isNodeOfType(receiver, "Identifier") && isLikelyStringIdentifierName(receiver.name)) {
     return true;
   }
   return false;
@@ -182,6 +207,7 @@ export const jsSetMapLookups = defineRule<Rule>({
         const methodName = node.callee.property.name;
         if (methodName !== "includes" && methodName !== "indexOf") return;
         if (isLikelyStringReceiver(node.callee.object)) return;
+        if (isSmallInlineArrayReceiver(node.callee.object)) return;
         context.report({
           node,
           message: `array.${methodName}() in a loop is O(n) per call — convert to a Set for O(1) lookups`,
