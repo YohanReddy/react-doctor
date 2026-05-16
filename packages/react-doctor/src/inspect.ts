@@ -257,11 +257,15 @@ const runInspect = async (
   // tag) from the printed list when capturing output destined for a PR
   // comment, so style cleanup can't dilute meaningful React findings.
   // The full diagnostic list is still returned via `buildResult()` so
-  // JSON consumers and the score path see everything.
-  const surfaceDiagnostics =
-    options.outputSurface === "cli"
-      ? diagnostics
-      : filterDiagnosticsForSurface(diagnostics, options.outputSurface, userConfig);
+  // JSON consumers and the score path see everything. The filter always
+  // runs (even for the `cli` surface, which ships with no default
+  // exclusions) so user-configured `surfaces.cli.exclude*` overrides
+  // are honored on the printed output too.
+  const surfaceDiagnostics = filterDiagnosticsForSurface(
+    diagnostics,
+    options.outputSurface,
+    userConfig,
+  );
   const demotedDiagnosticCount = diagnostics.length - surfaceDiagnostics.length;
 
   if (surfaceDiagnostics.length === 0) {

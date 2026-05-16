@@ -77,4 +77,44 @@ describe("inspect — score surface filter", () => {
       consoleSpy.mockRestore();
     }
   });
+
+  // Regression for the Bugbot finding on #271: the `cli` outputSurface
+  // used to short-circuit to the raw diagnostic list, which silently
+  // dropped any user-configured `surfaces.cli.exclude*` controls before
+  // the printed output rendered. The filter now always runs so user
+  // overrides on the cli surface flow through end-to-end.
+  it("honors user-configured `surfaces.cli` overrides on the printed output", async () => {
+    const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    stubScoreFetchAndCapture();
+    const printedLines: string[] = [];
+    consoleSpy.mockImplementation((...args: unknown[]) => {
+      printedLines.push(args.map(String).join(" "));
+    });
+
+    try {
+      const baselineResult = await inspect(path.join(FIXTURES_DIRECTORY, "basic-react"), {
+        lint: true,
+        offline: true,
+      });
+      const baselineDesignCount = baselineResult.diagnostics.filter(
+        (diagnostic) =>
+          diagnostic.plugin === "react-doctor" &&
+          (reactDoctorPlugin.rules[diagnostic.rule]?.tags?.includes("design") ?? false),
+      ).length;
+      expect(baselineDesignCount).toBeGreaterThan(0);
+      printedLines.length = 0;
+
+      await inspect(path.join(FIXTURES_DIRECTORY, "basic-react"), {
+        lint: true,
+        offline: true,
+        outputSurface: "cli",
+        configOverride: { surfaces: { cli: { excludeTags: ["design"] } } },
+      });
+
+      const printedText = printedLines.join("\n");
+      expect(printedText).toContain(`${baselineDesignCount} demoted from the cli surface`);
+    } finally {
+      consoleSpy.mockRestore();
+    }
+  });
 });
