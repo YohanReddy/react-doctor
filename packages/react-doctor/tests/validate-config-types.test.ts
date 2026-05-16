@@ -71,4 +71,48 @@ describe("validateConfigTypes", () => {
     expect(validateConfigTypes(input)).toEqual(input);
     expect(stderrSpy).not.toHaveBeenCalled();
   });
+
+  describe("surfaces", () => {
+    it("passes through a well-formed surfaces config untouched", () => {
+      const input: ReactDoctorConfig = {
+        surfaces: {
+          prComment: { includeTags: ["design"], excludeCategories: ["Performance"] },
+          ciFailure: { excludeRules: ["react-doctor/no-vague-button-label"] },
+        },
+      };
+      expect(validateConfigTypes(input)).toEqual(input);
+      expect(stderrSpy).not.toHaveBeenCalled();
+    });
+
+    it("drops unknown surface keys with a stderr warning", () => {
+      const result = validateConfigTypes({
+        surfaces: {
+          prComment: { excludeTags: ["design"] },
+          dashboard: { excludeTags: ["foo"] },
+        } as unknown as ReactDoctorConfig["surfaces"],
+      });
+      expect(result.surfaces).toEqual({ prComment: { excludeTags: ["design"] } });
+      expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("dashboard"));
+    });
+
+    it("strips non-string entries from include/exclude arrays", () => {
+      const result = validateConfigTypes({
+        surfaces: {
+          score: {
+            excludeTags: ["design", 42, null] as unknown as string[],
+          },
+        },
+      });
+      expect(result.surfaces).toEqual({ score: { excludeTags: ["design"] } });
+      expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("excludeTags"));
+    });
+
+    it("drops the entire surfaces field if it isn't an object", () => {
+      const result = validateConfigTypes({
+        surfaces: "all" as unknown as ReactDoctorConfig["surfaces"],
+      });
+      expect(result.surfaces).toBeUndefined();
+      expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("surfaces"));
+    });
+  });
 });
