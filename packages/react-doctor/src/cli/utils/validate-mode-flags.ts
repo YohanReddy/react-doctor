@@ -20,6 +20,9 @@ export const validateModeFlags = (flags: InspectFlags): void => {
   if (flags.score && flags.json) {
     throw new Error("Cannot combine --score and --json; pick one output mode.");
   }
+  if (flags.prComment && (flags.json || flags.score)) {
+    throw new Error("--pr-comment cannot be combined with --json or --score.");
+  }
   if (flags.annotations && (flags.json || flags.score)) {
     throw new Error("--annotations cannot be combined with --json or --score.");
   }

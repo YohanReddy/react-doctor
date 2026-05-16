@@ -36,6 +36,10 @@ const program = new Command()
   )
   .option("--annotations", "output diagnostics as GitHub Actions annotations")
   .option(
+    "--pr-comment",
+    "tune CLI output for sticky PR comments (drops weak-signal rule families like `design` from the printed list and the fail-on gate; configure via config.surfaces)",
+  )
+  .option(
     "--explain <file:line>",
     "diagnose why a rule fired or why a suppression didn't apply at a specific location",
   )

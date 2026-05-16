@@ -4,6 +4,7 @@ import path from "node:path";
 import { performance } from "node:perf_hooks";
 import {
   buildJsonReport,
+  filterDiagnosticsForSurface,
   filterSourceFiles,
   getDiffInfo,
   highlighter,
@@ -155,9 +156,14 @@ export const inspectAction = async (directory: string, flags: InspectFlags): Pro
           printAnnotations(remappedDiagnostics, isJsonMode);
         }
 
+        const ciFailureDiagnostics = filterDiagnosticsForSurface(
+          remappedDiagnostics,
+          "ciFailure",
+          userConfig,
+        );
         if (
           !isScoreOnly &&
-          shouldFailForDiagnostics(remappedDiagnostics, resolveFailOnLevel(flags, userConfig))
+          shouldFailForDiagnostics(ciFailureDiagnostics, resolveFailOnLevel(flags, userConfig))
         ) {
           process.exitCode = 1;
         }
@@ -258,9 +264,14 @@ export const inspectAction = async (directory: string, flags: InspectFlags): Pro
       printAnnotations(allDiagnostics, isJsonMode);
     }
 
+    const ciFailureDiagnostics = filterDiagnosticsForSurface(
+      allDiagnostics,
+      "ciFailure",
+      userConfig,
+    );
     if (
       !isScoreOnly &&
-      shouldFailForDiagnostics(allDiagnostics, resolveFailOnLevel(flags, userConfig))
+      shouldFailForDiagnostics(ciFailureDiagnostics, resolveFailOnLevel(flags, userConfig))
     ) {
       process.exitCode = 1;
     }

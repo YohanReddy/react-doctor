@@ -4,6 +4,7 @@ import {
   calculateScore,
   combineDiagnostics,
   computeJsxIncludePaths,
+  filterDiagnosticsForSurface,
   formatErrorChain,
   highlighter,
   isLoggerSilent,
@@ -17,6 +18,7 @@ import {
 import { discoverProject, NoReactDependencyError } from "@react-doctor/project-info";
 import type {
   Diagnostic,
+  DiagnosticSurface,
   InspectOptions,
   InspectResult,
   ReactDoctorConfig,
@@ -44,6 +46,7 @@ interface ResolvedInspectOptions {
   respectInlineDisables: boolean;
   adoptExistingLintConfig: boolean;
   ignoredTags: ReadonlySet<string>;
+  outputSurface: DiagnosticSurface;
 }
 
 const buildIgnoredTags = (userConfig: ReactDoctorConfig | null): ReadonlySet<string> => {
@@ -70,6 +73,7 @@ const mergeInspectOptions = (
     inputOptions.respectInlineDisables ?? userConfig?.respectInlineDisables ?? true,
   adoptExistingLintConfig: userConfig?.adoptExistingLintConfig ?? true,
   ignoredTags: buildIgnoredTags(userConfig),
+  outputSurface: inputOptions.outputSurface ?? "cli",
 });
 
 export const inspect = async (
@@ -210,7 +214,13 @@ const runInspect = async (
   // network round-trip didn't return a usable score) — so the
   // renderer doesn't claim offline mode when the user is online but
   // the API was unreachable.
-  const scoreResult = options.offline ? null : await calculateScore(diagnostics);
+  //
+  // Pre-filter diagnostics through the `score` surface so weak-signal
+  // rule families (e.g. `design`) stay out of scoring by default and
+  // don't dilute the headline number. Surface-included diagnostics
+  // still flow through `result.diagnostics` for CLI/JSON consumers.
+  const scoreDiagnostics = filterDiagnosticsForSurface(diagnostics, "score", userConfig);
+  const scoreResult = options.offline ? null : await calculateScore(scoreDiagnostics);
   const noScoreMessage = options.offline
     ? "Score unavailable in offline mode."
     : "Score unavailable (could not reach the score API).";
@@ -243,11 +253,26 @@ const runInspect = async (
     return buildResult();
   }
 
-  if (diagnostics.length === 0) {
+  // `outputSurface` strips weak-signal rule families (default: `design`
+  // tag) from the printed list when capturing output destined for a PR
+  // comment, so style cleanup can't dilute meaningful React findings.
+  // The full diagnostic list is still returned via `buildResult()` so
+  // JSON consumers and the score path see everything.
+  const surfaceDiagnostics =
+    options.outputSurface === "cli"
+      ? diagnostics
+      : filterDiagnosticsForSurface(diagnostics, options.outputSurface, userConfig);
+  const demotedDiagnosticCount = diagnostics.length - surfaceDiagnostics.length;
+
+  if (surfaceDiagnostics.length === 0) {
     if (hasSkippedChecks) {
       const skippedLabel = skippedChecks.join(" and ");
       logger.warn(
         `No issues detected, but ${skippedLabel} checks failed — results are incomplete.`,
+      );
+    } else if (demotedDiagnosticCount > 0) {
+      logger.success(
+        `No issues found! (${demotedDiagnosticCount} demoted from the ${options.outputSurface} surface — see config.surfaces.)`,
       );
     } else {
       logger.success("No issues found!");
@@ -265,13 +290,22 @@ const runInspect = async (
   }
 
   logger.break();
-  printDiagnostics(diagnostics, options.verbose, directory);
+  printDiagnostics(surfaceDiagnostics, options.verbose, directory);
+
+  if (demotedDiagnosticCount > 0) {
+    logger.log(
+      highlighter.gray(
+        `  ${demotedDiagnosticCount} demoted from the ${options.outputSurface} surface (e.g. design cleanup) — run \`npx react-doctor@latest .\` locally for the full list.`,
+      ),
+    );
+    logger.break();
+  }
 
   const displayedSourceFileCount = isDiffMode ? includePaths.length : lintSourceFileCount;
 
   const shouldShowShareLink = !options.offline && options.share;
   printSummary(
-    diagnostics,
+    surfaceDiagnostics,
     elapsedMilliseconds,
     scoreResult,
     projectInfo.projectName,

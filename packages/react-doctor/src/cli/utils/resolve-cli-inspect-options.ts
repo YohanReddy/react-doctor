@@ -12,4 +12,5 @@ export const resolveCliInspectOptions = (
   offline: Boolean(flags.offline) || (userConfig?.offline ?? false) || isCiEnvironment(),
   silent: Boolean(flags.json),
   respectInlineDisables: flags.respectInlineDisables ?? userConfig?.respectInlineDisables ?? true,
+  outputSurface: flags.prComment ? "prComment" : "cli",
 });
