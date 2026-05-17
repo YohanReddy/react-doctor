@@ -12,7 +12,6 @@ import {
   hasSpreadAttribute,
   getJsxAttributeStringValue,
   INTERACTIVE_ROLES,
-  ABSTRACT_ROLES,
 } from "../../utils/jsx-a11y-helpers.js";
 
 const EVENT_HANDLER_PROPS = [
@@ -58,7 +57,7 @@ export const a11yNoStaticElementInteractions = defineRule<Rule>({
       const roleAttribute = findJsxAttributeIgnoreCase(node.attributes, "role");
       if (roleAttribute) {
         const roleValue = getJsxAttributeStringValue(roleAttribute);
-        if (roleValue && !ABSTRACT_ROLES.has(roleValue)) return;
+        if (roleValue && INTERACTIVE_ROLES.has(roleValue)) return;
       }
 
       const hasEventHandler = EVENT_HANDLER_PROPS.some((prop) =>

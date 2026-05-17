@@ -214,9 +214,9 @@ export const rulesOfHooks = defineRule<Rule>({
           return;
         }
       } else {
-        const innerFunction = getEnclosingFunction(node);
-        if (innerFunction && !isMemoOrForwardRefCallback(innerFunction)) {
-          if (functionName && isComponentOrHookName(functionName)) {
+        if (!isMemoOrForwardRefCallback(enclosingFunction)) {
+          const enclosingFunctionName = getFunctionName(enclosingFunction);
+          if (enclosingFunctionName && isComponentOrHookName(enclosingFunctionName)) {
             context.report({
               node,
               message: `React Hook "${hookName}" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function.`,
@@ -224,7 +224,7 @@ export const rulesOfHooks = defineRule<Rule>({
             return;
           }
 
-          let outerFunction: EsTreeNode | null | undefined = innerFunction.parent;
+          let outerFunction: EsTreeNode | null | undefined = enclosingFunction.parent;
           while (outerFunction) {
             if (
               isNodeOfType(outerFunction, "FunctionDeclaration") ||

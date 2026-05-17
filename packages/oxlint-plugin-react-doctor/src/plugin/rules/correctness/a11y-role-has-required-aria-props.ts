@@ -7,7 +7,6 @@ import { findJsxAttributeIgnoreCase } from "../../utils/find-jsx-attribute-ignor
 import {
   getJsxAttributeStringValue,
   hasSpreadAttribute,
-  HTML_TAGS,
   ABSTRACT_ROLES,
   ELEMENT_IMPLICIT_ROLES,
 } from "../../utils/jsx-a11y-helpers.js";
@@ -31,7 +30,7 @@ const MESSAGE = "Elements with ARIA roles must have all required ARIA attributes
 
 export const a11yRoleHasRequiredAriaProps = defineRule<Rule>({
   id: "a11y-role-has-required-aria-props",
-  severity: "warn",
+  severity: "error",
   recommendation: MESSAGE,
   create: (context: RuleContext) => ({
     JSXOpeningElement(node: EsTreeNodeOfType<"JSXOpeningElement">) {

@@ -44,22 +44,6 @@ const statementReturns = (node: EsTreeNode): boolean => {
   return false;
 };
 
-const isRenderMethod = (node: EsTreeNode): boolean => {
-  if (
-    isNodeOfType(node, "MethodDefinition") &&
-    isNodeOfType(node.key, "Identifier") &&
-    node.key.name === "render"
-  )
-    return true;
-  if (
-    isNodeOfType(node, "Property") &&
-    isNodeOfType(node.key, "Identifier") &&
-    node.key.name === "render"
-  )
-    return true;
-  return false;
-};
-
 const isInsideClassComponent = (node: EsTreeNode): boolean => {
   let current: EsTreeNode | null | undefined = node.parent;
   while (current) {

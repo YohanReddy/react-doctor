@@ -5,7 +5,7 @@ import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 import { isNodeOfType } from "../../utils/is-node-of-type.js";
 import { getJsxElementName } from "../../utils/get-jsx-element-name.js";
 import { findJsxAttributeIgnoreCase } from "../../utils/find-jsx-attribute-ignore-case.js";
-import { getJsxAttributeStringValue, hasSpreadAttribute } from "../../utils/jsx-a11y-helpers.js";
+import { hasSpreadAttribute } from "../../utils/jsx-a11y-helpers.js";
 
 const NO_HREF_MESSAGE =
   "The `href` attribute is required for an anchor to be keyboard accessible. Provide a valid, navigable address as the `href` value. If you cannot provide an `href`, but still need the element to resemble a link, use a `<button>` and change it with appropriate styles.";

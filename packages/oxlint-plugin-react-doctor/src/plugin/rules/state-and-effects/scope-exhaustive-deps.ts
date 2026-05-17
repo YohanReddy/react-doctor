@@ -331,7 +331,7 @@ const collectRecommendations = ({
   };
 };
 
-const getConstructionExpressionType = (node: EsTreeNode): string | null => {
+const _getConstructionExpressionType = (node: EsTreeNode): string | null => {
   const rec = nodeRecord(node);
   const type = nodeType(node);
   switch (type) {
@@ -346,16 +346,16 @@ const getConstructionExpressionType = (node: EsTreeNode): string | null => {
       return "class";
     case "ConditionalExpression":
       if (
-        getConstructionExpressionType(rec.consequent as EsTreeNode) !== null ||
-        getConstructionExpressionType(rec.alternate as EsTreeNode) !== null
+        _getConstructionExpressionType(rec.consequent as EsTreeNode) !== null ||
+        _getConstructionExpressionType(rec.alternate as EsTreeNode) !== null
       ) {
         return "conditional";
       }
       return null;
     case "LogicalExpression":
       if (
-        getConstructionExpressionType(rec.left as EsTreeNode) !== null ||
-        getConstructionExpressionType(rec.right as EsTreeNode) !== null
+        _getConstructionExpressionType(rec.left as EsTreeNode) !== null ||
+        _getConstructionExpressionType(rec.right as EsTreeNode) !== null
       ) {
         return "logical expression";
       }
@@ -365,7 +365,7 @@ const getConstructionExpressionType = (node: EsTreeNode): string | null => {
     case "JSXElement":
       return "JSX element";
     case "AssignmentExpression":
-      if (getConstructionExpressionType(rec.right as EsTreeNode) !== null) {
+      if (_getConstructionExpressionType(rec.right as EsTreeNode) !== null) {
         return "assignment expression";
       }
       return null;
@@ -377,10 +377,10 @@ const getConstructionExpressionType = (node: EsTreeNode): string | null => {
       return null;
     }
     case "TSAsExpression":
-      return getConstructionExpressionType(rec.expression as EsTreeNode);
+      return _getConstructionExpressionType(rec.expression as EsTreeNode);
     default: {
       if (type === "TypeCastExpression" || type === "AsExpression") {
-        return getConstructionExpressionType(rec.expression as EsTreeNode);
+        return _getConstructionExpressionType(rec.expression as EsTreeNode);
       }
       return null;
     }
@@ -669,8 +669,6 @@ export const scopeExhaustiveDeps = defineRule<Rule>({
             const refNode = fastFindReferenceWithParent(callback, reference.identifier);
             if (!refNode) continue;
             const depNode = getDependency(refNode);
-            const depNodeRec = nodeRecord(depNode);
-
             if (
               depNode.type === "Identifier" &&
               depNode.parent &&

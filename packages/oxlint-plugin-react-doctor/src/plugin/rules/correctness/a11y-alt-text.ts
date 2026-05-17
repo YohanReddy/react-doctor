@@ -7,7 +7,6 @@ import { findJsxAttributeIgnoreCase } from "../../utils/find-jsx-attribute-ignor
 import { getJsxElementName } from "../../utils/get-jsx-element-name.js";
 import {
   getJsxAttributeStringValue,
-  isJsxAttributeValueNullOrUndefined,
   hasAccessibleChild,
 } from "../../utils/jsx-a11y-helpers.js";
 
@@ -79,7 +78,7 @@ const isPresentationRoleValue = (
 
 export const a11yAltText = defineRule<Rule>({
   id: "a11y-alt-text",
-  severity: "warn",
+  severity: "error",
   recommendation: MISSING_ALT_PROP,
   create: (context: RuleContext) => ({
     JSXOpeningElement(node: EsTreeNodeOfType<"JSXOpeningElement">) {

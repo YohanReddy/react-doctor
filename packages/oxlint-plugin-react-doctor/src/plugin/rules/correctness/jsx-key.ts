@@ -5,8 +5,6 @@ import { isNodeOfType } from "../../utils/is-node-of-type.js";
 import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 import type { EsTreeNode } from "../../utils/es-tree-node.js";
 
-const ITERATOR_METHODS = new Set(["map", "flatMap", "from"]);
-
 const hasKeyProp = (node: EsTreeNode): boolean => {
   if (isNodeOfType(node, "JSXOpeningElement")) {
     return node.attributes.some(
@@ -17,12 +15,6 @@ const hasKeyProp = (node: EsTreeNode): boolean => {
     );
   }
   return false;
-};
-
-const getJsxOpeningElement = (node: EsTreeNode): EsTreeNodeOfType<"JSXOpeningElement"> | null => {
-  if (isNodeOfType(node, "JSXElement") && node.openingElement) return node.openingElement;
-  if (isNodeOfType(node, "JSXFragment")) return null;
-  return null;
 };
 
 const isInsideArrayOrIterator = (node: EsTreeNode): "array" | "iterator" | null => {

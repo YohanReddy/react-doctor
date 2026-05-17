@@ -2,7 +2,6 @@ import type { EsTreeNode } from "./es-tree-node.js";
 import type { RuleContext } from "./rule-context.js";
 import type { ScopeReference } from "./scope-types.js";
 import {
-  getCallExpr,
   getDownstreamRefs,
   getRef,
   getUpstreamRefs,

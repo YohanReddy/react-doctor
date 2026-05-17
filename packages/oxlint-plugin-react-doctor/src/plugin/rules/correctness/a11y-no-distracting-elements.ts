@@ -11,7 +11,7 @@ const MESSAGE =
 
 export const a11yNoDistractingElements = defineRule<Rule>({
   id: "a11y-no-distracting-elements",
-  severity: "warn",
+  severity: "error",
   recommendation: MESSAGE,
   create: (context: RuleContext) => ({
     JSXOpeningElement(node: EsTreeNodeOfType<"JSXOpeningElement">) {
