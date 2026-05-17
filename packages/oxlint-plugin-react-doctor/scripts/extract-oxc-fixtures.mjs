@@ -437,7 +437,7 @@ const buildHelperMap = (source) => {
   return helpers;
 };
 
-const writeFixturesForRule = (ruleId, fileBaseName, oxcFilePath, fixturesDir) => {
+const writeFixturesForRule = (ruleId, fileBaseName, oxcFilePath, fixturesDir, oxcRoot) => {
   const source = fs.readFileSync(oxcFilePath, "utf8");
   const helperMap = buildHelperMap(source);
   // Make helper map reachable by parseEntry via module scope below.
@@ -468,9 +468,11 @@ const writeFixturesForRule = (ruleId, fileBaseName, oxcFilePath, fixturesDir) =>
     return `  { ${parts.join(", ")} }`;
   };
 
-  const upstreamRelative = path
-    .relative(path.dirname(oxcFilePath), oxcFilePath)
-    .replace(/\\/g, "/");
+  // Compute path relative to OXC's `crates/oxc_linter/src/rules` root
+  // so the generated header carries the bucket subdirectory (e.g.
+  // `react/no_array_index_key.rs`) instead of just the filename.
+  const oxcRulesRoot = path.join(oxcRoot, "crates/oxc_linter/src/rules");
+  const upstreamRelative = path.relative(oxcRulesRoot, oxcFilePath).replace(/\\/g, "/");
   const fileContent = `// GENERATED FROM OXC — do not edit by hand. Run \`pnpm gen:fixtures\` to regenerate.
 // Source: oxc-project/oxc \`crates/oxc_linter/src/rules/${upstreamRelative}\`
 // Each entry is a verbatim port of an OXC \`pass\`/\`fail\` vec entry.
@@ -516,7 +518,7 @@ const main = () => {
         skipped.push({ bucket, ruleId, reason: "no upstream .rs found" });
         continue;
       }
-      const wrote = writeFixturesForRule(ruleId, fileBaseName, oxcFilePath, fixturesDir);
+      const wrote = writeFixturesForRule(ruleId, fileBaseName, oxcFilePath, fixturesDir, oxcRoot);
       if (wrote) generated.push(`${bucket}/${ruleId}`);
       else skipped.push({ bucket, ruleId, reason: "no pass/fail vec found" });
     }
