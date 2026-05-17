@@ -56,6 +56,7 @@ const PLUGIN_CATEGORY_MAP: Record<string, string> = {
   "react-hooks": "Correctness",
   "react-hooks-js": "React Compiler",
   "react-doctor": "Other",
+  deslop: "Dead Code",
   "jsx-a11y": "Accessibility",
   effect: "State & Effects",
   // Plugins users commonly enable in their own oxlint / eslint config

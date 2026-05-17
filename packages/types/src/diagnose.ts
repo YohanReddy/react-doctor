@@ -4,6 +4,13 @@ import type { ScoreResult } from "./score.js";
 
 export interface DiagnoseOptions {
   lint?: boolean;
+  /**
+   * Run dead-code analysis (via `deslop-js`) alongside lint. See
+   * `ReactDoctorConfig.deadCode`. Defaults to `true` when neither this
+   * option nor the config explicitly disables it. Ignored in
+   * diff mode (`includePaths.length > 0`).
+   */
+  deadCode?: boolean;
   verbose?: boolean;
   includePaths?: string[];
   /**

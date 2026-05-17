@@ -13,6 +13,7 @@ const VALID_RULE_SEVERITIES: ReadonlyArray<RuleSeverityOverride> = ["error", "wa
 // string (which JS treats as truthy and bypasses the negation path).
 const BOOLEAN_FIELD_NAMES = [
   "lint",
+  "deadCode",
   "verbose",
   "customRulesOnly",
   "share",

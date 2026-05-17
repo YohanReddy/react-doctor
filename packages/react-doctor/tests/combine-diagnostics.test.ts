@@ -86,4 +86,26 @@ describe("combineDiagnostics", () => {
     });
     expect(result).toHaveLength(2);
   });
+
+  it("merges extraDiagnostics (e.g. dead-code) alongside lint diagnostics", () => {
+    const lintDiagnostics = [createDiagnostic({ plugin: "react-doctor", rule: "no-render-prop" })];
+    const extraDiagnostics = [
+      createDiagnostic({
+        plugin: "deslop",
+        rule: "unused-file",
+        category: "Dead Code",
+        filePath: "src/orphan.ts",
+      }),
+    ];
+
+    const result = combineDiagnostics({
+      lintDiagnostics,
+      directory: "/tmp",
+      isDiffMode: true,
+      userConfig: null,
+      extraDiagnostics,
+    });
+    expect(result).toHaveLength(2);
+    expect(result.some((diagnostic) => diagnostic.plugin === "deslop")).toBe(true);
+  });
 });

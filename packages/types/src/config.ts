@@ -87,6 +87,18 @@ export interface SurfaceControls {
 export interface ReactDoctorConfig {
   ignore?: ReactDoctorIgnoreConfig;
   lint?: boolean;
+  /**
+   * Whether to run dead-code analysis (via `deslop-js`) alongside lint.
+   * Reports unused files, unused exports, unused dependencies, and
+   * circular import cycles under the "Dead Code" category. Default:
+   * `true` — disable with `"deadCode": false` (or `--no-dead-code`).
+   *
+   * Dead-code analysis is always skipped in `--diff` / `--staged`
+   * modes because reachability is a whole-project property — a diff
+   * scan can't tell whether a deleted importer just stopped using a
+   * file or whether the file became unreachable.
+   */
+  deadCode?: boolean;
   verbose?: boolean;
   diff?: boolean | string;
   failOn?: FailOnLevel;

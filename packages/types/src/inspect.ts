@@ -22,6 +22,13 @@ export interface InspectResult {
 
 export interface InspectOptions {
   lint?: boolean;
+  /**
+   * Run dead-code analysis (via `deslop-js`) alongside lint. See
+   * `ReactDoctorConfig.deadCode`. Defaults to `true` when neither this
+   * option nor the config explicitly disables it. Ignored in
+   * diff / staged mode (reachability is a whole-project property).
+   */
+  deadCode?: boolean;
   verbose?: boolean;
   scoreOnly?: boolean;
   offline?: boolean;

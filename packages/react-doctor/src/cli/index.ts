@@ -17,6 +17,11 @@ const program = new Command()
   .argument("[directory]", "project directory to scan", ".")
   .option("--lint", "enable linting")
   .option("--no-lint", "skip linting")
+  .option("--dead-code", "enable dead-code analysis (default)")
+  .option(
+    "--no-dead-code",
+    "skip dead-code analysis (unused files / exports / dependencies, circular imports)",
+  )
   .option("--verbose", "show every rule and per-file details (default shows top 3 rules)")
   .option("--score", "output only the score")
   .option("--json", "output a single structured JSON report (suppresses other output)")

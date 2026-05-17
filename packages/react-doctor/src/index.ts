@@ -3,6 +3,7 @@ import {
   buildJsonReport,
   buildJsonReportError,
   calculateScore,
+  checkDeadCode,
   clearAutoSuppressionCaches,
   clearConfigCache,
   clearIgnorePatternsCache,
@@ -145,13 +146,14 @@ export const diagnose = async (
   const readFileLinesSync = createNodeReadFileLinesSync(resolvedDirectory);
 
   const effectiveLint = options.lint ?? userConfig?.lint ?? true;
+  const effectiveDeadCode = options.deadCode ?? userConfig?.deadCode ?? true;
   const effectiveRespectInlineDisables =
     options.respectInlineDisables ?? userConfig?.respectInlineDisables ?? true;
 
   const ignoredTags = new Set<string>(userConfig?.ignore?.tags ?? []);
 
-  const lintDiagnostics = effectiveLint
-    ? await runOxlint({
+  const lintPromise = effectiveLint
+    ? runOxlint({
         rootDirectory: resolvedDirectory,
         project: projectInfo,
         includePaths: lintIncludePaths,
@@ -164,7 +166,19 @@ export const diagnose = async (
         console.error("Lint failed:", error);
         return EMPTY_DIAGNOSTICS;
       })
-    : EMPTY_DIAGNOSTICS;
+    : Promise.resolve(EMPTY_DIAGNOSTICS);
+
+  // Dead-code reachability is meaningful only across the whole project,
+  // so we skip it in diff mode just like `checkReducedMotion`.
+  const shouldRunDeadCode = effectiveDeadCode && !isDiffMode;
+  const deadCodePromise = shouldRunDeadCode
+    ? checkDeadCode({ rootDirectory: resolvedDirectory }).catch((error: unknown) => {
+        console.error("Dead-code analysis failed:", error);
+        return EMPTY_DIAGNOSTICS;
+      })
+    : Promise.resolve(EMPTY_DIAGNOSTICS);
+
+  const [lintDiagnostics, deadCodeDiagnostics] = await Promise.all([lintPromise, deadCodePromise]);
 
   const diagnostics = combineDiagnostics({
     lintDiagnostics,
@@ -173,6 +187,7 @@ export const diagnose = async (
     userConfig,
     readFileLinesSync,
     respectInlineDisables: effectiveRespectInlineDisables,
+    extraDiagnostics: deadCodeDiagnostics,
   });
   const elapsedMilliseconds = globalThis.performance.now() - startTime;
   const score = await calculateScore(diagnostics);

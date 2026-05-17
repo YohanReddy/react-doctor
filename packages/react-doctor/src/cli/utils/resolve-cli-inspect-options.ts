@@ -7,6 +7,7 @@ export const resolveCliInspectOptions = (
   userConfig: ReactDoctorConfig | null,
 ): InspectOptions => ({
   lint: flags.lint ?? userConfig?.lint ?? true,
+  deadCode: flags.deadCode ?? userConfig?.deadCode ?? true,
   verbose: flags.verbose ?? userConfig?.verbose ?? false,
   scoreOnly: Boolean(flags.score),
   offline: Boolean(flags.offline) || (userConfig?.offline ?? false) || isCiEnvironment(),
