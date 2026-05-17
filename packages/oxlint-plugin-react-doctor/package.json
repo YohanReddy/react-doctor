@@ -47,6 +47,7 @@
     "gen:check": "node ./scripts/generate-rule-registry.mjs && git diff --exit-code -- src/plugin/rule-registry.ts",
     "gen:fixtures": "node ./scripts/extract-oxc-fixtures.mjs /tmp/oxc",
     "gen:fixture-tests": "node ./scripts/generate-fixture-tests.mjs",
+    "gen:react-hooks-fixtures": "node ./scripts/extract-react-hooks-tests.mjs",
     "typecheck": "pnpm gen && tsc --noEmit",
     "test": "pnpm gen && vp test run"
   },

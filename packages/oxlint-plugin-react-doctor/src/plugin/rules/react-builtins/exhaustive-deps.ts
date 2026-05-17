@@ -156,12 +156,15 @@ const symbolHasStableHookOrigin = (symbol: SymbolDescriptor): boolean => {
   return false;
 };
 
-// Walks UP from a Reference's identifier to find the outermost
-// MemberExpression chain it's the object of, e.g. for `props.foo.bar`
-// returns "props". Used to compute the canonical dep name.
+// Returns the bare identifier name of a captured reference, regardless
+// of whether the reference came in via a JS `Identifier` or a
+// `JSXIdentifier` (e.g. `<Component />`'s tag, which captures the
+// component binding the same way `Component()` would).
 const flattenReferenceRootName = (reference: ReferenceDescriptor): string => {
   const referencedIdentifier = reference.identifier;
-  return isNodeOfType(referencedIdentifier, "Identifier") ? referencedIdentifier.name : "";
+  if (isNodeOfType(referencedIdentifier, "Identifier")) return referencedIdentifier.name;
+  if (isNodeOfType(referencedIdentifier, "JSXIdentifier")) return referencedIdentifier.name;
+  return "";
 };
 
 // Computes the dep "key" (root identifier name OR the full member-path)

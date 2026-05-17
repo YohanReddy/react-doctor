@@ -23,7 +23,7 @@ import type { Rule } from "../../utils/rule.js";
 const buildTopLevelMessage = (hookName: string): string =>
   `React Hook \`${hookName}\` cannot be called at the top level — it must live inside a React function component or a custom Hook.`;
 const buildNonComponentMessage = (hookName: string, functionName: string): string =>
-  `React Hook \`${hookName}\` is called in function \`${functionName}\` that is neither a React function component nor a custom React Hook.`;
+  `React Hook \`${hookName}\` is called in function \`${functionName}\` that is neither a React function component nor a custom React Hook function. React component names must start with an uppercase letter. React Hook names must start with the word "use".`;
 const buildConditionalMessage = (hookName: string): string =>
   `React Hook \`${hookName}\` is called conditionally. React Hooks must be called in the same order on every render.`;
 const buildLoopMessage = (hookName: string): string =>
