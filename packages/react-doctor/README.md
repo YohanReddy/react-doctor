@@ -25,9 +25,7 @@ npx react-doctor@latest
 
 You'll get a score (75+ Great, 50 to 74 Needs work, under 50 Critical) and a list of issues across state & effects, performance, architecture, security, and accessibility. Rules toggle automatically based on your framework and React version.
 
-React Doctor now ships dead-code detection out of the box via [`deslop-js`](https://www.npmjs.com/package/deslop-js). Unused files, unused exports, unused dependencies, and circular import cycles show up alongside the lint findings under a **Dead Code** category. Toggle the analysis with `--no-dead-code` (or `"deadCode": false` in config) when you don't want it.
-
-> **Migration note:** Before v0.2, React Doctor bundled [knip](https://knip.dev/) for dead-code detection. That integration was removed and then replaced with [`deslop-js`](https://www.npmjs.com/package/deslop-js), which uses oxc under the hood and runs an order of magnitude faster. If you still prefer to run knip yourself, set `"deadCode": false` and invoke `npx knip` from your own pre-commit or CI pipeline.
+> **Migration note:** React Doctor used to bundle [knip](https://knip.dev/) for dead-code detection. That integration was removed in v0.2 — if you want dead-code analysis, run `npx knip` directly as part of your own pre-commit or CI pipeline.
 
 https://github.com/user-attachments/assets/07cc88d9-9589-44c3-aa73-5d603cb1c570
 
@@ -306,7 +304,6 @@ Usage: react-doctor [directory] [options]
 Options:
   -v, --version           display the version number
   --no-lint               skip linting
-  --no-dead-code          skip dead-code analysis (unused files / exports / deps, circular imports)
   --verbose               show every rule and per-file details (default shows top 3 rules)
   --score                 output only the score
   --json                  output a single structured JSON report
@@ -337,7 +334,6 @@ When a suppression isn't working, `--explain <file:line>` (or its alias `--why <
 | `ignore.files`             | `string[]`                       | `[]`     |
 | `ignore.overrides`         | `{ files, rules? }[]`            | `[]`     |
 | `lint`                     | `boolean`                        | `true`   |
-| `deadCode`                 | `boolean`                        | `true`   |
 | `verbose`                  | `boolean`                        | `false`  |
 | `diff`                     | `boolean \| string`              |          |
 | `failOn`                   | `"error" \| "warning" \| "none"` | `"none"` |
@@ -360,31 +356,6 @@ When a suppression isn't working, `--explain <file:line>` (or its alias `--why <
 `ignore.tags` suppresses entire categories of rules by tag. For example, `"tags": ["design"]` disables all opinionated design rules (gradient text, pure black backgrounds, side tab borders, default Tailwind palettes). Available tags: `"design"`.
 
 `offline` skips the score API entirely — no score is shown and no share URL is generated. Automatically enabled in CI environments (GitHub Actions, GitLab CI, CircleCI) so CI runs don't depend on the network.
-
-### Dead-code analysis
-
-React Doctor bundles [`deslop-js`](https://www.npmjs.com/package/deslop-js) and runs it in parallel with the lint scan. Findings show up under a **Dead Code** category and follow the same surface and severity controls as every other rule:
-
-- `deslop/unused-file` — a source file that is not reachable from any detected entry point.
-- `deslop/unused-export` — an exported symbol that no other module imports.
-- `deslop/unused-type` — same, for type-only exports.
-- `deslop/unused-dependency` / `deslop/unused-dev-dependency` — a `package.json` dependency that is never imported.
-- `deslop/circular-dependency` — an import cycle between two or more files.
-
-Dead-code reachability is a whole-project property, so the analysis is **automatically skipped in `--diff` / `--staged` modes** — a diff scan can't tell whether a deleted importer just stopped using a file or whether the file became unreachable. Run a full scan locally (`npx react-doctor@latest .`) to refresh the dead-code surface.
-
-Silence individual rules through the standard severity controls:
-
-```json
-{
-  "rules": {
-    "deslop/unused-export": "off",
-    "deslop/circular-dependency": "warn"
-  }
-}
-```
-
-Or drop the whole category with `"categories": { "Dead Code": "off" }`. To skip the analysis entirely, set `"deadCode": false` in config or pass `--no-dead-code` on the CLI.
 
 ### React Native rules in mixed monorepos
 
