@@ -115,4 +115,49 @@ describe("validateConfigTypes", () => {
       expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("surfaces"));
     });
   });
+
+  describe("severityOverrides", () => {
+    it("passes through a well-formed severityOverrides config untouched", () => {
+      const input: ReactDoctorConfig = {
+        severityOverrides: {
+          rules: { "react-doctor/no-array-index-as-key": "error" },
+          categories: { "React Native": "warn" },
+          tags: { design: "off", "migration-hint": "warn" },
+        },
+      };
+      expect(validateConfigTypes(input)).toEqual(input);
+      expect(stderrSpy).not.toHaveBeenCalled();
+    });
+
+    it("drops invalid severity values with a stderr warning", () => {
+      const result = validateConfigTypes({
+        severityOverrides: {
+          tags: { design: "loud", "test-noise": "warn" },
+        } as unknown as ReactDoctorConfig["severityOverrides"],
+      });
+      expect(result.severityOverrides).toEqual({
+        tags: { "test-noise": "warn" },
+      });
+      expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("severityOverrides.tags"));
+    });
+
+    it("drops the entire severityOverrides field when it isn't an object", () => {
+      const result = validateConfigTypes({
+        severityOverrides: "off" as unknown as ReactDoctorConfig["severityOverrides"],
+      });
+      expect(result.severityOverrides).toBeUndefined();
+      expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("severityOverrides"));
+    });
+
+    it("drops invalid channel shapes (arrays, strings) but keeps valid sibling channels", () => {
+      const result = validateConfigTypes({
+        severityOverrides: {
+          rules: ["off"] as unknown as Record<string, "off">,
+          categories: { Server: "off" },
+        },
+      });
+      expect(result.severityOverrides).toEqual({ categories: { Server: "off" } });
+      expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("severityOverrides.rules"));
+    });
+  });
 });
