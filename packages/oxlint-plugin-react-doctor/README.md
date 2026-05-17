@@ -69,7 +69,7 @@ Each rule can be set to `"error"`, `"warn"`, or `"off"`:
 
 ## "You Might Not Need an Effect" rule family
 
-Eight rules ported 1:1 from [`eslint-plugin-react-you-might-not-need-an-effect`](https://github.com/NickvanDyke/eslint-plugin-react-you-might-not-need-an-effect) (MIT, NickvanDyke) ship natively in this package — same rule IDs, same diagnostic messages, same semantics (147 of 148 upstream test cases pass; the remaining one is upstream's own `todo: true`). Attribution and known divergences live in [`SOURCE.md`](https://github.com/millionco/react-doctor/blob/main/packages/oxlint-plugin-react-doctor/src/plugin/rules/state-and-effects/effect/SOURCE.md).
+Eight rules ported 1:1 from [`eslint-plugin-react-you-might-not-need-an-effect`](https://github.com/NickvanDyke/eslint-plugin-react-you-might-not-need-an-effect) (MIT, NickvanDyke) ship natively in this package — same rule IDs, same diagnostic messages, same semantics (195 of 196 upstream test cases pass; the remaining one is upstream's own `todo: true`). Attribution and known divergences live in [`SOURCE.md`](https://github.com/millionco/react-doctor/blob/main/packages/oxlint-plugin-react-doctor/src/plugin/rules/state-and-effects/effect/SOURCE.md).
 
 | Rule                                             | What it catches                                                               |
 | ------------------------------------------------ | ----------------------------------------------------------------------------- |

@@ -112,6 +112,20 @@ const noUnknownPropertyTranslator = (fixture: OxcFixtureLike): Record<string, un
 const jsxKeyTranslator = (fixture: OxcFixtureLike): Record<string, unknown> | null =>
   wrapForReactDoctor("jsxKey", passthroughTopLevelObject(fixture.oxcOptions));
 
+const rulesOfHooksTranslator = (): Record<string, unknown> =>
+  wrapForReactDoctor("rulesOfHooks", {
+    allowedPascalCaseHookNamespaces: ["Sinon"],
+  })!;
+
+const displayNameTranslator = (fixture: OxcFixtureLike): Record<string, unknown> | null => {
+  const settings = { ...(passthroughTopLevelObject(fixture.oxcOptions) ?? {}) };
+  const reactBlock = oxcSettingsReactBlock(fixture.oxcSettings);
+  if (reactBlock && typeof reactBlock.version === "string") {
+    settings.reactVersion = reactBlock.version;
+  }
+  return Object.keys(settings).length > 0 ? wrapForReactDoctor("displayName", settings) : null;
+};
+
 const jsxNoUselessFragmentTranslator = (fixture: OxcFixtureLike): Record<string, unknown> | null =>
   wrapForReactDoctor("jsxNoUselessFragment", passthroughTopLevelObject(fixture.oxcOptions));
 
@@ -241,6 +255,7 @@ export const TRANSLATORS: Record<
   "jsx-filename-extension": jsxFilenameExtensionTranslator,
   "jsx-fragments": jsxFragmentsTranslator,
   "jsx-key": jsxKeyTranslator,
+  "rules-of-hooks": rulesOfHooksTranslator,
   "jsx-max-depth": jsxMaxDepthTranslator,
   "jsx-no-script-url": jsxNoScriptUrlTranslator,
   "jsx-no-useless-fragment": jsxNoUselessFragmentTranslator,
@@ -265,8 +280,7 @@ export const TRANSLATORS: Record<
   },
   "prefer-function-component": (fixture: OxcFixtureLike) =>
     wrapForReactDoctor("preferFunctionComponent", passthroughTopLevelObject(fixture.oxcOptions)),
-  "display-name": (fixture: OxcFixtureLike) =>
-    wrapForReactDoctor("displayName", passthroughTopLevelObject(fixture.oxcOptions)),
+  "display-name": displayNameTranslator,
   "no-unstable-nested-components": (fixture: OxcFixtureLike) =>
     wrapForReactDoctor("noUnstableNestedComponents", passthroughTopLevelObject(fixture.oxcOptions)),
   "only-export-components": (fixture: OxcFixtureLike) =>

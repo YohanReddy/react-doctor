@@ -15,12 +15,6 @@ export interface OxcDivergence {
 }
 
 export const DIVERGENCES: Record<string, OxcDivergence> = {
-  "label-has-associated-control": {
-    failSkips: [13],
-    reason:
-      "OXC fixture contains a stray trailing quote that yields a parse error in our oxc-parser harness",
-  },
-
   // alt-text: OXC's port has extensive aria-hidden / role / fallback
   // child-content checks. Our port handles the common img / area /
   // input[type=image] / object shapes only.

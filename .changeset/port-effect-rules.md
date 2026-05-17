@@ -30,8 +30,9 @@ in JS.
 | `no-pass-data-to-parent`            | Passing fetched data to a parent via a callback in an effect             |
 | `no-initialize-state`               | Initializing state inside a mount-only effect                            |
 
-Parity coverage: 147 of 148 upstream test cases pass (the 1 remaining
-case is upstream's own `todo: true`, a renamed-`useState` import).
+Parity coverage: 195 of 196 upstream test cases pass (the 1 remaining
+case is upstream's own `todo: true`, "Set derived state via identical
+intermediate setter").
 
 These coexist with React Doctor's existing thematically-related rules
 (`no-derived-state-effect`, `no-effect-chain`, `no-event-trigger-state`,

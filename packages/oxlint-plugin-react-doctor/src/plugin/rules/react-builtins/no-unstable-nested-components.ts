@@ -164,16 +164,44 @@ const inferFunctionLikeName = (functionLike: EsTreeNode): string | null => {
 // Check if `candidateNode` is being passed as the value of a JSX
 // attribute (e.g. `<Foo render={() => <Bar/>} />`).
 const isComponentDeclaredInProp = (candidateNode: EsTreeNode): { propName: string } | null => {
-  const parent = candidateNode.parent;
-  if (!parent) return null;
-  if (isNodeOfType(parent, "JSXExpressionContainer")) {
-    const grandparent = parent.parent;
-    if (grandparent && isNodeOfType(grandparent, "JSXAttribute")) {
-      const attributeName = grandparent.name;
-      if (isNodeOfType(attributeName as EsTreeNode, "JSXIdentifier")) {
-        return { propName: (attributeName as EsTreeNodeOfType<"JSXIdentifier">).name };
+  let walker: EsTreeNode | null | undefined = candidateNode.parent;
+  while (walker) {
+    if (isNodeOfType(walker, "Property")) {
+      const propName =
+        isNodeOfType(walker.key, "Identifier")
+          ? walker.key.name
+          : isNodeOfType(walker.key, "Literal") && typeof walker.key.value === "string"
+            ? walker.key.value
+            : null;
+      let propertyWalker: EsTreeNode | null | undefined = walker.parent;
+      while (propertyWalker) {
+        if (isNodeOfType(propertyWalker, "JSXExpressionContainer")) {
+          const attribute = propertyWalker.parent;
+          if (attribute && isNodeOfType(attribute, "JSXAttribute")) {
+            const attributeName = attribute.name;
+            if (isNodeOfType(attributeName as EsTreeNode, "JSXIdentifier")) {
+              return { propName: (attributeName as EsTreeNodeOfType<"JSXIdentifier">).name };
+            }
+          }
+          return propName ? { propName } : null;
+        }
+        if (isNodeOfType(propertyWalker, "CallExpression")) return propName ? { propName } : null;
+        propertyWalker = propertyWalker.parent ?? null;
       }
+      return propName ? { propName } : null;
     }
+    if (isNodeOfType(walker, "JSXExpressionContainer")) {
+      const grandparent = walker.parent;
+      if (grandparent && isNodeOfType(grandparent, "JSXAttribute")) {
+        const attributeName = grandparent.name;
+        if (isNodeOfType(attributeName as EsTreeNode, "JSXIdentifier")) {
+          return { propName: (attributeName as EsTreeNodeOfType<"JSXIdentifier">).name };
+        }
+      }
+      return null;
+    }
+    if (isNodeOfType(walker, "CallExpression")) return null;
+    walker = walker.parent ?? null;
   }
   return null;
 };
@@ -198,6 +226,42 @@ const isHocCallee = (call: EsTreeNodeOfType<"CallExpression">): boolean => {
   return false;
 };
 
+const isObjectCallbackCandidate = (node: EsTreeNode): boolean => {
+  const parent = node.parent;
+  if (!parent || !isNodeOfType(parent, "Property")) return false;
+  const keyName =
+    isNodeOfType(parent.key, "Identifier")
+      ? parent.key.name
+      : isNodeOfType(parent.key, "Literal") && typeof parent.key.value === "string"
+        ? parent.key.value
+        : null;
+  if (keyName && keyName.startsWith("render")) return false;
+  let walker = parent.parent;
+  while (walker) {
+    if (isNodeOfType(walker, "JSXExpressionContainer")) return false;
+    if (isNodeOfType(walker, "CallExpression")) return true;
+    if (isNodeOfType(walker, "ArrayExpression")) return true;
+    walker = walker.parent ?? null;
+  }
+  return false;
+};
+
+const hocCallContainsComponent = (call: EsTreeNodeOfType<"CallExpression">): boolean => {
+  const firstArgument = call.arguments[0] as EsTreeNode | undefined;
+  if (!firstArgument) return false;
+  if (
+    isNodeOfType(firstArgument, "FunctionExpression") ||
+    isNodeOfType(firstArgument, "ArrowFunctionExpression") ||
+    isNodeOfType(firstArgument, "ClassExpression")
+  ) {
+    return expressionContainsJsxOrCreateElement(firstArgument);
+  }
+  if (isNodeOfType(firstArgument, "CallExpression") && isHocCallee(firstArgument)) {
+    return hocCallContainsComponent(firstArgument);
+  }
+  return expressionContainsJsxOrCreateElement(firstArgument);
+};
+
 // Returns true when this node is the FIRST argument of an HoC call
 // (memo, forwardRef, observer, etc.) — these should NOT be reported,
 // the OUTER call expression handles the candidacy.
@@ -212,6 +276,14 @@ const isFirstArgumentOfHocCall = (node: EsTreeNode): boolean => {
 const isReturnOfMapCallback = (node: EsTreeNode): boolean => {
   const parent = node.parent;
   if (!parent) return false;
+  if (isNodeOfType(parent, "CallExpression")) {
+    const callee = parent.callee;
+    if (isNodeOfType(callee, "MemberExpression") && isNodeOfType(callee.property, "Identifier")) {
+      return ["map", "forEach", "filter", "flatMap", "reduce", "reduceRight"].includes(
+        callee.property.name,
+      );
+    }
+  }
   if (
     isNodeOfType(parent, "ArrowFunctionExpression") ||
     isNodeOfType(parent, "FunctionExpression")
@@ -249,6 +321,7 @@ export const noUnstableNestedComponents = defineRule<Rule>({
       if (isReturnOfMapCallback(candidateNode)) return;
       const propInfo = isComponentDeclaredInProp(candidateNode);
       if (propInfo) {
+        if (propInfo.propName === "children") return;
         if (renderPropRegex.test(propInfo.propName)) return;
         if (settings.allowAsProps) return;
       }
@@ -269,15 +342,14 @@ export const noUnstableNestedComponents = defineRule<Rule>({
       >,
     ): void => {
       if (!expressionContainsJsxOrCreateElement(node as EsTreeNode)) {
-        // Could still be a component-in-prop usage even without JSX.
-        const propInfo = isComponentDeclaredInProp(node as EsTreeNode);
-        if (!propInfo) return;
-        if (renderPropRegex.test(propInfo.propName)) return;
+        return;
       }
       const inferredName = inferFunctionLikeName(node as EsTreeNode);
       const propInfo = isComponentDeclaredInProp(node as EsTreeNode);
       const isCandidate =
-        (inferredName !== null && isReactComponentName(inferredName)) || propInfo !== null;
+        (inferredName !== null && isReactComponentName(inferredName)) ||
+        propInfo !== null ||
+        isObjectCallbackCandidate(node as EsTreeNode);
       if (!isCandidate) return;
       reportCandidate(node as EsTreeNode, node as EsTreeNode, inferredName);
     };
@@ -295,6 +367,11 @@ export const noUnstableNestedComponents = defineRule<Rule>({
         const inferredName = node.id?.name ?? inferFunctionLikeName(node as EsTreeNode);
         if (!inferredName || !isReactComponentName(inferredName)) return;
         reportCandidate(node as EsTreeNode, node as EsTreeNode, inferredName);
+      },
+      CallExpression(node: EsTreeNodeOfType<"CallExpression">) {
+        if (!isHocCallee(node)) return;
+        if (!hocCallContainsComponent(node)) return;
+        reportCandidate(node as EsTreeNode, node as EsTreeNode, null);
       },
     };
   },

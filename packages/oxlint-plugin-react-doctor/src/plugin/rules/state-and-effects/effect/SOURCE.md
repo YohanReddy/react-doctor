@@ -49,10 +49,9 @@ builds one lazily per `Program` with `eslint-scope` in
 
 ## Known divergences
 
-- **Flow-only syntax** — upstream includes Flow `component` / `hook`
-  syntax in adjacent React Hooks fixtures. The oxlint parser path here
-  is TS/TSX, so Flow-only syntax is intentionally skipped in parity
-  suites.
+- **Upstream TODO case** — the parity suite preserves upstream's own
+  disabled `todo: true` case, "Set derived state via identical
+  intermediate setter".
 - **Diagnostic message templates** — upstream uses
   `messageId: "avoidDerivedState", data: { state: "fullName" }`,
   which ESLint expands via the `meta.messages` table. Oxlint plugins

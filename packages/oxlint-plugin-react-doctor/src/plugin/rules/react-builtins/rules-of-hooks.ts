@@ -34,6 +34,12 @@ const buildClassComponentMessage = (hookName: string): string =>
   `React Hook \`${hookName}\` cannot be called inside a class component — convert to a function component.`;
 const buildTryMessage = (hookName: string): string =>
   `React Hook \`${hookName}\` cannot be called inside a try / catch / finally block.`;
+const buildEffectEventCallMessage = (bindingName: string): string =>
+  `\`${bindingName}\` is a function created with React Hook "useEffectEvent", and can only be called from Effects and Effect Events in the same component.`;
+const buildEffectEventAssignmentMessage = (bindingName: string): string =>
+  `${buildEffectEventCallMessage(bindingName)} It cannot be assigned to a variable or passed down.`;
+const buildEffectEventPassedDownMessage = (): string =>
+  `React Hook "useEffectEvent" can only be called at the top level of your component. It cannot be passed down.`;
 
 // ASCII range used for the PascalCase namespace heuristic in member
 // hook calls (`Hook.useFoo` flagged, `jest.useFoo` not).
@@ -44,9 +50,72 @@ interface HookContext {
   hookName: string;
 }
 
+interface RulesOfHooksSettings {
+  additionalEffectHooks?: string;
+  allowedPascalCaseHookNamespaces?: ReadonlyArray<string>;
+}
+
+const EFFECT_HOOK_NAMES: ReadonlySet<string> = new Set([
+  "useEffect",
+  "useLayoutEffect",
+  "useInsertionEffect",
+]);
+
 const isPascalCaseIdentifier = (identifier: EsTreeNodeOfType<"Identifier">): boolean => {
   const firstCharCode = identifier.name.charCodeAt(0);
   return firstCharCode >= ASCII_UPPERCASE_A && firstCharCode <= ASCII_UPPERCASE_Z;
+};
+
+const buildAdditionalEffectHooksRegex = (additionalEffectHooks: string): RegExp | null => {
+  if (!additionalEffectHooks) return null;
+  try {
+    return new RegExp(additionalEffectHooks);
+  } catch {
+    return null;
+  }
+};
+
+const getHookNameFromCallee = (callee: EsTreeNode): string | null => {
+  if (isNodeOfType(callee, "Identifier")) return callee.name;
+  if (
+    isNodeOfType(callee, "MemberExpression") &&
+    !callee.computed &&
+    isNodeOfType(callee.property, "Identifier")
+  ) {
+    return callee.property.name;
+  }
+  return null;
+};
+
+const readAdditionalEffectHooks = (value: unknown): string => {
+  if (typeof value !== "object" || value === null) return "";
+  const settings = value as RulesOfHooksSettings;
+  return settings.additionalEffectHooks ?? "";
+};
+
+const readAllowedPascalCaseHookNamespaces = (value: unknown): ReadonlyArray<string> => {
+  if (typeof value !== "object" || value === null) return [];
+  const settings = value as RulesOfHooksSettings;
+  return settings.allowedPascalCaseHookNamespaces ?? [];
+};
+
+const resolveSettings = (
+  settings: Readonly<Record<string, unknown>> | undefined,
+): Required<RulesOfHooksSettings> => {
+  const reactDoctor = settings?.["react-doctor"];
+  const reactDoctorSettings =
+    typeof reactDoctor === "object" && reactDoctor !== null
+      ? (reactDoctor as { rulesOfHooks?: RulesOfHooksSettings })["rulesOfHooks"]
+      : undefined;
+
+  return {
+    additionalEffectHooks:
+      reactDoctorSettings?.additionalEffectHooks ??
+      readAdditionalEffectHooks(settings?.["react-hooks"]),
+    allowedPascalCaseHookNamespaces:
+      reactDoctorSettings?.allowedPascalCaseHookNamespaces ??
+      readAllowedPascalCaseHookNamespaces(settings?.["react-hooks"]),
+  };
 };
 
 // Mirrors OXC's `is_react_hook` — matches:
@@ -59,7 +128,11 @@ const isPascalCaseIdentifier = (identifier: EsTreeNodeOfType<"Identifier">): boo
 // For bare identifier calls, additionally consult scope analysis to
 // confirm the binding (if resolved) actually comes from React; a local
 // `use` parameter / non-React import shouldn't be treated as a hook.
-const isHookCall = (call: EsTreeNode, scopes: ScopeAnalysis): HookContext | null => {
+const isHookCall = (
+  call: EsTreeNode,
+  scopes: ScopeAnalysis,
+  settings: Required<RulesOfHooksSettings>,
+): HookContext | null => {
   if (!isNodeOfType(call, "CallExpression")) return null;
   const callee = call.callee;
   if (isNodeOfType(callee, "Identifier") && isReactHookName(callee.name)) {
@@ -104,6 +177,7 @@ const isHookCall = (call: EsTreeNode, scopes: ScopeAnalysis): HookContext | null
     // identifiers (`jest.useFakeTimers`, `lodash.useFoo`) and the
     // class-method `this` / `super` keywords are NOT hooks.
     if (isNodeOfType(callObject, "Identifier")) {
+      if (settings.allowedPascalCaseHookNamespaces.includes(callObject.name)) return null;
       if (!isPascalCaseIdentifier(callObject)) return null;
       return { hookName: callee.property.name };
     }
@@ -246,6 +320,14 @@ const inferDestructureSourceKey = (bindingIdentifier: EsTreeNode): string | null
 // only recognized exception. We still require it to be inside a
 // component / custom hook scope.
 const isReactUseHook = (hookName: string): boolean => hookName === "use";
+
+const FUNCTION_LIKE_TYPES: ReadonlySet<string> = new Set([
+  "FunctionDeclaration",
+  "FunctionExpression",
+  "ArrowFunctionExpression",
+]);
+
+const isFunctionLike = (node: EsTreeNode): boolean => FUNCTION_LIKE_TYPES.has(node.type);
 
 interface FunctionInfo {
   node: EsTreeNode;
@@ -467,112 +549,214 @@ const isInsideLoop = (descendant: EsTreeNode, ancestor: EsTreeNode): boolean => 
   return false;
 };
 
+const isUseEffectEventSymbol = (symbol: SymbolDescriptor): boolean => {
+  const initializer = symbol.initializer;
+  if (!initializer || !isNodeOfType(initializer, "CallExpression")) return false;
+  return getHookNameFromCallee(initializer.callee) === "useEffectEvent";
+};
+
+const findEnclosingComponentOrHookFunction = (node: EsTreeNode): EsTreeNode | null => {
+  let current: EsTreeNode | null | undefined = node.parent;
+  while (current) {
+    if (isFunctionLike(current)) {
+      const resolvedName = inferFunctionName(current);
+      if (resolvedName !== null && isReactComponentOrHookName(resolvedName)) return current;
+    }
+    current = current.parent ?? null;
+  }
+  return null;
+};
+
+const isSameComponentOrHookScope = (symbol: SymbolDescriptor, referenceNode: EsTreeNode): boolean =>
+  findEnclosingComponentOrHookFunction(symbol.declarationNode) ===
+  findEnclosingComponentOrHookFunction(referenceNode);
+
+const isAllowedEffectEventHook = (
+  hookName: string,
+  additionalEffectHooksRegex: RegExp | null,
+): boolean =>
+  hookName === "useEffectEvent" ||
+  EFFECT_HOOK_NAMES.has(hookName) ||
+  Boolean(additionalEffectHooksRegex && additionalEffectHooksRegex.test(hookName));
+
+const isCallbackArgumentForAllowedEffectEventHook = (
+  functionNode: EsTreeNode,
+  additionalEffectHooksRegex: RegExp | null,
+): boolean => {
+  const parent = functionNode.parent;
+  if (!parent || !isNodeOfType(parent, "CallExpression")) return false;
+  const hookName = getHookNameFromCallee(parent.callee);
+  if (!hookName) return false;
+  if (!parent.arguments.some((argument) => argument === functionNode)) return false;
+  return isAllowedEffectEventHook(hookName, additionalEffectHooksRegex);
+};
+
+const isInsideAllowedEffectEventCallback = (
+  node: EsTreeNode,
+  additionalEffectHooksRegex: RegExp | null,
+): boolean => {
+  let current: EsTreeNode | null | undefined = node.parent;
+  while (current) {
+    if (
+      isFunctionLike(current) &&
+      isCallbackArgumentForAllowedEffectEventHook(current, additionalEffectHooksRegex)
+    ) {
+      return true;
+    }
+    current = current.parent ?? null;
+  }
+  return false;
+};
+
+const isCallCallee = (identifier: EsTreeNode): boolean => {
+  const parent = identifier.parent;
+  return Boolean(parent && isNodeOfType(parent, "CallExpression") && parent.callee === identifier);
+};
+
+const isUseEffectEventInitializer = (node: EsTreeNodeOfType<"CallExpression">): boolean => {
+  const parent = node.parent;
+  return Boolean(
+    parent &&
+      isNodeOfType(parent, "VariableDeclarator") &&
+      parent.init === node &&
+      isNodeOfType(parent.id, "Identifier"),
+  );
+};
+
 export const rulesOfHooks = defineRule<Rule>({
   id: "rules-of-hooks",
   severity: "error",
   recommendation: "Call hooks at the top level of a React function component or a custom Hook.",
   category: "Correctness",
-  create: (context) => ({
-    CallExpression(node: EsTreeNodeOfType<"CallExpression">) {
-      const hookContext = isHookCall(node, context.scopes);
-      if (!hookContext) return;
-      const { hookName } = hookContext;
-      const enclosing = findEnclosingFunctionInfo(node);
+  create: (context) => {
+    const settings = resolveSettings(context.settings);
+    const additionalEffectHooksRegex = buildAdditionalEffectHooksRegex(
+      settings.additionalEffectHooks,
+    );
 
-      if (!enclosing) {
-        context.report({ node: node.callee, message: buildTopLevelMessage(hookName) });
-        return;
-      }
+    return {
+      CallExpression(node: EsTreeNodeOfType<"CallExpression">) {
+        const hookContext = isHookCall(node, context.scopes, settings);
+        if (!hookContext) return;
+        const { hookName } = hookContext;
 
-      if (isInsideClassComponent(node)) {
-        context.report({ node: node.callee, message: buildClassComponentMessage(hookName) });
-        return;
-      }
-
-      if (enclosing.isAsync) {
-        context.report({ node: node.callee, message: buildAsyncMessage(hookName) });
-        return;
-      }
-
-      // The React 19 `use(...)` hook RELAXES the conditional / loop /
-      // early-return checks (it's intentionally callable in
-      // conditionals) BUT still must be inside a component / custom
-      // hook scope and NOT inside try / catch / finally.
-      if (isReactUseHook(hookName)) {
-        let outerWalker: EsTreeNode | null = enclosing.node;
-        let isInsideComponentOrHook = enclosing.isComponentOrHook;
-        while (!isInsideComponentOrHook && outerWalker) {
-          const parentInfo = findEnclosingFunctionInfo(outerWalker);
-          if (!parentInfo) break;
-          outerWalker = parentInfo.node;
-          if (parentInfo.isComponentOrHook) isInsideComponentOrHook = true;
+        if (hookName === "useEffectEvent" && !isUseEffectEventInitializer(node)) {
+          context.report({ node: node.callee, message: buildEffectEventPassedDownMessage() });
+          return;
         }
-        if (!isInsideComponentOrHook) {
+
+        const enclosing = findEnclosingFunctionInfo(node);
+
+        if (!enclosing) {
+          context.report({ node: node.callee, message: buildTopLevelMessage(hookName) });
+          return;
+        }
+
+        if (isInsideClassComponent(node)) {
+          context.report({ node: node.callee, message: buildClassComponentMessage(hookName) });
+          return;
+        }
+
+        if (enclosing.isAsync) {
+          context.report({ node: node.callee, message: buildAsyncMessage(hookName) });
+          return;
+        }
+
+        // The React 19 `use(...)` hook RELAXES the conditional / loop /
+        // early-return checks (it's intentionally callable in
+        // conditionals) BUT still must be inside a component / custom
+        // hook scope and NOT inside try / catch / finally.
+        if (isReactUseHook(hookName)) {
+          let outerWalker: EsTreeNode | null = enclosing.node;
+          let isInsideComponentOrHook = enclosing.isComponentOrHook;
+          while (!isInsideComponentOrHook && outerWalker) {
+            const parentInfo = findEnclosingFunctionInfo(outerWalker);
+            if (!parentInfo) break;
+            outerWalker = parentInfo.node;
+            if (parentInfo.isComponentOrHook) isInsideComponentOrHook = true;
+          }
+          if (!isInsideComponentOrHook) {
+            context.report({
+              node: node.callee,
+              message: buildNonComponentMessage(hookName, enclosing.name),
+            });
+            return;
+          }
+          if (isInsideTry(node, enclosing.node)) {
+            context.report({ node: node.callee, message: buildTryMessage(hookName) });
+          }
+          return;
+        }
+
+        // For anonymous callbacks, look outward: if any enclosing
+        // function IS a component / custom hook, this nested anonymous
+        // callback can't legally call a hook (Rule of Hooks forbids
+        // hooks in nested callbacks even when the outer function is a
+        // component). When NO outer function is a component / hook, the
+        // callback's runtime context is unknown — skip to avoid false
+        // positives on generic callbacks (utility / event-handler
+        // factories).
+        if (!enclosing.hasResolvedName) {
+          let outerWalker: EsTreeNode | null = enclosing.node;
+          let outerIsComponentOrHook = false;
+          while (outerWalker) {
+            const outerInfo = findEnclosingFunctionInfo(outerWalker);
+            if (!outerInfo) break;
+            if (outerInfo.isComponentOrHook) {
+              outerIsComponentOrHook = true;
+              break;
+            }
+            outerWalker = outerInfo.node;
+          }
+          if (!outerIsComponentOrHook) return;
+          context.report({ node: node.callee, message: buildConditionalMessage(hookName) });
+          return;
+        }
+
+        if (!enclosing.isComponentOrHook) {
           context.report({
             node: node.callee,
             message: buildNonComponentMessage(hookName, enclosing.name),
           });
           return;
         }
+
+        if (isInsideLoop(node, enclosing.node)) {
+          context.report({ node: node.callee, message: buildLoopMessage(hookName) });
+          return;
+        }
+
         if (isInsideTry(node, enclosing.node)) {
           context.report({ node: node.callee, message: buildTryMessage(hookName) });
+          return;
         }
-        return;
-      }
 
-      // For anonymous callbacks, look outward: if any enclosing
-      // function IS a component / custom hook, this nested anonymous
-      // callback can't legally call a hook (Rule of Hooks forbids
-      // hooks in nested callbacks even when the outer function is a
-      // component). When NO outer function is a component / hook, the
-      // callback's runtime context is unknown — skip to avoid false
-      // positives on generic callbacks (utility / event-handler
-      // factories).
-      if (!enclosing.hasResolvedName) {
-        let outerWalker: EsTreeNode | null = enclosing.node;
-        let outerIsComponentOrHook = false;
-        while (outerWalker) {
-          const outerInfo = findEnclosingFunctionInfo(outerWalker);
-          if (!outerInfo) break;
-          if (outerInfo.isComponentOrHook) {
-            outerIsComponentOrHook = true;
-            break;
-          }
-          outerWalker = outerInfo.node;
+        if (hasShortCircuitAncestor(node, enclosing.node)) {
+          context.report({ node: node.callee, message: buildConditionalMessage(hookName) });
+          return;
         }
-        if (!outerIsComponentOrHook) return;
-        context.report({ node: node.callee, message: buildConditionalMessage(hookName) });
-        return;
-      }
 
-      if (!enclosing.isComponentOrHook) {
+        // CFG-based check: catches early-return patterns and
+        // if-statement bodies.
+        if (!context.cfg.isUnconditionalFromEntry(node)) {
+          context.report({ node: node.callee, message: buildConditionalMessage(hookName) });
+        }
+      },
+
+      Identifier(node: EsTreeNodeOfType<"Identifier">) {
+        const reference = context.scopes.referenceFor(node);
+        const symbol = reference?.resolvedSymbol;
+        if (!symbol || !isUseEffectEventSymbol(symbol)) return;
+        if (!isSameComponentOrHookScope(symbol, node)) return;
+        if (isInsideAllowedEffectEventCallback(node, additionalEffectHooksRegex)) return;
+
         context.report({
-          node: node.callee,
-          message: buildNonComponentMessage(hookName, enclosing.name),
+          node,
+          message: isCallCallee(node)
+            ? buildEffectEventCallMessage(symbol.name)
+            : buildEffectEventAssignmentMessage(symbol.name),
         });
-        return;
-      }
-
-      if (isInsideLoop(node, enclosing.node)) {
-        context.report({ node: node.callee, message: buildLoopMessage(hookName) });
-        return;
-      }
-
-      if (isInsideTry(node, enclosing.node)) {
-        context.report({ node: node.callee, message: buildTryMessage(hookName) });
-        return;
-      }
-
-      if (hasShortCircuitAncestor(node, enclosing.node)) {
-        context.report({ node: node.callee, message: buildConditionalMessage(hookName) });
-        return;
-      }
-
-      // CFG-based check: catches early-return patterns and
-      // if-statement bodies.
-      if (!context.cfg.isUnconditionalFromEntry(node)) {
-        context.report({ node: node.callee, message: buildConditionalMessage(hookName) });
-      }
-    },
-  }),
+      },
+    };
+  },
 });

@@ -11,6 +11,15 @@ const FUNCTION_LIKE_TYPES: ReadonlySet<string> = new Set([
 
 const isFunctionLike = (node: EsTreeNode): boolean => FUNCTION_LIKE_TYPES.has(node.type);
 
+const TYPE_ONLY_CHILD_KEYS: ReadonlySet<string> = new Set([
+  "implements",
+  "returnType",
+  "superTypeArguments",
+  "typeAnnotation",
+  "typeArguments",
+  "typeParameters",
+]);
+
 // True if `inner` is a descendant of `outer` (or equal) in the AST
 // tree. Used to filter references inside `functionNode`.
 const isAstDescendant = (inner: EsTreeNode, outer: EsTreeNode): boolean => {
@@ -75,6 +84,7 @@ export const closureCaptures = (
     const record = node as unknown as Record<string, unknown>;
     for (const key of Object.keys(record)) {
       if (key === "parent") continue;
+      if (TYPE_ONLY_CHILD_KEYS.has(key)) continue;
       const child = record[key];
       if (Array.isArray(child)) {
         for (const item of child) if (isAstNode(item)) visit(item);

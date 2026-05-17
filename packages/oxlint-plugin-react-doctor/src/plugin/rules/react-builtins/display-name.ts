@@ -14,6 +14,7 @@ const MESSAGE = "Component is missing a `displayName` — assign one for easier 
 interface DisplayNameSettings {
   ignoreTranspilerName?: boolean;
   checkContextObjects?: boolean;
+  reactVersion?: string;
 }
 
 const resolveSettings = (
@@ -27,7 +28,17 @@ const resolveSettings = (
   return {
     ignoreTranspilerName: ruleSettings.ignoreTranspilerName ?? false,
     checkContextObjects: ruleSettings.checkContextObjects ?? false,
+    reactVersion: ruleSettings.reactVersion ?? "",
   };
+};
+
+const isReactVersionAtLeast = (version: string, major: number, minor: number): boolean => {
+  if (!version) return true;
+  const match = version.match(/^(\d+)\.(\d+)/);
+  if (!match) return true;
+  const actualMajor = Number(match[1]);
+  const actualMinor = Number(match[2]);
+  return actualMajor > major || (actualMajor === major && actualMinor >= minor);
 };
 
 const containsJsx = (root: EsTreeNode): boolean => {
@@ -35,6 +46,10 @@ const containsJsx = (root: EsTreeNode): boolean => {
   const visit = (node: EsTreeNode): void => {
     if (found) return;
     if (node.type === "JSXElement" || node.type === "JSXFragment") {
+      found = true;
+      return;
+    }
+    if (isNodeOfType(node, "CallExpression") && isCreateElementCall(node)) {
       found = true;
       return;
     }
@@ -52,6 +67,140 @@ const containsJsx = (root: EsTreeNode): boolean => {
   };
   visit(root);
   return found;
+};
+
+const getStaticMemberName = (node: EsTreeNode): string | null => {
+  if (!isNodeOfType(node, "MemberExpression")) return null;
+  if (!node.computed && isNodeOfType(node.property, "Identifier")) return node.property.name;
+  if (node.computed && isNodeOfType(node.property, "Literal") && typeof node.property.value === "string") {
+    return node.property.value;
+  }
+  return null;
+};
+
+const getAssignedName = (node: EsTreeNode): string | null => {
+  let parent = node.parent;
+  while (
+    parent &&
+    (parent.type === "TSAsExpression" ||
+      parent.type === "TSSatisfiesExpression" ||
+      parent.type === "TSNonNullExpression" ||
+      parent.type === "TSTypeAssertion")
+  ) {
+    parent = parent.parent ?? null;
+  }
+  if (!parent) return null;
+  if (isNodeOfType(parent, "VariableDeclarator") && isNodeOfType(parent.id, "Identifier")) {
+    return parent.id.name;
+  }
+  if (isNodeOfType(parent, "AssignmentExpression")) {
+    const left = parent.left as EsTreeNode;
+    if (isNodeOfType(left, "Identifier")) return left.name;
+    if (isNodeOfType(left, "MemberExpression")) return getStaticMemberName(left);
+  }
+  return null;
+};
+
+const isModuleExportsAssignment = (node: EsTreeNode): boolean => {
+  const parent = node.parent;
+  if (!parent || !isNodeOfType(parent, "AssignmentExpression")) return false;
+  const left = parent.left as EsTreeNode;
+  return (
+    isNodeOfType(left, "MemberExpression") &&
+    isNodeOfType(left.object, "Identifier") &&
+    left.object.name === "module" &&
+    getStaticMemberName(left) === "exports"
+  );
+};
+
+const isCreateClassLikeCall = (node: EsTreeNode): node is EsTreeNodeOfType<"CallExpression"> => {
+  if (!isNodeOfType(node, "CallExpression")) return false;
+  if (isEs5Component(node)) return true;
+  const callee = node.callee;
+  if (isNodeOfType(callee, "MemberExpression")) {
+    return getStaticMemberName(callee) === "createClass";
+  }
+  return false;
+};
+
+const isCreateContextCall = (node: EsTreeNode): boolean => {
+  if (!isNodeOfType(node, "CallExpression")) return false;
+  const callee = node.callee;
+  if (isNodeOfType(callee, "Identifier")) return callee.name === "createContext";
+  return isNodeOfType(callee, "MemberExpression") && getStaticMemberName(callee) === "createContext";
+};
+
+const isObserverCall = (node: EsTreeNode): boolean => {
+  if (!isNodeOfType(node, "CallExpression")) return false;
+  const callee = node.callee;
+  if (isNodeOfType(callee, "Identifier")) return callee.name === "observer";
+  return isNodeOfType(callee, "MemberExpression") && getStaticMemberName(callee) === "observer";
+};
+
+const getCallName = (node: EsTreeNode): string | null => {
+  if (!isNodeOfType(node, "CallExpression")) return null;
+  const callee = node.callee;
+  if (isNodeOfType(callee, "Identifier")) return callee.name;
+  if (isNodeOfType(callee, "MemberExpression")) return getStaticMemberName(callee);
+  return null;
+};
+
+const isNamedFunctionLike = (node: EsTreeNode): boolean =>
+  (isNodeOfType(node, "FunctionExpression") || isNodeOfType(node, "FunctionDeclaration")) &&
+  Boolean(node.id?.name);
+
+const firstCallArgument = (node: EsTreeNode): EsTreeNode | null => {
+  if (!isNodeOfType(node, "CallExpression")) return null;
+  const first = node.arguments[0];
+  return first ? (first as EsTreeNode) : null;
+};
+
+const isDisplayNameHoC = (node: EsTreeNode): boolean => {
+  const callName = getCallName(node);
+  return callName === "memo" || callName === "forwardRef";
+};
+
+const supportsComposedForwardRefDisplayName = (version: string): boolean => {
+  if (!version) return false;
+  if (isReactVersionAtLeast(version, 15, 7)) return true;
+  const match = version.match(/^0\.14\.(\d+)/);
+  return Boolean(match && Number(match[1]) >= 11);
+};
+
+const shouldReportHoCDisplayName = (node: EsTreeNode, settings: Required<DisplayNameSettings>): boolean => {
+  if (!isDisplayNameHoC(node)) return false;
+  if (!containsJsx(node)) return false;
+
+  const assignedName = getAssignedName(node);
+  const programRoot = findProgramRoot(node);
+  if (assignedName && programRoot && hasDisplayNameAssignment(assignedName, programRoot)) {
+    return false;
+  }
+
+  const callName = getCallName(node);
+  const firstArgument = firstCallArgument(node);
+  if (!firstArgument) return false;
+
+  if (
+    callName === "forwardRef" &&
+    isNodeOfType(node.parent, "CallExpression") &&
+    getCallName(node.parent) === "memo" &&
+    firstCallArgument(node.parent) === node &&
+    supportsComposedForwardRefDisplayName(settings.reactVersion)
+  ) {
+    return false;
+  }
+
+  if (callName === "memo" && isNodeOfType(firstArgument, "CallExpression")) {
+    if (getCallName(firstArgument) !== "forwardRef") return false;
+    return !supportsComposedForwardRefDisplayName(settings.reactVersion);
+  }
+
+  if (isNamedFunctionLike(firstArgument)) return false;
+  return (
+    isNodeOfType(firstArgument, "FunctionExpression") ||
+    isNodeOfType(firstArgument, "ArrowFunctionExpression")
+  );
 };
 
 const hasDisplayNameMember = (classNode: EsTreeNode): boolean => {
@@ -84,12 +233,52 @@ const hasDisplayNameAssignment = (className: string, programRoot: EsTreeNode): b
       isNodeOfType(node.left, "MemberExpression") &&
       isNodeOfType(node.left.object, "Identifier") &&
       node.left.object.name === className &&
-      isNodeOfType(node.left.property, "Identifier") &&
-      !node.left.computed &&
-      node.left.property.name === "displayName"
+      getStaticMemberName(node.left) === "displayName"
     ) {
       found = true;
       return;
+    }
+    const record = node as unknown as Record<string, unknown>;
+    for (const key of Object.keys(record)) {
+      if (key === "parent") continue;
+      const child = record[key];
+      if (Array.isArray(child)) {
+        for (const item of child) if (isAstNode(item)) visit(item);
+      } else if (isAstNode(child)) {
+        visit(child);
+      }
+      if (found) return;
+    }
+  };
+  visit(programRoot);
+  return found;
+};
+
+const memberExpressionPath = (node: EsTreeNode): ReadonlyArray<string> => {
+  if (isNodeOfType(node, "Identifier")) return [node.name];
+  if (!isNodeOfType(node, "MemberExpression")) return [];
+  const objectPath = memberExpressionPath(node.object);
+  const propertyName = getStaticMemberName(node);
+  return propertyName ? [...objectPath, propertyName] : objectPath;
+};
+
+const hasDisplayNameAssignmentForProperty = (
+  propertyName: string,
+  programRoot: EsTreeNode,
+): boolean => {
+  let found = false;
+  const visit = (node: EsTreeNode): void => {
+    if (found) return;
+    if (
+      isNodeOfType(node, "AssignmentExpression") &&
+      isNodeOfType(node.left, "MemberExpression") &&
+      getStaticMemberName(node.left) === "displayName"
+    ) {
+      const objectPath = memberExpressionPath(node.left.object);
+      if (objectPath.includes(propertyName)) {
+        found = true;
+        return;
+      }
     }
     const record = node as unknown as Record<string, unknown>;
     for (const key of Object.keys(record)) {
@@ -161,9 +350,45 @@ export const displayName = defineRule<Rule>({
         }
         reportAt(node.id ?? node);
       },
+      FunctionExpression(node: EsTreeNodeOfType<"FunctionExpression">) {
+        if (!containsJsx(node)) return;
+        if (node.id && isReactComponentName(node.id.name) && ignoreNamed) return;
+        if (isNodeOfType(node.parent, "Property") && node.parent.method) {
+          const key = node.parent.key as EsTreeNode;
+          const propertyName =
+            isNodeOfType(key, "Identifier")
+              ? key.name
+              : isNodeOfType(key, "Literal") && typeof key.value === "string"
+                ? key.value
+                : null;
+          const programRoot = findProgramRoot(node);
+          if (
+            propertyName &&
+            isReactComponentName(propertyName) &&
+            settings.ignoreTranspilerName &&
+            (!programRoot || !hasDisplayNameAssignmentForProperty(propertyName, programRoot))
+          ) {
+            reportAt(node as EsTreeNode);
+            return;
+          }
+        }
+        const assignedName = getAssignedName(node);
+        if (assignedName && isReactComponentName(assignedName) && ignoreNamed) return;
+        if (isModuleExportsAssignment(node as EsTreeNode) && !node.id) {
+          reportAt(node as EsTreeNode);
+          return;
+        }
+        if (isNodeOfType(node.parent, "ReturnStatement") && !node.id) {
+          reportAt(node as EsTreeNode);
+        }
+      },
       ArrowFunctionExpression(node: EsTreeNodeOfType<"ArrowFunctionExpression">) {
         if (!containsJsx(node)) return;
-        let parent = node.parent;
+        if (isNodeOfType(node.parent, "ArrowFunctionExpression")) {
+          reportAt(node as EsTreeNode);
+          return;
+        }
+        let parent: EsTreeNode | null | undefined = node.parent;
         // Anonymous arrow assigned to a PascalCase var binding or
         // declared as a default export → name is inferable; skip.
         while (parent) {
@@ -172,8 +397,11 @@ export const displayName = defineRule<Rule>({
             break;
           }
           if (isNodeOfType(parent, "ExportDefaultDeclaration")) {
-            // default export — without further info, skip (OXC also
-            // requires explicit displayName for these in some configs).
+            reportAt(node as EsTreeNode);
+            return;
+          }
+          if (isModuleExportsAssignment(node as EsTreeNode)) {
+            reportAt(node as EsTreeNode);
             return;
           }
           if (
@@ -190,10 +418,31 @@ export const displayName = defineRule<Rule>({
         }
       },
       CallExpression(node: EsTreeNodeOfType<"CallExpression">) {
+        if (
+          settings.checkContextObjects &&
+          isReactVersionAtLeast(settings.reactVersion, 16, 3) &&
+          isCreateContextCall(node as EsTreeNode)
+        ) {
+          const assignedName = getAssignedName(node as EsTreeNode);
+          if (assignedName) {
+            const programRoot = findProgramRoot(node as EsTreeNode);
+            if (programRoot && hasDisplayNameAssignment(assignedName, programRoot)) return;
+          }
+          reportAt(node as EsTreeNode);
+          return;
+        }
+        if (isObserverCall(node as EsTreeNode) && containsJsx(node as EsTreeNode)) {
+          reportAt(node as EsTreeNode);
+          return;
+        }
+        if (shouldReportHoCDisplayName(node as EsTreeNode, settings)) {
+          reportAt(node as EsTreeNode);
+          return;
+        }
         // Detect createReactClass / React.createClass / similar
         // legacy-component factories without an explicit
         // `displayName` property in their config object.
-        if (!isEs5Component(node as EsTreeNode)) return;
+        if (!isCreateClassLikeCall(node as EsTreeNode)) return;
         const propsArgument = node.arguments[0];
         if (!propsArgument || !isNodeOfType(propsArgument as EsTreeNode, "ObjectExpression")) {
           // No config object — can't have displayName.

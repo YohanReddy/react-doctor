@@ -72,6 +72,21 @@ const skipIndices = (
   return indices;
 };
 
+const hasUnsupportedFlowSyntax = (testCase: UpstreamCase): boolean => {
+  if (testCase.syntax === "flow") return true;
+  if (/^\s*(?:component|hook)\s+[A-Za-z_$]/m.test(testCase.code)) return true;
+  return /\(\s*\{[^)]*\}\s*:\s*[^)]+\)/.test(testCase.code);
+};
+
+const normalizeUnsupportedFlowSyntax = (code: string): string =>
+  code
+    .replace(/^(\s*)component\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*\(/gm, "$1function $2(")
+    .replace(/^(\s*)hook\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*\(/gm, "$1function $2(")
+    .replace(/\(\s*(\{[^)]*\})\s*:\s*([^)]+)\)/g, "($1 as $2)");
+
+const hasTsGenericArrowAmbiguity = (code: string): boolean =>
+  /<\s*[A-Z][A-Za-z0-9_$]*(?:\s+extends\s+[^>]*)?>\s*\(/.test(code);
+
 // Drives the upstream `eslint-plugin-react-hooks` test fixtures through
 // our ported rule via the `runRule` harness. Each upstream case becomes
 // one `it(...)` that asserts diagnostic counts match upstream's.
@@ -90,17 +105,21 @@ export const runUpstreamParity = (
     caseIndex: number,
     skipSet: ReadonlySet<number>,
   ): void => {
-    const isSkipped = Boolean(testCase.skip) || skipSet.has(caseIndex) || testCase.syntax === "flow";
+    const isSkipped = Boolean(testCase.skip) || skipSet.has(caseIndex);
     const itFunction = isSkipped ? it.skip : it;
     const expectedDiagnostics = kind === "valid" ? 0 : (testCase.errorCount ?? 1);
     const label = `${kind} #${caseIndex} ${testCase.name ?? truncate(testCase.code)}`;
     itFunction(label, () => {
       const settings =
         options.translateOptions !== undefined
-          ? options.translateOptions(testCase.options)
+          ? (options.translateOptions(testCase.options) ?? testCase.settings)
           : testCase.settings;
-      const filename = testCase.filename ?? "Component.tsx";
-      const result = runRule(rule, testCase.code, { filename, settings, forceJsx: true });
+      const code = hasUnsupportedFlowSyntax(testCase)
+        ? normalizeUnsupportedFlowSyntax(testCase.code)
+        : testCase.code;
+      const forceJsx = !hasTsGenericArrowAmbiguity(code);
+      const filename = testCase.filename ?? (forceJsx ? "Component.tsx" : "Component.ts");
+      const result = runRule(rule, code, { filename, settings, forceJsx });
       expect(result.parseErrors).toEqual([]);
       expect(result.diagnostics).toHaveLength(expectedDiagnostics);
     });

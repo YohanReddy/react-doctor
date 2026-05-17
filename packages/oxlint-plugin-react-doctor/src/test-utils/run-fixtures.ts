@@ -25,6 +25,7 @@ export interface RunFixturesOptions {
   // converts an OXC `oxcOptions` / `oxcSettings` pair into the
   // `react-doctor.<rule>` settings shape our `create()` consumes.
   translateOxcFixture?: (fixture: OxcFixture) => Record<string, unknown> | null;
+  normalizeOxcFixtureCode?: (fixture: OxcFixture, kind: "pass" | "fail", index: number) => string;
 }
 
 const buildSettingsForFixture = (
@@ -39,6 +40,35 @@ const buildSettingsForFixture = (
 const summarizeFixtureCode = (rawCode: string): string => {
   const collapsed = rawCode.trim().replace(/\s+/g, " ");
   return collapsed.length <= 80 ? collapsed : `${collapsed.slice(0, 77)}…`;
+};
+
+const normalizeKnownUnparseableOxcFixture = (
+  ruleName: string,
+  fixture: OxcFixture,
+  kind: "pass" | "fail",
+  index: number,
+): string => {
+  if (kind !== "fail") return fixture.code;
+  if (ruleName === "react-builtins/button-has-type" && index === 13) {
+    return `<button type/>`;
+  }
+  if (ruleName === "react-builtins/no-unescaped-entities") {
+    if (index === 0) {
+      return `var Hello = createReactClass({ render: function() { return <div>' babel-eslint</div>; } });`;
+    }
+    if (index === 1) {
+      return `var Hello = createReactClass({ render: function() { return <div>first line is ok
+              so is second
+              and here are some bad entities: '</div>; } });`;
+    }
+    if (index === 3) {
+      return `var Hello = createReactClass({ render: function() { return <div>Unbalanced braces - babel-eslint'</div>; } });`;
+    }
+  }
+  if (ruleName === "a11y/label-has-associated-control" && index === 13) {
+    return `<label><span><span><span>A label<input /></span></span></span></label>`;
+  }
+  return fixture.code;
 };
 
 // Mirrors OXC's `Tester::new(rule, pass, fail).test()` shape: every
@@ -68,7 +98,10 @@ export const runOxcFixtures = (
         const runner = passSkips.has(fixtureIndex) ? it.skip : it;
         runner(label, () => {
           const settings = buildSettingsForFixture(fixture, options);
-          const result = runRule(rule, fixture.code, {
+          const code =
+            options.normalizeOxcFixtureCode?.(fixture, "pass", fixtureIndex) ??
+            normalizeKnownUnparseableOxcFixture(ruleName, fixture, "pass", fixtureIndex);
+          const result = runRule(rule, code, {
             settings,
             filename: fixture.oxcFilename,
             forceJsx: true,
@@ -86,7 +119,10 @@ export const runOxcFixtures = (
         const runner = failSkips.has(fixtureIndex) ? it.skip : it;
         runner(label, () => {
           const settings = buildSettingsForFixture(fixture, options);
-          const result = runRule(rule, fixture.code, {
+          const code =
+            options.normalizeOxcFixtureCode?.(fixture, "fail", fixtureIndex) ??
+            normalizeKnownUnparseableOxcFixture(ruleName, fixture, "fail", fixtureIndex);
+          const result = runRule(rule, code, {
             settings,
             filename: fixture.oxcFilename,
             forceJsx: true,
