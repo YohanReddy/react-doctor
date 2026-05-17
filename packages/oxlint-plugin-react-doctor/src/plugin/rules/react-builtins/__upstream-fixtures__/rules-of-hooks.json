@@ -1,0 +1,1032 @@
+{
+  "valid": [
+    {
+      "code": "\n// Valid because components can use hooks.\nfunction ComponentWithHook() {\n  useHook();\n}\n"
+    },
+    {
+      "code": "\n// Component syntax\ncomponent Button() {\n  useHook();\n  return <div>Button!</div>;\n}\n",
+      "syntax": "flow"
+    },
+    {
+      "code": "\n// Hook syntax\nhook useSampleHook() {\n  useHook();\n}\n",
+      "syntax": "flow"
+    },
+    {
+      "code": "\n// Valid because components can use hooks.\nfunction createComponentWithHook() {\n  return function ComponentWithHook() {\n    useHook();\n  };\n}\n"
+    },
+    {
+      "code": "\n// Valid because hooks can use hooks.\nfunction useHookWithHook() {\n  useHook();\n}\n"
+    },
+    {
+      "code": "\n// Valid because hooks can use hooks.\nfunction createHook() {\n  return function useHookWithHook() {\n    useHook();\n  }\n}\n"
+    },
+    {
+      "code": "\n// Valid because components can call functions.\nfunction ComponentWithNormalFunction() {\n  doSomething();\n}\n"
+    },
+    {
+      "code": "\n// Valid because functions can call functions.\nfunction normalFunctionWithNormalFunction() {\n  doSomething();\n}\n"
+    },
+    {
+      "code": "\n// Valid because functions can call functions.\nfunction normalFunctionWithConditionalFunction() {\n  if (cond) {\n    doSomething();\n  }\n}\n"
+    },
+    {
+      "code": "\n// Valid because functions can call functions.\nfunction functionThatStartsWithUseButIsntAHook() {\n  if (cond) {\n    userFetch();\n  }\n}\n"
+    },
+    {
+      "code": "\n// Valid although unconditional return doesn't make sense and would fail other rules.\n// We could make it invalid but it doesn't matter.\nfunction useUnreachable() {\n  return;\n  useHook();\n}\n"
+    },
+    {
+      "code": "\n// Valid because hooks can call hooks.\nfunction useHook() { useState(); }\nconst whatever = function useHook() { useState(); };\nconst useHook1 = () => { useState(); };\nlet useHook2 = () => useState();\nuseHook2 = () => { useState(); };\n({useHook: () => { useState(); }});\n({useHook() { useState(); }});\nconst {useHook3 = () => { useState(); }} = {};\n({useHook = () => { useState(); }} = {});\nNamespace.useHook = () => { useState(); };\n"
+    },
+    {
+      "code": "\n// Valid because hooks can call hooks.\nfunction useHook() {\n  useHook1();\n  useHook2();\n}\n"
+    },
+    {
+      "code": "\n// Valid because hooks can call hooks.\nfunction createHook() {\n  return function useHook() {\n    useHook1();\n    useHook2();\n  };\n}\n"
+    },
+    {
+      "code": "\n// Valid because hooks can call hooks.\nfunction useHook() {\n  useState() && a;\n}\n"
+    },
+    {
+      "code": "\n// Valid because hooks can call hooks.\nfunction useHook() {\n  return useHook1() + useHook2();\n}\n"
+    },
+    {
+      "code": "\n// Valid because hooks can call hooks.\nfunction useHook() {\n  return useHook1(useHook2());\n}\n"
+    },
+    {
+      "code": "\n// Valid because hooks can be used in anonymous arrow-function arguments\n// to forwardRef.\nconst FancyButton = React.forwardRef((props, ref) => {\n  useHook();\n  return <button {...props} ref={ref} />\n});\n"
+    },
+    {
+      "code": "\n// Valid because hooks can be used in anonymous function arguments to\n// forwardRef.\nconst FancyButton = React.forwardRef(function (props, ref) {\n  useHook();\n  return <button {...props} ref={ref} />\n});\n"
+    },
+    {
+      "code": "\n// Valid because hooks can be used in anonymous function arguments to\n// forwardRef.\nconst FancyButton = forwardRef(function (props, ref) {\n  useHook();\n  return <button {...props} ref={ref} />\n});\n"
+    },
+    {
+      "code": "\n// Valid because hooks can be used in anonymous function arguments to\n// React.memo.\nconst MemoizedFunction = React.memo(props => {\n  useHook();\n  return <button {...props} />\n});\n"
+    },
+    {
+      "code": "\n// Valid because hooks can be used in anonymous function arguments to\n// memo.\nconst MemoizedFunction = memo(function (props) {\n  useHook();\n  return <button {...props} />\n});\n"
+    },
+    {
+      "code": "\n// Valid because classes can call functions.\n// We don't consider these to be hooks.\nclass C {\n  m() {\n    this.useHook();\n    super.useHook();\n  }\n}\n"
+    },
+    {
+      "code": "\n// Valid -- this is a regression test.\njest.useFakeTimers();\nbeforeEach(() => {\n  jest.useRealTimers();\n})\n"
+    },
+    {
+      "code": "\n// Valid because they're not matching use[A-Z].\nfooState();\n_use();\n_useState();\nuse_hook();\n// also valid because it's not matching the PascalCase namespace\njest.useFakeTimer()\n"
+    },
+    {
+      "code": "\n// Regression test for some internal code.\n// This shows how the \"callback rule\" is more relaxed,\n// and doesn't kick in unless we're confident we're in\n// a component or a hook.\nfunction makeListener(instance) {\n  each(pixelsWithInferredEvents, pixel => {\n    if (useExtendedSelector(pixel.id) && extendedButton) {\n      foo();\n    }\n  });\n}\n"
+    },
+    {
+      "code": "\n// This is valid because \"use\"-prefixed functions called in\n// unnamed function arguments are not assumed to be hooks.\nReact.unknownFunction((foo, bar) => {\n  if (foo) {\n    useNotAHook(bar)\n  }\n});\n"
+    },
+    {
+      "code": "\n// This is valid because \"use\"-prefixed functions called in\n// unnamed function arguments are not assumed to be hooks.\nunknownFunction(function(foo, bar) {\n  if (foo) {\n    useNotAHook(bar)\n  }\n});\n"
+    },
+    {
+      "code": "\n// Regression test for incorrectly flagged valid code.\nfunction RegressionTest() {\n  const foo = cond ? a : b;\n  useState();\n}\n"
+    },
+    {
+      "code": "\n// Valid because exceptions abort rendering\nfunction RegressionTest() {\n  if (page == null) {\n    throw new Error('oh no!');\n  }\n  useState();\n}\n"
+    },
+    {
+      "code": "\n// Valid because the loop doesn't change the order of hooks calls.\nfunction RegressionTest() {\n  const res = [];\n  const additionalCond = true;\n  for (let i = 0; i !== 10 && additionalCond; ++i ) {\n    res.push(i);\n  }\n  React.useLayoutEffect(() => {});\n}\n"
+    },
+    {
+      "code": "\n// Is valid but hard to compute by brute-forcing\nfunction MyComponent() {\n  // 40 conditions\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n  if (c) {} else {}\n\n  // 10 hooks\n  useHook();\n  useHook();\n  useHook();\n  useHook();\n  useHook();\n  useHook();\n  useHook();\n  useHook();\n  useHook();\n  useHook();\n}\n"
+    },
+    {
+      "code": "\n// Valid because the neither the conditions before or after the hook affect the hook call\n// Failed prior to implementing BigInt because pathsFromStartToEnd and allPathsFromStartToEnd were too big and had rounding errors\nconst useSomeHook = () => {};\n\nconst SomeName = () => {\n  const filler = FILLER ?? FILLER ?? FILLER;\n  const filler2 = FILLER ?? FILLER ?? FILLER;\n  const filler3 = FILLER ?? FILLER ?? FILLER;\n  const filler4 = FILLER ?? FILLER ?? FILLER;\n  const filler5 = FILLER ?? FILLER ?? FILLER;\n  const filler6 = FILLER ?? FILLER ?? FILLER;\n  const filler7 = FILLER ?? FILLER ?? FILLER;\n  const filler8 = FILLER ?? FILLER ?? FILLER;\n\n  useSomeHook();\n\n  if (anyConditionCanEvenBeFalse) {\n    return null;\n  }\n\n  return (\n    <React.Fragment>\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n      {FILLER ? FILLER : FILLER}\n    </React.Fragment>\n  );\n};\n"
+    },
+    {
+      "code": "\n// Valid because the neither the condition nor the loop affect the hook call.\nfunction App(props) {\n  const someObject = {propA: true};\n  for (const propName in someObject) {\n    if (propName === true) {\n    } else {\n    }\n  }\n  const [myState, setMyState] = useState(null);\n}\n"
+    },
+    {
+      "code": "\nfunction App() {\n  const text = use(Promise.resolve('A'));\n  return <Text text={text} />\n}\n"
+    },
+    {
+      "code": "\nimport * as React from 'react';\nfunction App() {\n  if (shouldShowText) {\n    const text = use(query);\n    const data = React.use(thing);\n    const data2 = react.use(thing2);\n    return <Text text={text} />\n  }\n  return <Text text={shouldFetchBackupText ? use(backupQuery) : \"Nothing to see here\"} />\n}\n"
+    },
+    {
+      "code": "\nfunction App() {\n  let data = [];\n  for (const query of queries) {\n    const text = use(item);\n    data.push(text);\n  }\n  return <Child data={data} />\n}\n"
+    },
+    {
+      "code": "\nfunction App() {\n  const data = someCallback((x) => use(x));\n  return <Child data={data} />\n}\n"
+    },
+    {
+      "code": "\nexport const notAComponent = () => {\n   return () => {\n    useState();\n  }\n}\n"
+    },
+    {
+      "code": "\nexport default () => {\n  if (isVal) {\n    useState(0);\n  }\n}\n"
+    },
+    {
+      "code": "\nfunction notAComponent() {\n  return new Promise.then(() => {\n    useState();\n  });\n}\n"
+    },
+    {
+      "code": "\n// Valid because the hook is outside of the loop\nconst Component = () => {\n  const [state, setState] = useState(0);\n  for (let i = 0; i < 10; i++) {\n    console.log(i);\n  }\n  return <div></div>;\n};\n"
+    },
+    {
+      "code": "\n// Valid: useEffectEvent can be called in custom effect hooks configured via ESLint settings\nfunction MyComponent({ theme }) {\n  const onClick = useEffectEvent(() => {\n    showNotification(theme);\n  });\n  useMyEffect(() => {\n    onClick();\n  });\n  useServerEffect(() => {\n    onClick();\n  });\n}\n",
+      "settings": {
+        "react-hooks": {
+          "additionalEffectHooks": "(useMyEffect|useServerEffect)"
+        }
+      }
+    },
+    {
+      "code": "\n// Component syntax version\n// Valid: useEffectEvent can be called in custom effect hooks configured via ESLint settings\ncomponent MyComponent(theme: any) {\n  const onClick = useEffectEvent(() => {\n    showNotification(theme);\n  });\n  useMyEffect(() => {\n    onClick();\n  });\n  useServerEffect(() => {\n    onClick();  \n  });\n}\n",
+      "syntax": "flow",
+      "settings": {
+        "react-hooks": {
+          "additionalEffectHooks": "(useMyEffect|useServerEffect)"
+        }
+      }
+    },
+    {
+      "code": "\n// Valid because functions created with useEffectEvent can be called in a useEffect.\nfunction MyComponent({ theme }) {\n  const onClick = useEffectEvent(() => {\n    showNotification(theme);\n  });\n  useEffect(() => {\n    onClick();\n  });\n  React.useEffect(() => {\n    onClick();\n  });\n}\n"
+    },
+    {
+      "code": "\n// Component syntax version\n// Valid because functions created with useEffectEvent can be called in a useEffect.\ncomponent MyComponent(theme: any) {\n  const onClick = useEffectEvent(() => {\n    showNotification(theme);\n  });\n  useEffect(() => {\n    onClick();\n  });\n  React.useEffect(() => {\n    onClick();\n  });\n}\n",
+      "syntax": "flow"
+    },
+    {
+      "code": "\n// Valid because functions created with useEffectEvent can be passed by reference in useEffect\n// and useEffectEvent.\nfunction MyComponent({ theme }) {\n  const onClick = useEffectEvent(() => {\n    showNotification(theme);\n  });\n  const onClick2 = useEffectEvent(() => {\n    debounce(onClick);\n    debounce(() => onClick());\n    debounce(() => { onClick() });\n    deboucne(() => debounce(onClick));\n  });\n  useEffect(() => {\n    let id = setInterval(() => onClick(), 100);\n    return () => clearInterval(onClick);\n  }, []);\n  React.useEffect(() => {\n    let id = setInterval(() => onClick(), 100);\n    return () => clearInterval(onClick);\n  }, []);\n  return null;\n}\n"
+    },
+    {
+      "code": "\n// Component syntax version\n// Valid because functions created with useEffectEvent can be passed by reference in useEffect\n// and useEffectEvent.\ncomponent MyComponent(theme: any) {\n  const onClick = useEffectEvent(() => {\n    showNotification(theme);\n  });\n  const onClick2 = useEffectEvent(() => {\n    debounce(onClick);\n    debounce(() => onClick());\n    debounce(() => { onClick() });\n    deboucne(() => debounce(onClick));\n  });\n  useEffect(() => {\n    let id = setInterval(() => onClick(), 100);\n    return () => clearInterval(onClick);\n  }, []);\n  React.useEffect(() => {\n    let id = setInterval(() => onClick(), 100);\n    return () => clearInterval(onClick);\n  }, []);\n  return null;\n}\n",
+      "syntax": "flow"
+    },
+    {
+      "code": "\nfunction MyComponent({ theme }) {\n  useEffect(() => {\n    onClick();\n  });\n  const onClick = useEffectEvent(() => {\n    showNotification(theme);\n  });\n}\n"
+    },
+    {
+      "code": "\n// Component syntax version\ncomponent MyComponent(theme: any) {\n  useEffect(() => {\n    onClick();\n  });\n  const onClick = useEffectEvent(() => {\n    showNotification(theme);\n  });\n}\n",
+      "syntax": "flow"
+    },
+    {
+      "code": "\nfunction MyComponent({ theme }) {\n  // Can receive arguments\n  const onEvent = useEffectEvent((text) => {\n    console.log(text);\n  });\n\n  useEffect(() => {\n    onEvent('Hello world');\n  });\n  React.useEffect(() => {\n    onEvent('Hello world');\n  });\n}\n"
+    },
+    {
+      "code": "\n// Component syntax version\ncomponent MyComponent(theme: any) {\n  // Can receive arguments\n  const onEvent = useEffectEvent((text) => {\n    console.log(text);\n  });\n\n  useEffect(() => {\n    onEvent('Hello world');\n  });\n  React.useEffect(() => {\n    onEvent('Hello world');\n  });\n}\n",
+      "syntax": "flow"
+    },
+    {
+      "code": "\n// Valid because functions created with useEffectEvent can be called in useLayoutEffect.\nfunction MyComponent({ theme }) {\n  const onClick = useEffectEvent(() => {\n    showNotification(theme);\n  });\n  useLayoutEffect(() => {\n    onClick();\n  });\n  React.useLayoutEffect(() => {\n    onClick();\n  });\n}\n"
+    },
+    {
+      "code": "\n// Component syntax version\n// Valid because functions created with useEffectEvent can be called in useLayoutEffect.\ncomponent MyComponent(theme: any) {\n  const onClick = useEffectEvent(() => {\n    showNotification(theme);\n  });\n  useLayoutEffect(() => {\n    onClick();\n  });\n  React.useLayoutEffect(() => {\n    onClick();\n  });\n}\n",
+      "syntax": "flow"
+    },
+    {
+      "code": "\n// Valid because functions created with useEffectEvent can be called in useInsertionEffect.\nfunction MyComponent({ theme }) {\n  const onClick = useEffectEvent(() => {\n    showNotification(theme);\n  });\n  useInsertionEffect(() => {\n    onClick();\n  });\n  React.useInsertionEffect(() => {\n    onClick();\n  });\n}\n"
+    },
+    {
+      "code": "\n// Component syntax version\n// Valid because functions created with useEffectEvent can be called in useInsertionEffect.\ncomponent MyComponent(theme) {\n  const onClick = useEffectEvent(() => {\n    showNotification(theme);\n  });\n  useInsertionEffect(() => {\n    onClick();\n  });\n  React.useInsertionEffect(() => {\n    onClick();\n  });\n}\n",
+      "syntax": "flow"
+    },
+    {
+      "code": "\n// Valid because functions created with useEffectEvent can be passed by reference in useLayoutEffect \n// and useInsertionEffect.\nfunction MyComponent({ theme }) {\n  const onClick = useEffectEvent(() => {\n    showNotification(theme);\n  });\n  const onClick2 = useEffectEvent(() => {\n    debounce(onClick);\n    debounce(() => onClick());\n    debounce(() => { onClick() });\n    deboucne(() => debounce(onClick));\n  });\n  useLayoutEffect(() => {\n    let id = setInterval(() => onClick(), 100);\n    return () => clearInterval(onClick);\n  }, []);\n  React.useLayoutEffect(() => {\n    let id = setInterval(() => onClick(), 100);\n    return () => clearInterval(onClick);\n  }, []);\n  useInsertionEffect(() => {\n    let id = setInterval(() => onClick(), 100);\n    return () => clearInterval(onClick);\n  }, []);\n  React.useInsertionEffect(() => {\n    let id = setInterval(() => onClick(), 100);\n    return () => clearInterval(onClick);\n  }, []);\n  return null;\n}\n"
+    },
+    {
+      "code": "\n// Component syntax version\n// Valid because functions created with useEffectEvent can be passed by reference in useLayoutEffect.\n// and useInsertionEffect.\ncomponent MyComponent(theme: any) {\n  const onClick = useEffectEvent(() => {\n    showNotification(theme);\n  });\n  const onClick2 = useEffectEvent(() => {\n    debounce(onClick);\n    debounce(() => onClick());\n    debounce(() => { onClick() });\n    deboucne(() => debounce(onClick));\n  });\n  useLayoutEffect(() => {\n    let id = setInterval(() => onClick(), 100);\n    return () => clearInterval(onClick);\n  }, []);\n  React.useLayoutEffect(() => {\n    let id = setInterval(() => onClick(), 100);\n    return () => clearInterval(onClick);\n  }, []);\n  useInsertionEffect(() => {\n    let id = setInterval(() => onClick(), 100);\n    return () => clearInterval(onClick);\n  }, []);\n  React.useInsertionEffect(() => {\n    let id = setInterval(() => onClick(), 100);\n    return () => clearInterval(onClick);\n  }, []);\n  return null;\n}\n",
+      "syntax": "flow"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "\ncomponent Button(cond: boolean) {\n  if (cond) {\n    useConditionalHook();\n  }\n}\n",
+      "syntax": "flow",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useConditionalHook\" is called conditionally. React Hooks must be called in the exact same order in every component render."
+        }
+      ]
+    },
+    {
+      "code": "\nhook useTest(cond: boolean) {\n  if (cond) {\n    useConditionalHook();\n  }\n}\n",
+      "syntax": "flow",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useConditionalHook\" is called conditionally. React Hooks must be called in the exact same order in every component render."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's dangerous and might not warn otherwise.\n// This *must* be invalid.\nfunction ComponentWithConditionalHook() {\n  if (cond) {\n    useConditionalHook();\n  }\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useConditionalHook\" is called conditionally. React Hooks must be called in the exact same order in every component render."
+        }
+      ]
+    },
+    {
+      "code": "\nHook.useState();\nHook._useState();\nHook.use42();\nHook.useHook();\nHook.use_hook();\n",
+      "errorCount": 3,
+      "errors": [
+        {
+          "message": "React Hook \"Hook.useState\" cannot be called at the top level. React Hooks must be called in a React function component or a custom React Hook function."
+        },
+        {
+          "message": "React Hook \"Hook.use42\" cannot be called at the top level. React Hooks must be called in a React function component or a custom React Hook function."
+        },
+        {
+          "message": "React Hook \"Hook.useHook\" cannot be called at the top level. React Hooks must be called in a React function component or a custom React Hook function."
+        }
+      ]
+    },
+    {
+      "code": "\nclass C {\n  m() {\n    This.useHook();\n    Super.useHook();\n  }\n}\n",
+      "errorCount": 2,
+      "errors": [
+        {
+          "message": "React Hook \"This.useHook\" cannot be called in a class component. React Hooks must be called in a React function component or a custom React Hook function."
+        },
+        {
+          "message": "React Hook \"Super.useHook\" cannot be called in a class component. React Hooks must be called in a React function component or a custom React Hook function."
+        }
+      ]
+    },
+    {
+      "code": "\n// This is a false positive (it's valid) that unfortunately\n// we cannot avoid. Prefer to rename it to not start with \"use\"\nclass Foo extends Component {\n  render() {\n    if (cond) {\n      FooStore.useFeatureFlag();\n    }\n  }\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"FooStore.useFeatureFlag\" cannot be called in a class component. React Hooks must be called in a React function component or a custom React Hook function."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's dangerous and might not warn otherwise.\n// This *must* be invalid.\nfunction ComponentWithConditionalHook() {\n  if (cond) {\n    Namespace.useConditionalHook();\n  }\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"Namespace.useConditionalHook\" is called conditionally. React Hooks must be called in the exact same order in every component render."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's dangerous and might not warn otherwise.\n// This *must* be invalid.\nfunction createComponent() {\n  return function ComponentWithConditionalHook() {\n    if (cond) {\n      useConditionalHook();\n    }\n  }\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useConditionalHook\" is called conditionally. React Hooks must be called in the exact same order in every component render."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's dangerous and might not warn otherwise.\n// This *must* be invalid.\nfunction useHookWithConditionalHook() {\n  if (cond) {\n    useConditionalHook();\n  }\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useConditionalHook\" is called conditionally. React Hooks must be called in the exact same order in every component render."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's dangerous and might not warn otherwise.\n// This *must* be invalid.\nfunction createHook() {\n  return function useHookWithConditionalHook() {\n    if (cond) {\n      useConditionalHook();\n    }\n  }\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useConditionalHook\" is called conditionally. React Hooks must be called in the exact same order in every component render."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's dangerous and might not warn otherwise.\n// This *must* be invalid.\nfunction ComponentWithTernaryHook() {\n  cond ? useTernaryHook() : null;\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useTernaryHook\" is called conditionally. React Hooks must be called in the exact same order in every component render."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's a common misunderstanding.\n// We *could* make it valid but the runtime error could be confusing.\nfunction ComponentWithHookInsideCallback() {\n  useEffect(() => {\n    useHookInsideCallback();\n  });\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useHookInsideCallback\" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's a common misunderstanding.\n// We *could* make it valid but the runtime error could be confusing.\nfunction createComponent() {\n  return function ComponentWithHookInsideCallback() {\n    useEffect(() => {\n      useHookInsideCallback();\n    });\n  }\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useHookInsideCallback\" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's a common misunderstanding.\n// We *could* make it valid but the runtime error could be confusing.\nconst ComponentWithHookInsideCallback = React.forwardRef((props, ref) => {\n  useEffect(() => {\n    useHookInsideCallback();\n  });\n  return <button {...props} ref={ref} />\n});\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useHookInsideCallback\" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's a common misunderstanding.\n// We *could* make it valid but the runtime error could be confusing.\nconst ComponentWithHookInsideCallback = React.memo(props => {\n  useEffect(() => {\n    useHookInsideCallback();\n  });\n  return <button {...props} />\n});\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useHookInsideCallback\" cannot be called inside a callback. React Hooks must be called in a React function component or a custom React Hook function."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's a common misunderstanding.\n// We *could* make it valid but the runtime error could be confusing.\nfunction ComponentWithHookInsideCallback() {\n  function handleClick() {\n    useState();\n  }\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useState\" is called in function \"handleClick\" that is neither a React function component nor a custom React Hook function. React component names must start with an uppercase letter. React Hook names must start with the word \"use\"."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's a common misunderstanding.\n// We *could* make it valid but the runtime error could be confusing.\nfunction createComponent() {\n  return function ComponentWithHookInsideCallback() {\n    function handleClick() {\n      useState();\n    }\n  }\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useState\" is called in function \"handleClick\" that is neither a React function component nor a custom React Hook function. React component names must start with an uppercase letter. React Hook names must start with the word \"use\"."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's dangerous and might not warn otherwise.\n// This *must* be invalid.\nfunction ComponentWithHookInsideLoop() {\n  while (cond) {\n    useHookInsideLoop();\n  }\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useHookInsideLoop\" may be executed more than once. Possibly because it is called in a loop. React Hooks must be called in the exact same order in every component render."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's dangerous and might not warn otherwise.\n// This *must* be invalid.\nfunction ComponentWithHookInsideLoop() {\n  do {\n    useHookInsideLoop();\n  } while (cond);\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useHookInsideLoop\" may be executed more than once. Possibly because it is called in a loop. React Hooks must be called in the exact same order in every component render."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's dangerous and might not warn otherwise.\n// This *must* be invalid.\nfunction ComponentWithHookInsideLoop() {\n  do {\n    foo();\n  } while (useHookInsideLoop());\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useHookInsideLoop\" may be executed more than once. Possibly because it is called in a loop. React Hooks must be called in the exact same order in every component render."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's dangerous and might not warn otherwise.\n// This *must* be invalid.\nfunction renderItem() {\n  useState();\n}\n\nfunction List(props) {\n  return props.items.map(renderItem);\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useState\" is called in function \"renderItem\" that is neither a React function component nor a custom React Hook function. React component names must start with an uppercase letter. React Hook names must start with the word \"use\"."
+        }
+      ]
+    },
+    {
+      "code": "\n// Currently invalid because it violates the convention and removes the \"taint\"\n// from a hook. We *could* make it valid to avoid some false positives but let's\n// ensure that we don't break the \"renderItem\" and \"normalFunctionWithConditionalHook\"\n// cases which must remain invalid.\nfunction normalFunctionWithHook() {\n  useHookInsideNormalFunction();\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useHookInsideNormalFunction\" is called in function \"normalFunctionWithHook\" that is neither a React function component nor a custom React Hook function. React component names must start with an uppercase letter. React Hook names must start with the word \"use\"."
+        }
+      ]
+    },
+    {
+      "code": "\n// These are neither functions nor hooks.\nfunction _normalFunctionWithHook() {\n  useHookInsideNormalFunction();\n}\nfunction _useNotAHook() {\n  useHookInsideNormalFunction();\n}\n",
+      "errorCount": 2,
+      "errors": [
+        {
+          "message": "React Hook \"useHookInsideNormalFunction\" is called in function \"_normalFunctionWithHook\" that is neither a React function component nor a custom React Hook function. React component names must start with an uppercase letter. React Hook names must start with the word \"use\"."
+        },
+        {
+          "message": "React Hook \"useHookInsideNormalFunction\" is called in function \"_useNotAHook\" that is neither a React function component nor a custom React Hook function. React component names must start with an uppercase letter. React Hook names must start with the word \"use\"."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's dangerous and might not warn otherwise.\n// This *must* be invalid.\nfunction normalFunctionWithConditionalHook() {\n  if (cond) {\n    useHookInsideNormalFunction();\n  }\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useHookInsideNormalFunction\" is called in function \"normalFunctionWithConditionalHook\" that is neither a React function component nor a custom React Hook function. React component names must start with an uppercase letter. React Hook names must start with the word \"use\"."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's dangerous and might not warn otherwise.\n// This *must* be invalid.\nfunction useHookInLoops() {\n  while (a) {\n    useHook1();\n    if (b) return;\n    useHook2();\n  }\n  while (c) {\n    useHook3();\n    if (d) return;\n    useHook4();\n  }\n}\n",
+      "errorCount": 4,
+      "errors": [
+        {
+          "message": "React Hook \"useHook1\" may be executed more than once. Possibly because it is called in a loop. React Hooks must be called in the exact same order in every component render."
+        },
+        {
+          "message": "React Hook \"useHook2\" may be executed more than once. Possibly because it is called in a loop. React Hooks must be called in the exact same order in every component render."
+        },
+        {
+          "message": "React Hook \"useHook3\" may be executed more than once. Possibly because it is called in a loop. React Hooks must be called in the exact same order in every component render."
+        },
+        {
+          "message": "React Hook \"useHook4\" may be executed more than once. Possibly because it is called in a loop. React Hooks must be called in the exact same order in every component render."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's dangerous and might not warn otherwise.\n// This *must* be invalid.\nfunction useHookInLoops() {\n  while (a) {\n    useHook1();\n    if (b) continue;\n    useHook2();\n  }\n}\n",
+      "errorCount": 2,
+      "errors": [
+        {
+          "message": "React Hook \"useHook1\" may be executed more than once. Possibly because it is called in a loop. React Hooks must be called in the exact same order in every component render."
+        },
+        {
+          "message": "React Hook \"useHook2\" may be executed more than once. Possibly because it is called in a loop. React Hooks must be called in the exact same order in every component render."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's dangerous and might not warn otherwise.\n// This *must* be invalid.\nfunction useHookInLoops() {\n  do {\n    useHook1();\n    if (a) return;\n    useHook2();\n  } while (b);\n\n  do {\n    useHook3();\n    if (c) return;\n    useHook4();\n  } while (d)\n}\n",
+      "errorCount": 4,
+      "errors": [
+        {
+          "message": "React Hook \"useHook1\" may be executed more than once. Possibly because it is called in a loop. React Hooks must be called in the exact same order in every component render."
+        },
+        {
+          "message": "React Hook \"useHook2\" may be executed more than once. Possibly because it is called in a loop. React Hooks must be called in the exact same order in every component render."
+        },
+        {
+          "message": "React Hook \"useHook3\" may be executed more than once. Possibly because it is called in a loop. React Hooks must be called in the exact same order in every component render."
+        },
+        {
+          "message": "React Hook \"useHook4\" may be executed more than once. Possibly because it is called in a loop. React Hooks must be called in the exact same order in every component render."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's dangerous and might not warn otherwise.\n// This *must* be invalid.\nfunction useHookInLoops() {\n  do {\n    useHook1();\n    if (a) continue;\n    useHook2();\n  } while (b);\n}\n",
+      "errorCount": 2,
+      "errors": [
+        {
+          "message": "React Hook \"useHook1\" may be executed more than once. Possibly because it is called in a loop. React Hooks must be called in the exact same order in every component render."
+        },
+        {
+          "message": "React Hook \"useHook2\" may be executed more than once. Possibly because it is called in a loop. React Hooks must be called in the exact same order in every component render."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's dangerous and might not warn otherwise.\n// This *must* be invalid.\nfunction useLabeledBlock() {\n  label: {\n    if (a) break label;\n    useHook();\n  }\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useHook\" is called conditionally. React Hooks must be called in the exact same order in every component render."
+        }
+      ]
+    },
+    {
+      "code": "\n// Currently invalid.\n// These are variations capturing the current heuristic--\n// we only allow hooks in PascalCase or useFoo functions.\n// We *could* make some of these valid. But before doing it,\n// consider specific cases documented above that contain reasoning.\nfunction a() { useState(); }\nconst whatever = function b() { useState(); };\nconst c = () => { useState(); };\nlet d = () => useState();\ne = () => { useState(); };\n({f: () => { useState(); }});\n({g() { useState(); }});\nconst {j = () => { useState(); }} = {};\n({k = () => { useState(); }} = {});\n",
+      "errorCount": 9,
+      "errors": [
+        {
+          "message": "React Hook \"useState\" is called in function \"a\" that is neither a React function component nor a custom React Hook function. React component names must start with an uppercase letter. React Hook names must start with the word \"use\"."
+        },
+        {
+          "message": "React Hook \"useState\" is called in function \"b\" that is neither a React function component nor a custom React Hook function. React component names must start with an uppercase letter. React Hook names must start with the word \"use\"."
+        },
+        {
+          "message": "React Hook \"useState\" is called in function \"c\" that is neither a React function component nor a custom React Hook function. React component names must start with an uppercase letter. React Hook names must start with the word \"use\"."
+        },
+        {
+          "message": "React Hook \"useState\" is called in function \"d\" that is neither a React function component nor a custom React Hook function. React component names must start with an uppercase letter. React Hook names must start with the word \"use\"."
+        },
+        {
+          "message": "React Hook \"useState\" is called in function \"e\" that is neither a React function component nor a custom React Hook function. React component names must start with an uppercase letter. React Hook names must start with the word \"use\"."
+        },
+        {
+          "message": "React Hook \"useState\" is called in function \"f\" that is neither a React function component nor a custom React Hook function. React component names must start with an uppercase letter. React Hook names must start with the word \"use\"."
+        },
+        {
+          "message": "React Hook \"useState\" is called in function \"g\" that is neither a React function component nor a custom React Hook function. React component names must start with an uppercase letter. React Hook names must start with the word \"use\"."
+        },
+        {
+          "message": "React Hook \"useState\" is called in function \"j\" that is neither a React function component nor a custom React Hook function. React component names must start with an uppercase letter. React Hook names must start with the word \"use\"."
+        },
+        {
+          "message": "React Hook \"useState\" is called in function \"k\" that is neither a React function component nor a custom React Hook function. React component names must start with an uppercase letter. React Hook names must start with the word \"use\"."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's dangerous and might not warn otherwise.\n// This *must* be invalid.\nfunction useHook() {\n  if (a) return;\n  useState();\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useState\" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?"
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's dangerous and might not warn otherwise.\n// This *must* be invalid.\nfunction useHook() {\n  if (a) return;\n  if (b) {\n    console.log('true');\n  } else {\n    console.log('false');\n  }\n  useState();\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useState\" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?"
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's dangerous and might not warn otherwise.\n// This *must* be invalid.\nfunction useHook() {\n  if (b) {\n    console.log('true');\n  } else {\n    console.log('false');\n  }\n  if (a) return;\n  useState();\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useState\" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?"
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's dangerous and might not warn otherwise.\n// This *must* be invalid.\nfunction useHook() {\n  a && useHook1();\n  b && useHook2();\n}\n",
+      "errorCount": 2,
+      "errors": [
+        {
+          "message": "React Hook \"useHook1\" is called conditionally. React Hooks must be called in the exact same order in every component render."
+        },
+        {
+          "message": "React Hook \"useHook2\" is called conditionally. React Hooks must be called in the exact same order in every component render."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's dangerous and might not warn otherwise.\n// This *must* be invalid.\nfunction useHook() {\n  try {\n    f();\n    useState();\n  } catch {}\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useState\" is called conditionally. React Hooks must be called in the exact same order in every component render."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's dangerous and might not warn otherwise.\n// This *must* be invalid.\nfunction useHook({ bar }) {\n  let foo1 = bar && useState();\n  let foo2 = bar || useState();\n  let foo3 = bar ?? useState();\n}\n",
+      "errorCount": 3,
+      "errors": [
+        {
+          "message": "React Hook \"useState\" is called conditionally. React Hooks must be called in the exact same order in every component render."
+        },
+        {
+          "message": "React Hook \"useState\" is called conditionally. React Hooks must be called in the exact same order in every component render."
+        },
+        {
+          "message": "React Hook \"useState\" is called conditionally. React Hooks must be called in the exact same order in every component render."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's dangerous and might not warn otherwise.\n// This *must* be invalid.\nconst FancyButton = React.forwardRef((props, ref) => {\n  if (props.fancy) {\n    useCustomHook();\n  }\n  return <button ref={ref}>{props.children}</button>;\n});\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useCustomHook\" is called conditionally. React Hooks must be called in the exact same order in every component render."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's dangerous and might not warn otherwise.\n// This *must* be invalid.\nconst FancyButton = forwardRef(function(props, ref) {\n  if (props.fancy) {\n    useCustomHook();\n  }\n  return <button ref={ref}>{props.children}</button>;\n});\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useCustomHook\" is called conditionally. React Hooks must be called in the exact same order in every component render."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's dangerous and might not warn otherwise.\n// This *must* be invalid.\nconst MemoizedButton = memo(function(props) {\n  if (props.fancy) {\n    useCustomHook();\n  }\n  return <button>{props.children}</button>;\n});\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useCustomHook\" is called conditionally. React Hooks must be called in the exact same order in every component render."
+        }
+      ]
+    },
+    {
+      "code": "\n// This is invalid because \"use\"-prefixed functions used in named\n// functions are assumed to be hooks.\nReact.unknownFunction(function notAComponent(foo, bar) {\n  useProbablyAHook(bar)\n});\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useProbablyAHook\" is called in function \"notAComponent\" that is neither a React function component nor a custom React Hook function. React component names must start with an uppercase letter. React Hook names must start with the word \"use\"."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because it's dangerous.\n// Normally, this would crash, but not if you use inline requires.\n// This *must* be invalid.\n// It's expected to have some false positives, but arguably\n// they are confusing anyway due to the use*() convention\n// already being associated with Hooks.\nuseState();\nif (foo) {\n  const foo = React.useCallback(() => {});\n}\nuseCustomHook();\n",
+      "errorCount": 3,
+      "errors": [
+        {
+          "message": "React Hook \"useState\" cannot be called at the top level. React Hooks must be called in a React function component or a custom React Hook function."
+        },
+        {
+          "message": "React Hook \"React.useCallback\" cannot be called at the top level. React Hooks must be called in a React function component or a custom React Hook function."
+        },
+        {
+          "message": "React Hook \"useCustomHook\" cannot be called at the top level. React Hooks must be called in a React function component or a custom React Hook function."
+        }
+      ]
+    },
+    {
+      "code": "\n// Technically this is a false positive.\n// We *could* make it valid (and it used to be).\n//\n// However, top-level Hook-like calls can be very dangerous\n// in environments with inline requires because they can mask\n// the runtime error by accident.\n// So we prefer to disallow it despite the false positive.\n\nconst {createHistory, useBasename} = require('history-2.1.2');\nconst browserHistory = useBasename(createHistory)({\n  basename: '/',\n});\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useBasename\" cannot be called at the top level. React Hooks must be called in a React function component or a custom React Hook function."
+        }
+      ]
+    },
+    {
+      "code": "\nclass ClassComponentWithFeatureFlag extends React.Component {\n  render() {\n    if (foo) {\n      useFeatureFlag();\n    }\n  }\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useFeatureFlag\" cannot be called in a class component. React Hooks must be called in a React function component or a custom React Hook function."
+        }
+      ]
+    },
+    {
+      "code": "\nclass ClassComponentWithHook extends React.Component {\n  render() {\n    React.useState();\n  }\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"React.useState\" cannot be called in a class component. React Hooks must be called in a React function component or a custom React Hook function."
+        }
+      ]
+    },
+    {
+      "code": "\n(class {useHook = () => { useState(); }});\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useState\" cannot be called in a class component. React Hooks must be called in a React function component or a custom React Hook function."
+        }
+      ]
+    },
+    {
+      "code": "\n(class {useHook() { useState(); }});\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useState\" cannot be called in a class component. React Hooks must be called in a React function component or a custom React Hook function."
+        }
+      ]
+    },
+    {
+      "code": "\n(class {h = () => { useState(); }});\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useState\" cannot be called in a class component. React Hooks must be called in a React function component or a custom React Hook function."
+        }
+      ]
+    },
+    {
+      "code": "\n(class {i() { useState(); }});\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useState\" cannot be called in a class component. React Hooks must be called in a React function component or a custom React Hook function."
+        }
+      ]
+    },
+    {
+      "code": "\nasync function AsyncComponent() {\n  useState();\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useState\" cannot be called in an async function."
+        }
+      ]
+    },
+    {
+      "code": "\nasync function useAsyncHook() {\n  useState();\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useState\" cannot be called in an async function."
+        }
+      ]
+    },
+    {
+      "code": "\nasync function Page() {\n  useId();\n  React.useId();\n}\n",
+      "errorCount": 2,
+      "errors": [
+        {
+          "message": "React Hook \"useId\" cannot be called in an async function."
+        },
+        {
+          "message": "React Hook \"React.useId\" cannot be called in an async function."
+        }
+      ]
+    },
+    {
+      "code": "\nasync function useAsyncHook() {\n  useId();\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useId\" cannot be called in an async function."
+        }
+      ]
+    },
+    {
+      "code": "\nasync function notAHook() {\n  useId();\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useId\" is called in function \"notAHook\" that is neither a React function component nor a custom React Hook function. React component names must start with an uppercase letter. React Hook names must start with the word \"use\"."
+        }
+      ]
+    },
+    {
+      "code": "\nHook.use();\nHook._use();\nHook.useState();\nHook._useState();\nHook.use42();\nHook.useHook();\nHook.use_hook();\n",
+      "errorCount": 4,
+      "errors": [
+        {
+          "message": "React Hook \"Hook.use\" cannot be called at the top level. React Hooks must be called in a React function component or a custom React Hook function."
+        },
+        {
+          "message": "React Hook \"Hook.useState\" cannot be called at the top level. React Hooks must be called in a React function component or a custom React Hook function."
+        },
+        {
+          "message": "React Hook \"Hook.use42\" cannot be called at the top level. React Hooks must be called in a React function component or a custom React Hook function."
+        },
+        {
+          "message": "React Hook \"Hook.useHook\" cannot be called at the top level. React Hooks must be called in a React function component or a custom React Hook function."
+        }
+      ]
+    },
+    {
+      "code": "\nfunction notAComponent() {\n  use(promise);\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"use\" is called in function \"notAComponent\" that is neither a React function component nor a custom React Hook function. React component names must start with an uppercase letter. React Hook names must start with the word \"use\"."
+        }
+      ]
+    },
+    {
+      "code": "\nconst text = use(promise);\nfunction App() {\n  return <Text text={text} />\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"use\" cannot be called at the top level. React Hooks must be called in a React function component or a custom React Hook function."
+        }
+      ]
+    },
+    {
+      "code": "\nclass C {\n  m() {\n    use(promise);\n  }\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"use\" cannot be called in a class component. React Hooks must be called in a React function component or a custom React Hook function."
+        }
+      ]
+    },
+    {
+      "code": "\nasync function AsyncComponent() {\n  use();\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"use\" cannot be called in an async function."
+        }
+      ]
+    },
+    {
+      "code": "\nfunction App({p1, p2}) {\n  try {\n    use(p1);\n  } catch (error) {\n    console.error(error);\n  }\n  use(p2);\n  return <div>App</div>;\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"use\" cannot be called in a try/catch block."
+        }
+      ]
+    },
+    {
+      "code": "\nfunction App({p1, p2}) {\n  try {\n    doSomething();\n  } catch {\n    use(p1);\n  }\n  use(p2);\n  return <div>App</div>;\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"use\" cannot be called in a try/catch block."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid: useEffectEvent should not be callable in regular custom hooks without additional configuration\nfunction MyComponent({ theme }) {\n  const onClick = useEffectEvent(() => {\n    showNotification(theme);\n  });\n  useCustomHook(() => {\n    onClick();\n  });\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "`onClick` is a function created with React Hook \"useEffectEvent\", and can only be called from Effects and Effect Events in the same component."
+        }
+      ]
+    },
+    {
+      "code": "\n// Component syntax version\n// Invalid: useEffectEvent should not be callable in regular custom hooks without additional configuration\ncomponent MyComponent() {\n  const onClick = useEffectEvent(() => {\n    showNotification(theme);\n  });\n  useCustomHook(() => {\n    onClick();\n  });\n}\n",
+      "syntax": "flow",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "`onClick` is a function created with React Hook \"useEffectEvent\", and can only be called from Effects and Effect Events in the same component."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid: useEffectEvent should not be callable in hooks not matching the settings regex\nfunction MyComponent({ theme }) {\n  const onClick = useEffectEvent(() => {\n    showNotification(theme);\n  });\n  useWrongHook(() => {\n    onClick();\n  });\n}\n",
+      "settings": {
+        "react-hooks": {
+          "additionalEffectHooks": "useMyEffect"
+        }
+      },
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "`onClick` is a function created with React Hook \"useEffectEvent\", and can only be called from Effects and Effect Events in the same component."
+        }
+      ]
+    },
+    {
+      "code": "\n// Component syntax version\n// Invalid: useEffectEvent should not be callable in hooks not matching the settings regex\ncomponent MyComponent(theme: any) {\n  const onClick = useEffectEvent(() => {\n    showNotification(theme);\n  });\n  useWrongHook(() => {\n    onClick();\n  });\n}\n",
+      "syntax": "flow",
+      "settings": {
+        "react-hooks": {
+          "additionalEffectHooks": "useMyEffect"
+        }
+      },
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "`onClick` is a function created with React Hook \"useEffectEvent\", and can only be called from Effects and Effect Events in the same component."
+        }
+      ]
+    },
+    {
+      "code": "\nfunction MyComponent({ theme }) {\n  const onClick = useEffectEvent(() => {\n    showNotification(theme);\n  });\n  return <Child onClick={onClick}></Child>;\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "`onClick` is a function created with React Hook \"useEffectEvent\", and can only be called from Effects and Effect Events in the same component. It cannot be assigned to a variable or passed down."
+        }
+      ]
+    },
+    {
+      "code": "\n// Component syntax version\ncomponent MyComponent(theme: any) {\n  const onClick = useEffectEvent(() => {\n    showNotification(theme);\n  });\n  return <Child onClick={onClick}></Child>;\n}\n",
+      "syntax": "flow",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "`onClick` is a function created with React Hook \"useEffectEvent\", and can only be called from Effects and Effect Events in the same component. It cannot be assigned to a variable or passed down."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because useEffectEvent is being passed down\nfunction MyComponent({ theme }) {\n  return <Child onClick={useEffectEvent(() => {\n    showNotification(theme);\n  })} />;\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useEffectEvent\" can only be called at the top level of your component. It cannot be passed down.",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "code": "\n// Component syntax version\n// Invalid because useEffectEvent is being passed down\ncomponent MyComponent(theme: any) {\n  return <Child onClick={useEffectEvent(() => {\n    showNotification(theme);\n  })} />;\n}\n",
+      "syntax": "flow",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "React Hook \"useEffectEvent\" can only be called at the top level of your component. It cannot be passed down.",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "code": "\n// This should error even though it shares an identifier name with the below\nfunction MyComponent({theme}) {\n  const onClick = useEffectEvent(() => {\n    showNotification(theme)\n  });\n  return <Child onClick={onClick} />\n}\n\n// The useEffectEvent function shares an identifier name with the above\nfunction MyOtherComponent({theme}) {\n  const onClick = useEffectEvent(() => {\n    showNotification(theme)\n  });\n  return <Child onClick={() => onClick()} />\n}\n\n// The useEffectEvent function shares an identifier name with the above\nfunction MyLastComponent({theme}) {\n  const onClick = useEffectEvent(() => {\n    showNotification(theme)\n  });\n  useEffect(() => {\n    onClick(); // No error here, errors on all other uses\n    onClick;\n  })\n  return <Child />\n}\n",
+      "errorCount": 2,
+      "errors": [
+        {
+          "message": "`onClick` is a function created with React Hook \"useEffectEvent\", and can only be called from Effects and Effect Events in the same component. It cannot be assigned to a variable or passed down.",
+          "line": 7
+        },
+        {
+          "message": "`onClick` is a function created with React Hook \"useEffectEvent\", and can only be called from Effects and Effect Events in the same component.",
+          "line": 15
+        }
+      ]
+    },
+    {
+      "code": "\n// Component syntax version\n// This should error even though it shares an identifier name with the below\ncomponent MyComponent(theme: any) {\n  const onClick = useEffectEvent(() => {\n    showNotification(theme)\n  });\n  return <Child onClick={onClick} />\n}\n\n// The useEffectEvent function shares an identifier name with the above\ncomponent MyOtherComponent(theme: any) {\n  const onClick = useEffectEvent(() => {\n    showNotification(theme)\n  });\n  return <Child onClick={() => onClick()} />\n}\n\n// The useEffectEvent function shares an identifier name with the above\ncomponent MyLastComponent(theme: any) {\n  const onClick = useEffectEvent(() => {\n    showNotification(theme)\n  });\n  useEffect(() => {\n    onClick(); // No error here, errors on all other uses\n    onClick;\n  })\n  return <Child />\n}\n",
+      "syntax": "flow",
+      "errorCount": 2,
+      "errors": [
+        {
+          "message": "`onClick` is a function created with React Hook \"useEffectEvent\", and can only be called from Effects and Effect Events in the same component. It cannot be assigned to a variable or passed down.",
+          "line": 8
+        },
+        {
+          "message": "`onClick` is a function created with React Hook \"useEffectEvent\", and can only be called from Effects and Effect Events in the same component.",
+          "line": 16
+        }
+      ]
+    },
+    {
+      "code": "\nconst MyComponent = ({ theme }) => {\n  const onClick = useEffectEvent(() => {\n    showNotification(theme);\n  });\n  return <Child onClick={onClick}></Child>;\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "`onClick` is a function created with React Hook \"useEffectEvent\", and can only be called from Effects and Effect Events in the same component. It cannot be assigned to a variable or passed down."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because onClick is being aliased to foo but not invoked\nfunction MyComponent({ theme }) {\n  const onClick = useEffectEvent(() => {\n    showNotification(theme);\n  });\n  let foo = onClick;\n  return <Bar onClick={foo} />\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "`onClick` is a function created with React Hook \"useEffectEvent\", and can only be called from Effects and Effect Events in the same component. It cannot be assigned to a variable or passed down.",
+          "line": 7
+        }
+      ]
+    },
+    {
+      "code": "\n// Component syntax version\n// Invalid because onClick is being aliased to foo but not invoked\ncomponent MyComponent(theme: any) {\n  const onClick = useEffectEvent(() => {\n    showNotification(theme);\n  });\n  let foo = onClick;\n  return <Bar onClick={foo} />\n}\n",
+      "syntax": "flow",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "`onClick` is a function created with React Hook \"useEffectEvent\", and can only be called from Effects and Effect Events in the same component. It cannot be assigned to a variable or passed down.",
+          "line": 8
+        }
+      ]
+    },
+    {
+      "code": "\n// Should error because it's being passed down to JSX, although it's been referenced once\n// in an effect\nfunction MyComponent({ theme }) {\n  const onClick = useEffectEvent(() => {\n    showNotification(them);\n  });\n  useEffect(() => {\n    setTimeout(onClick, 100);\n  });\n  return <Child onClick={onClick} />\n}\n",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "`onClick` is a function created with React Hook \"useEffectEvent\", and can only be called from Effects and Effect Events in the same component. It cannot be assigned to a variable or passed down."
+        }
+      ]
+    },
+    {
+      "code": "\n// Component syntax version\n// Should error because it's being passed down to JSX, although it's been referenced once\n// in an effect\ncomponent MyComponent(theme: any) {\n  const onClick = useEffectEvent(() => {\n    showNotification(them);\n  });\n  useEffect(() => {\n    setTimeout(onClick, 100);\n  });\n  return <Child onClick={onClick} />\n}\n",
+      "syntax": "flow",
+      "errorCount": 1,
+      "errors": [
+        {
+          "message": "`onClick` is a function created with React Hook \"useEffectEvent\", and can only be called from Effects and Effect Events in the same component. It cannot be assigned to a variable or passed down."
+        }
+      ]
+    },
+    {
+      "code": "\n// Invalid because functions created with useEffectEvent cannot be called in arbitrary closures.\nfunction MyComponent({ theme }) {\n  const onClick = useEffectEvent(() => {\n    showNotification(theme);\n  });\n  // error message 1\n  const onClick2 = () => { onClick() };\n  // error message 2\n  const onClick3 = useCallback(() => onClick(), []);\n  // error message 3\n  const onClick4 = onClick;\n  return <>\n    {/** error message 4 */}\n    <Child onClick={onClick}></Child>\n    <Child onClick={onClick2}></Child>\n    <Child onClick={onClick3}></Child>\n  </>;\n}\n",
+      "errorCount": 4,
+      "errors": [
+        {
+          "message": "`onClick` is a function created with React Hook \"useEffectEvent\", and can only be called from Effects and Effect Events in the same component."
+        },
+        {
+          "message": "`onClick` is a function created with React Hook \"useEffectEvent\", and can only be called from Effects and Effect Events in the same component."
+        },
+        {
+          "message": "`onClick` is a function created with React Hook \"useEffectEvent\", and can only be called from Effects and Effect Events in the same component. It cannot be assigned to a variable or passed down."
+        },
+        {
+          "message": "`onClick` is a function created with React Hook \"useEffectEvent\", and can only be called from Effects and Effect Events in the same component. It cannot be assigned to a variable or passed down."
+        }
+      ]
+    },
+    {
+      "code": "\n// Hook syntax version\n// Invalid because functions created with useEffectEvent cannot be called in arbitrary closures.\nhook useMyHook(theme: any) {\n  const onClick = useEffectEvent(() => {\n    showNotification(theme);\n  });\n  // error message 1\n  const onClick2 = () => { onClick() };\n  // error message 2\n  const onClick3 = useCallback(() => onClick(), []);\n  // error message 3\n  const onClick4 = onClick;\n  return <>\n    {/** error message 4 */}\n    <Child onClick={onClick}></Child>\n    <Child onClick={onClick2}></Child>\n    <Child onClick={onClick3}></Child>\n  </>;\n}\n",
+      "syntax": "flow",
+      "errorCount": 4,
+      "errors": [
+        {
+          "message": "`onClick` is a function created with React Hook \"useEffectEvent\", and can only be called from Effects and Effect Events in the same component."
+        },
+        {
+          "message": "`onClick` is a function created with React Hook \"useEffectEvent\", and can only be called from Effects and Effect Events in the same component."
+        },
+        {
+          "message": "`onClick` is a function created with React Hook \"useEffectEvent\", and can only be called from Effects and Effect Events in the same component. It cannot be assigned to a variable or passed down."
+        },
+        {
+          "message": "`onClick` is a function created with React Hook \"useEffectEvent\", and can only be called from Effects and Effect Events in the same component. It cannot be assigned to a variable or passed down."
+        }
+      ]
+    }
+  ]
+}
