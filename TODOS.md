@@ -274,9 +274,9 @@ Fix:
 - Implement local score calculation or update `action.yml` and marketplace docs.
 - Add tests for `--offline`, `--score --offline`, Action offline score output, and CI auto-offline.
 
-### [ ] Remove stale dead-code claims after Knip removal
+### [x] Remove stale dead-code claims after Knip removal
 
-Status: confirmed current.
+Status: resolved by docs updates after #246.
 
 Link: https://github.com/millionco/react-doctor/pull/246
 
@@ -793,7 +793,7 @@ Decision:
 - [x] #135 Knip plugin failure recovery.
 - [x] #149 empty pattern crash.
 - [x] #246 removed Knip/dead-code integration.
-- [ ] Remove remaining stale dead-code docs.
+- [x] Remove remaining stale dead-code docs.
 
 ### Dependency detection
 
