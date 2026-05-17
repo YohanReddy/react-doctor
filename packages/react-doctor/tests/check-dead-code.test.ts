@@ -54,6 +54,23 @@ describe("checkDeadCode", () => {
     expect(diagnostics).toEqual([]);
   });
 
+  // Regression: `Diagnostic.filePath` must use forward slashes regardless
+  // of platform — downstream picomatch ignore-pattern matching expects
+  // POSIX separators, so a `src\foo.ts` from Windows `path.relative`
+  // would silently fail to match `src/**` overrides.
+  it("emits POSIX-separated file paths", async () => {
+    const projectDirectory = setupDeslopProject("posix-paths", {
+      "src/index.ts": "export const used = 1;\n",
+      "src/nested/orphan.ts": "export const orphan = 1;\n",
+    });
+
+    const diagnostics = await checkDeadCode({ rootDirectory: projectDirectory });
+
+    for (const diagnostic of diagnostics) {
+      expect(diagnostic.filePath.includes("\\")).toBe(false);
+    }
+  });
+
   it("flags files that are never imported as unused-file diagnostics", async () => {
     const projectDirectory = setupDeslopProject("unused-file", {
       "src/index.ts": "export const used = 1;\n",

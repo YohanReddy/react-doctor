@@ -4,6 +4,7 @@ import { analyze, defineConfig } from "deslop-js";
 import type { Diagnostic, ReactDoctorConfig } from "@react-doctor/types";
 import { collectIgnorePatterns } from "./collect-ignore-patterns.js";
 import { readIgnoreFile } from "./read-ignore-file.js";
+import { toRelativePath } from "./utils/to-relative-path.js";
 
 interface CheckDeadCodeOptions {
   rootDirectory: string;
@@ -86,10 +87,15 @@ const UNUSED_DEPENDENCY_RECOMMENDATION =
 const CIRCULAR_DEPENDENCY_RECOMMENDATION =
   "Break the import cycle by extracting the shared code into a third module that both files import.";
 
+// Wrap the shared `toRelativePath` helper with the same fallthrough
+// behavior so deslop output is always project-relative AND uses forward
+// slashes — critical on Windows, where `path.relative` returns
+// `src\foo.ts` and downstream picomatch ignore-pattern matching expects
+// `src/foo.ts`. Without this normalization, ignore overrides silently
+// stop matching dead-code diagnostics on Windows.
 const toRelativeFilePath = (rootDirectory: string, filePath: string): string => {
-  if (!path.isAbsolute(filePath)) return filePath;
-  const relative = path.relative(rootDirectory, filePath);
-  return relative.length > 0 ? relative : filePath;
+  const relative = toRelativePath(filePath, rootDirectory);
+  return relative.length > 0 ? relative : filePath.replace(/\\/g, "/");
 };
 
 export const checkDeadCode = async (options: CheckDeadCodeOptions): Promise<Diagnostic[]> => {
