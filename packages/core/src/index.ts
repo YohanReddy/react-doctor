@@ -1,5 +1,6 @@
 export * from "./apply-ignore-overrides.js";
 export * from "./apply-severity-controls.js";
+export * from "./build-rule-severity-controls.js";
 export * from "./batch-include-paths.js";
 export * from "./build-json-report-error.js";
 export * from "./build-json-report.js";

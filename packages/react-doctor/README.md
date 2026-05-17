@@ -134,32 +134,38 @@ Diagnostics flow through four independent surfaces — `cli`, `prComment`, `scor
 
 Each surface accepts `includeTags`, `excludeTags`, `includeCategories`, `excludeCategories`, `includeRules`, and `excludeRules`. Include wins over exclude when both match. Run the CLI with `--pr-comment` (the GitHub Action passes it automatically when `github-token` is set) to apply the `prComment` surface to the printed output destined for sticky PR comments.
 
-#### Severity (per rule, category, or tag)
+#### Severity controls (`rules`, `categories`, `tags`)
 
-The React Doctor analogue of ESLint's `rules: { ... }` and oxlint's `rules: { ... }` + `categories: { ... }`, extended with a `tags` channel for behavioral families. Use `severity` when you want to change a rule's severity — or silence it entirely — across **every** surface at once (CLI, PR comment, score, and `--fail-on`). Applied at lint registration time so `"off"` rules never run, and re-stamps the severity of any matching diagnostic so downstream consumers see what you asked for:
+The exact ESLint / oxlint shape. Top-level `rules` is the same field name and value form ESLint's `.eslintrc.json` and flat config use; top-level `categories` mirrors oxlint's `categories` field; `tags` is a React Doctor extension with the same shape, for the behavioral families React Doctor attaches to rules.
 
 ```json
 {
-  "severity": {
-    "rules": { "react-doctor/no-array-index-as-key": "error" },
-    "categories": { "React Native": "warn" },
-    "tags": {
-      "design": "off",
-      "test-noise": "warn",
-      "migration-hint": "warn",
-      "server-action": "warn"
-    }
+  "rules": {
+    "react-doctor/no-array-index-as-key": "error",
+    "react-doctor/design-no-redundant-size-axes": "off",
+    "react/no-danger": "warn"
+  },
+  "categories": {
+    "React Native": "warn",
+    "Server": "off"
+  },
+  "tags": {
+    "design": "off",
+    "test-noise": "warn",
+    "migration-hint": "warn",
+    "server-action": "warn"
   }
 }
 ```
 
-- **Channels (most specific wins):** `rules` > `categories` > `tags`.
-- **Within the tag channel:** when multiple tags match the same rule, the most permissive value wins (`"off"` > `"warn"` > `"error"`), so silencing via any tag is always honored.
-- **Values:** `"error"`, `"warn"`, `"off"` — the same form ESLint and oxlint accept.
+- **Values:** `"error"`, `"warn"`, `"off"` — exactly the strings ESLint and oxlint accept.
+- **Precedence (most specific wins):** `rules` > `categories` > `tags`.
+- **Within the tag map:** when multiple tags match the same rule, the most permissive value wins (`"off"` > `"warn"` > `"error"`), so silencing via any tag is always honored.
+- **Applied at lint registration time** so `"off"` rules never run; `"warn"` / `"error"` re-stamps the registered severity and the post-lint diagnostic so `--fail-on`, the score, and the printed list all see the user-chosen severity — including for external-plugin rules (`react/*`, `jsx-a11y/*`).
 
 Available tags include `design` (style cleanup), `test-noise` (rules that fire noisily in test code), `react-native` (every rule in the React Native bucket), `server-action` (every rule in the Server bucket — `server-auth-actions`, `server-fetch-without-revalidate`, …), and `migration-hint` (React 18→19 / legacy-class migration prompts). Available categories include `"Architecture"`, `"Correctness"`, `"Performance"`, `"Server"`, `"React Native"`, `"Bundle Size"`, `"State & Effects"`, `"Security"`, `"Accessibility"`, and others.
 
-Use `surfaces` when you only want to hide a rule from one channel (e.g. keep the warning visible locally but skip it on the PR comment). Use `severity` when you want to remove a rule from every channel — or promote a quiet rule to an error that fails CI.
+Use `surfaces` when you only want to hide a rule from one channel (e.g. keep the warning visible locally but skip it on the PR comment). Use `rules` / `categories` / `tags` when you want to remove a rule from every channel — or promote a quiet rule to an error that fails CI.
 
 #### Optional companion plugins
 

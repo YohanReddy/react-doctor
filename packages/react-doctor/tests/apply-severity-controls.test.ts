@@ -39,48 +39,42 @@ const externalPluginDiagnostic: Diagnostic = {
 };
 
 describe("applySeverityControls", () => {
-  it("returns input unchanged when no controls are configured", () => {
+  it("returns input unchanged when no top-level severity fields are configured", () => {
     const diagnostics = [designDiagnostic, rnDiagnostic];
     expect(applySeverityControls(diagnostics, null)).toBe(diagnostics);
     expect(applySeverityControls(diagnostics, {})).toBe(diagnostics);
   });
 
-  it('drops diagnostics whose rule tag is set to "off"', () => {
-    const config: ReactDoctorConfig = {
-      severity: { tags: { design: "off" } },
-    };
+  it('drops diagnostics whose rule tag is set to "off" via top-level `tags`', () => {
+    const config: ReactDoctorConfig = { tags: { design: "off" } };
     const filtered = applySeverityControls([designDiagnostic, rnDiagnostic], config);
     expect(filtered).toEqual([rnDiagnostic]);
   });
 
-  it('drops diagnostics whose category is set to "off"', () => {
-    const config: ReactDoctorConfig = {
-      severity: { categories: { "React Native": "off" } },
-    };
+  it('drops diagnostics whose category is set to "off" via top-level `categories`', () => {
+    const config: ReactDoctorConfig = { categories: { "React Native": "off" } };
     const filtered = applySeverityControls([designDiagnostic, rnDiagnostic], config);
     expect(filtered).toEqual([designDiagnostic]);
   });
 
-  it("re-stamps severity for matching rules", () => {
+  it("re-stamps severity for matching rules via top-level `rules` (ESLint shape)", () => {
     const config: ReactDoctorConfig = {
-      severity: { rules: { "react-doctor/rn-no-raw-text": "warn" } },
+      rules: { "react-doctor/rn-no-raw-text": "warn" },
     };
     const filtered = applySeverityControls([rnDiagnostic], config);
     expect(filtered).toEqual([{ ...rnDiagnostic, severity: "warning" }]);
   });
 
-  it("works on external-plugin diagnostics via rule key and category (no rule tags available)", () => {
+  it("works on external-plugin diagnostics via rule key (no rule tags available)", () => {
     const config: ReactDoctorConfig = {
-      severity: { rules: { "react/no-danger": "off" } },
+      rules: { "react/no-danger": "off" },
     };
     expect(applySeverityControls([externalPluginDiagnostic], config)).toEqual([]);
   });
 
-  it("promotes warning to error when severity demands it", () => {
+  it("promotes warning to error via top-level `categories`", () => {
     const config: ReactDoctorConfig = {
-      severity: {
-        categories: { Security: "error" },
-      },
+      categories: { Security: "error" },
     };
     const filtered = applySeverityControls([externalPluginDiagnostic], config);
     expect(filtered).toEqual([{ ...externalPluginDiagnostic, severity: "error" }]);

@@ -1,4 +1,5 @@
 import type { Diagnostic, ReactDoctorConfig, RuleSeverityOverride } from "@react-doctor/types";
+import { buildRuleSeverityControls } from "./build-rule-severity-controls.js";
 import { getDiagnosticRuleIdentity } from "./get-diagnostic-rule-identity.js";
 import { resolveRuleSeverityOverride } from "./resolve-rule-severity-override.js";
 
@@ -20,7 +21,8 @@ const restampSeverity = (
 };
 
 /**
- * Applies the user's `severity` config to a post-lint diagnostic list:
+ * Applies the user's top-level `rules` / `categories` / `tags`
+ * severity config to a post-lint diagnostic list:
  *
  * - `"off"` drops the diagnostic entirely. For react-doctor rules
  *   this also happens at lint-registration time; this post-filter
@@ -37,7 +39,7 @@ export const applySeverityControls = (
   diagnostics: Diagnostic[],
   config: ReactDoctorConfig | null,
 ): Diagnostic[] => {
-  const controls = config?.severity;
+  const controls = buildRuleSeverityControls(config);
   if (!controls) return diagnostics;
 
   const adjusted: Diagnostic[] = [];

@@ -116,59 +116,41 @@ describe("validateConfigTypes", () => {
     });
   });
 
-  describe("severity", () => {
-    it("passes through a well-formed severity config untouched", () => {
+  describe("severity (top-level rules / categories / tags)", () => {
+    it("passes through the ESLint-shaped top-level severity fields untouched", () => {
       const input: ReactDoctorConfig = {
-        severity: {
-          rules: { "react-doctor/no-array-index-as-key": "error" },
-          categories: { "React Native": "warn" },
-          tags: { design: "off", "migration-hint": "warn" },
-        },
+        rules: { "react-doctor/no-array-index-as-key": "error" },
+        categories: { "React Native": "warn" },
+        tags: { design: "off", "migration-hint": "warn" },
       };
       expect(validateConfigTypes(input)).toEqual(input);
       expect(stderrSpy).not.toHaveBeenCalled();
     });
 
-    it("drops invalid severity values with a stderr warning", () => {
+    it("drops invalid severity values with a stderr warning, keeping valid siblings", () => {
       const result = validateConfigTypes({
-        severity: {
-          tags: { design: "loud", "test-noise": "warn" },
-        } as unknown as ReactDoctorConfig["severity"],
+        tags: { design: "loud", "test-noise": "warn" } as unknown as Record<string, "warn">,
       });
-      expect(result.severity).toEqual({
-        tags: { "test-noise": "warn" },
-      });
-      expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("severity.tags"));
+      expect(result.tags).toEqual({ "test-noise": "warn" });
+      expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("tags.design"));
     });
 
-    it("drops the entire severity field when it isn't an object", () => {
+    it("drops the entire rules field when it isn't an object", () => {
       const result = validateConfigTypes({
-        severity: "off" as unknown as ReactDoctorConfig["severity"],
+        rules: "off" as unknown as ReactDoctorConfig["rules"],
       });
-      expect(result.severity).toBeUndefined();
-      expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("severity"));
+      expect(result.rules).toBeUndefined();
+      expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining(`config field "rules"`));
     });
 
-    it("drops invalid channel shapes (arrays, strings) but keeps valid sibling channels", () => {
+    it("drops arrays passed where a severity map is expected", () => {
       const result = validateConfigTypes({
-        severity: {
-          rules: ["off"] as unknown as Record<string, "off">,
-          categories: { Server: "off" },
-        },
+        categories: ["off"] as unknown as ReactDoctorConfig["categories"],
+        tags: { design: "off" },
       });
-      expect(result.severity).toEqual({ categories: { Server: "off" } });
-      expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("severity.rules"));
-    });
-
-    it("warns and ignores unknown channel keys (typos like `rule` / `category` / `tag`)", () => {
-      const result = validateConfigTypes({
-        severity: {
-          rule: { "react-doctor/no-array-index-as-key": "off" },
-          tags: { design: "off" },
-        } as unknown as ReactDoctorConfig["severity"],
-      });
-      expect(result.severity).toEqual({ tags: { design: "off" } });
-      expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("severity.rule"));
+      expect(result.categories).toBeUndefined();
+      expect(result.tags).toEqual({ design: "off" });
+      expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining(`config field "categories"`));
     });
   });
 });

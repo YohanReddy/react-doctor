@@ -35,23 +35,23 @@ interface ReactDoctorIgnoreConfig {
 export type DiagnosticSurface = "cli" | "prComment" | "score" | "ciFailure";
 
 /**
- * Severity value accepted by `severity` config entries. Mirrors the
- * ESLint / oxlint `"error" | "warn" | "off"` form. `"off"` skips
- * registration entirely so the rule never runs (and therefore
- * never enters any surface); `"error"` / `"warn"` change the
+ * Severity value accepted by the top-level `rules`, `categories`,
+ * and `tags` config fields. Exactly the same form ESLint and oxlint
+ * accept: `"off"` skips registration entirely (the rule never runs
+ * and never enters any surface); `"error"` / `"warn"` change the
  * rule's registered severity.
  *
  * Use `"off"` to silence a whole rule family at the source. For
  * visibility-only adjustments (silence on PR comments but keep on
- * CLI / score), prefer `surfaces` instead — `severity` applies
- * before lint runs and is the most aggressive control.
+ * CLI / score), prefer `surfaces` instead — severity applies before
+ * lint runs and is the most aggressive control.
  */
 export type RuleSeverityOverride = "error" | "warn" | "off";
 
 /**
- * Group-aware severity controls. Mirrors oxlint's top-level `rules`
- * and `categories` fields, plus an additional `tags` channel for
- * the behavioral tags React Doctor attaches to rule families.
+ * Internal shape consumed by `resolveRuleSeverityOverride` and
+ * `applySeverityControls`. Assembled at runtime from the top-level
+ * `rules`, `categories`, and `tags` fields on `ReactDoctorConfig`.
  *
  * - `rules` — by fully-qualified rule key (`"<plugin>/<rule>"`,
  *   e.g. `"react-doctor/no-array-index-as-key"`). Most specific.
@@ -219,27 +219,53 @@ export interface ReactDoctorConfig {
    */
   surfaces?: Partial<Record<DiagnosticSurface, SurfaceControls>>;
   /**
-   * Per-rule, per-category, and per-tag severity controls applied
-   * at lint registration time. The React Doctor analogue of ESLint's
-   * `rules: { ... }` and oxlint's `rules: { ... }` + `categories: { ... }`,
-   * extended with a `tags` channel for behavioral families.
+   * Per-rule severity map — the exact ESLint / oxlint top-level
+   * `rules` field. Keys are fully-qualified rule keys
+   * (`"<plugin>/<rule>"`, e.g. `"react-doctor/no-array-index-as-key"`),
+   * values are `"error" | "warn" | "off"`.
    *
-   * Example: demote every React Native rule to a warning, silence
-   * the design family entirely, and promote one specific rule to
-   * an error:
+   * `"off"` skips registration in the generated lint config so the
+   * rule never runs; `"error"` / `"warn"` re-stamp the registered
+   * severity and the post-lint diagnostic, so downstream consumers
+   * (`--fail-on`, the score, the printed list) all see the
+   * user-chosen severity.
+   *
+   * For visibility-only changes (silence on PR comments but keep on
+   * CLI / score), prefer `surfaces` instead. Most specific control
+   * wins: `rules` > `categories` > `tags`.
    *
    * ```json
-   * {
-   *   "severity": {
-   *     "tags": { "react-native": "warn", "design": "off" },
-   *     "rules": { "react-doctor/no-array-index-as-key": "error" }
-   *   }
-   * }
+   * { "rules": { "react-doctor/no-array-index-as-key": "error" } }
+   * ```
+   */
+  rules?: Record<string, RuleSeverityOverride>;
+  /**
+   * Per-category severity map. Mirrors oxlint's top-level
+   * `categories` field, but keyed by React Doctor's display
+   * categories (`"Server"`, `"React Native"`, `"Architecture"`,
+   * `"Bundle Size"`, `"State & Effects"`, `"Security"`,
+   * `"Accessibility"`, `"Performance"`, `"Correctness"`, …).
+   *
+   * ```json
+   * { "categories": { "React Native": "warn", "Server": "off" } }
+   * ```
+   */
+  categories?: Record<string, RuleSeverityOverride>;
+  /**
+   * Per-tag severity map. React Doctor extension on top of the
+   * ESLint / oxlint surface — keys are behavioral tags
+   * (`"design"`, `"test-noise"`, `"react-native"`, `"server-action"`,
+   * `"migration-hint"`). When multiple tags match a rule, the most
+   * permissive value wins (`"off"` > `"warn"` > `"error"`).
+   *
+   * ```json
+   * { "tags": { "design": "off", "migration-hint": "warn" } }
    * ```
    *
-   * Precedence: `rules` > `categories` > `tags`. Use this when you
-   * want to remove a rule from every channel (CLI, PR comment, score,
-   * CI failure) at once. For visibility-only changes, use `surfaces`.
+   * Distinct from `ignore.tags` (which lists tags to drop entirely
+   * from the scan and accepts a `string[]`): `tags` here is a
+   * severity map and additionally allows demoting (`"warn"`) or
+   * promoting (`"error"`).
    */
-  severity?: RuleSeverityControls;
+  tags?: Record<string, RuleSeverityOverride>;
 }

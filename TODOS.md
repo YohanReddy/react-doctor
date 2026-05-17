@@ -331,20 +331,22 @@ Status: landed.
 
 Done:
 
-- Added a `severity` config block with `rules`, `categories`, and
-  `tags` channels (values: `"error"`, `"warn"`, `"off"` — the same
-  form ESLint and oxlint accept). Mirrors oxlint's top-level
-  `rules` + `categories` plus a `tags` channel for behavioral
-  families. Applied at lint registration time so `"off"`
-  short-circuits before the rule runs, and re-stamped post-lint so
-  `--fail-on`, the score, the CLI summary, and external-plugin rules
-  all see the user-chosen severity. Precedence: `rules` >
-  `categories` > `tags`; when multiple tags match, the most
-  permissive wins (`"off"` > `"warn"` > `"error"`).
+- Added the ESLint / oxlint-shaped severity surface: top-level
+  `rules`, `categories`, and `tags` fields on `ReactDoctorConfig`,
+  each a `Record<string, "error" | "warn" | "off">`. `rules` is the
+  exact ESLint `.eslintrc` / flat-config shape; `categories` mirrors
+  oxlint's `categories` field (keyed by display category); `tags` is
+  the React Doctor extension for behavioral families. Applied at
+  lint registration time so `"off"` short-circuits before the rule
+  runs, and re-stamped post-lint so `--fail-on`, the score, the CLI
+  summary, and external-plugin rules all see the user-chosen
+  severity. Precedence: `rules` > `categories` > `tags`; when
+  multiple tags match, the most permissive wins
+  (`"off"` > `"warn"` > `"error"`).
 - Composes with the existing `surfaces` controls: use `surfaces` to
   hide a rule from one channel (e.g. PR comment) while keeping it on
-  others; use `severity` to change severity (or fully silence)
-  across every channel at once.
+  others; use `rules` / `categories` / `tags` to change severity
+  (or fully silence) across every channel at once.
 - Bucket-derived auto-tags so cross-cutting controls can target whole
   families without each rule repeating the tag — `"react-native"` on
   every rule in the `react-native/` bucket, `"server-action"` on every
