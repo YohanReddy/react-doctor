@@ -16,6 +16,20 @@ export interface OxcDivergence {
 }
 
 export const DIVERGENCES: Record<string, OxcDivergence> = {
+  // OXC's pass[10] for rules-of-hooks asserts `Sinon.useFakeTimers`
+  // (PascalCase namespace) doesn't fire. The upstream
+  // `eslint-plugin-react-hooks` rule, by contrast, flags
+  // `Sinon.useFakeTimers` (it flags every PascalCase-namespaced
+  // use-prefixed call — see upstream's fail[5] / fail[6] for
+  // `FooStore.useFeatureFlag` and `Namespace.useConditionalHook`).
+  // We chose upstream's behavior because it surfaces a real
+  // anti-pattern; OXC's fixture's choice is a deliberate carve-out.
+  "rules-of-hooks": {
+    passSkips: [10],
+    reason:
+      "OXC's pass-case for `Sinon.useFakeTimers` conflicts with upstream eslint-plugin-react-hooks, which flags every PascalCase-namespaced use-prefixed call. We match upstream.",
+  },
+
   // Unparseable upstream fixture — `r"button type/>"` is intentionally
   // invalid JSX in OXC's test suite. oxc-parser returns no useful AST,
   // so our visitor doesn't fire.

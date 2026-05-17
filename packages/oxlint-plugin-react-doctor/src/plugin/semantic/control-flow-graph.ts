@@ -16,7 +16,7 @@ import { isNodeOfType } from "../utils/is-node-of-type.js";
 // run (e.g. dominator construction in the IR optimizer); for
 // rules-of-hooks the binary distinction is sufficient.
 
-export type CfgEdgeKind = "uncond" | "cond";
+export type CfgEdgeKind = "uncond" | "cond" | "throw";
 
 export interface CfgEdge {
   readonly from: BasicBlock;
@@ -235,10 +235,20 @@ const buildStatement = (
     if (statement.argument) {
       mapDescendantsToBlock(builder, statement.argument as EsTreeNode, current);
     }
-    // If we're in a try-catch, route to the catch; else exit.
+    // If we're in a try-catch, route to the catch (uncond — it's a
+    // normal control-flow successor for our analysis). Otherwise the
+    // throw escapes the function: route to exit but tag the edge as
+    // "throw" so the unconditional-from-entry analysis can ignore it
+    // (rules-of-hooks treats `if (x) throw; useHook();` as
+    // unconditional because the throw branch never normally returns).
     const top = builder.tryStack[builder.tryStack.length - 1];
-    const target = top?.catch ?? top?.finally ?? builder.exit;
-    addEdge(current, target, "uncond");
+    if (top?.catch) {
+      addEdge(current, top.catch, "uncond");
+    } else if (top?.finally) {
+      addEdge(current, top.finally, "uncond");
+    } else {
+      addEdge(current, builder.exit, "throw");
+    }
     return createBlock(builder);
   }
 
@@ -451,6 +461,10 @@ const buildFunctionCfg = (functionNode: EsTreeNode, body: EsTreeNode): FunctionC
 // Cost: O(|blocks|^2) — fine for function-sized CFGs (typically <100
 // blocks). Avoids needing a full dominator tree.
 const computeUnconditionalSet = (cfg: FunctionCfg): Set<BasicBlock> => {
+  // Skip "throw" edges when computing reachability — uncaught throws
+  // don't represent a normal completion path. This makes
+  // `if (x) throw; useHook();` evaluate as unconditional (the
+  // `useHook` block is the only normal path to exit).
   const reachableFromEntry = (excluded: BasicBlock | null): Set<BasicBlock> => {
     const visited = new Set<BasicBlock>();
     const queue: BasicBlock[] = [];
@@ -460,12 +474,20 @@ const computeUnconditionalSet = (cfg: FunctionCfg): Set<BasicBlock> => {
       if (visited.has(block)) continue;
       visited.add(block);
       for (const edge of block.successors) {
+        if (edge.kind === "throw") continue;
         if (edge.to === excluded) continue;
         queue.push(edge.to);
       }
     }
     return visited;
   };
+
+  // Whole-graph reachability: any block NOT in this set is dead code
+  // (e.g. statements after an unconditional `return;` / `throw;`).
+  // Dead-code blocks vacuously satisfy "unconditional from entry"
+  // because the call site is never reached at runtime — there's
+  // nothing to constrain.
+  const reachableFromEntryFull = reachableFromEntry(null);
 
   const unconditional = new Set<BasicBlock>();
   // Entry is trivially on every path.
@@ -474,6 +496,10 @@ const computeUnconditionalSet = (cfg: FunctionCfg): Set<BasicBlock> => {
   unconditional.add(cfg.exit);
   for (const block of cfg.blocks) {
     if (unconditional.has(block)) continue;
+    if (!reachableFromEntryFull.has(block)) {
+      unconditional.add(block);
+      continue;
+    }
     const stillReaches = reachableFromEntry(block).has(cfg.exit);
     if (!stillReaches) unconditional.add(block);
   }

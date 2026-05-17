@@ -15,13 +15,9 @@ export interface UpstreamDivergence {
 }
 
 export const RULES_OF_HOOKS_DIVERGENCES: UpstreamDivergence = {
-  validSkips: [10, 29, 39],
-  invalidSkips: [
-    0, 1, 3, 4, 5, 6, 11, 12, 13, 14, 29, 41, 42, 43, 44, 45, 46, 47, 53, 58, 59, 60, 61, 62, 63,
-    64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76,
-  ],
+  invalidSkips: [0, 1, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76],
   reason:
-    "Flow `component` / `hook` syntax, classes-with-hooks detection, useEffectEvent placement rules, and a few deep conditional/loop patterns that upstream's hermes-eslint scope walker catches but our pure-AST visitor doesn't.",
+    "Remaining gaps: Flow `component` / `hook` syntax (cases 0, 1; require a hermes-eslint Flow parser) and useEffectEvent placement rules (60-76; an entirely separate detection layer that tracks where useEffectEvent's return value is allowed to appear — only inside other-effect callbacks, never in JSX or component bodies — not yet implemented).",
 };
 
 export const EXHAUSTIVE_DEPS_DIVERGENCES: UpstreamDivergence = {

@@ -56,32 +56,36 @@ const isHookCall = (
   if (!isNodeOfType(call, "CallExpression")) return null;
   const callee = call.callee;
   if (isNodeOfType(callee, "Identifier") && isReactHookName(callee.name)) {
-    // If the symbol resolves to something demonstrably NOT a React
-    // import, skip. Specifically:
-    //   - parameter / catch-clause-parameter / for-binding kinds → skip
-    //   - `import X from "non-react"` / aliased import → skip if the
-    //     import source isn't "react"
-    //   - locally declared function / class / const → skip
-    // Globals (unresolved) are ambiguous; we treat them as hooks
-    // because the user is presumably calling React's `use*` from a
-    // global setup.
+    // Resolution policy mirrors upstream's "use-prefixed names ARE
+    // hooks" stance for everything except the React 19 `use` hook:
+    //   - parameter / catch-clause / for-binding → skip (purely local)
+    //   - For `use` specifically (a generic verb that conflicts with
+    //     fixture-runner / dependency-injection libraries), require
+    //     the binding to resolve to a React `use` export. Otherwise
+    //     skip.
+    //   - For every other use-prefixed callee (e.g. `useState`,
+    //     `useBasename`, `useFeatureFlag`, …), trust the naming
+    //     convention even when the binding is from a non-React
+    //     module. This matches upstream's intentional false-positive
+    //     stance on `useBasename` from `history` etc.
     const symbol = scopes.symbolFor(callee);
     if (symbol) {
-      // For ANY resolved symbol, trace its effective React import
-      // name. If null → the symbol doesn't come from React; skip.
-      // If it returns a different name from the callee → the local
-      // name shadows but the actual React function is something
-      // else (e.g. `const use = useState`); skip — we don't want to
-      // treat it as the React 19 `use` hook.
       if (symbol.kind === "parameter" || symbol.kind === "catch-clause-parameter") {
         return null;
       }
-      const reactName = resolveReactImportName(symbol, scopes);
-      if (reactName === null) return null;
-      // For the React 19 `use` hook specifically, the local callee
-      // must directly map to the React export `use` (not aliased to
-      // some other hook).
-      if (callee.name === "use" && reactName !== "use") return null;
+      if (callee.name === "use") {
+        const reactName = resolveReactImportName(symbol, scopes);
+        if (reactName !== "use") return null;
+      }
+      // Local function declarations / hoisted class /
+      // const-bound-to-non-callable values: still treat as a hook
+      // when use-prefixed (matches upstream). Exception: if the
+      // local binding is a function declaration (hoisted) AND we can
+      // prove it's defined locally and is NOT a React-imported
+      // identifier, skip — this preserves the regression-test
+      // behavior for hoisted local helpers like
+      // `function use() { return undefined; }`.
+      if (callee.name === "use" && symbol.kind === "function") return null;
     }
     return { hookName: callee.name, hookExpression: callee as EsTreeNode };
   }
@@ -92,14 +96,28 @@ const isHookCall = (
     isReactHookName(callee.property.name)
   ) {
     const object = callee.object;
-    const isReactNamespace = isNodeOfType(object, "Identifier") && object.name === "React";
-    const isChainedCall = isNodeOfType(object, "CallExpression");
-    if (isReactNamespace || isChainedCall) {
+    // Upstream's heuristic: a use-prefixed member call IS a hook iff
+    // the object reads like a "namespace" — PascalCase identifier,
+    // `This` / `Super` (capitalized), the upper-case `React`, or a
+    // call-expression result (chained usage). Lowercase-starting
+    // identifiers (`jest.useFakeTimers`, `lodash.useFoo`) and the
+    // class-method `this` / `super` keywords are NOT hooks.
+    if (isNodeOfType(object, "Identifier")) {
+      const firstChar = object.name.charCodeAt(0);
+      const isPascalCase = firstChar >= 65 && firstChar <= 90;
+      if (!isPascalCase) return null;
       return {
         hookName: callee.property.name,
         hookExpression: callee as EsTreeNode,
       };
     }
+    if (isNodeOfType(object, "CallExpression")) {
+      return {
+        hookName: callee.property.name,
+        hookExpression: callee as EsTreeNode,
+      };
+    }
+    return null;
   }
   return null;
 };
@@ -319,6 +337,22 @@ const inferFunctionName = (fnNode: EsTreeNode): string | null => {
     }
   }
   if (!parent) return null;
+  // Skip transparent wrapper nodes between the function and its
+  // naming context: AssignmentPattern (default-value destructure
+  // like `{ j = () => {} }`) just forwards to the surrounding
+  // Property; TSAsExpression / TSSatisfiesExpression / ChainExpression
+  // wrap an expression whose containing context names the function.
+  while (
+    parent &&
+    (isNodeOfType(parent, "AssignmentPattern") ||
+      parent.type === "TSAsExpression" ||
+      parent.type === "TSSatisfiesExpression" ||
+      parent.type === "TSNonNullExpression" ||
+      parent.type === "ChainExpression")
+  ) {
+    parent = parent.parent ?? null;
+  }
+  if (!parent) return null;
   if (isNodeOfType(parent, "VariableDeclarator") && isNodeOfType(parent.id, "Identifier")) {
     return parent.id.name;
   }
@@ -332,9 +366,12 @@ const inferFunctionName = (fnNode: EsTreeNode): string | null => {
   ) {
     return parent.key.name;
   }
-  if (isNodeOfType(parent, "ExportDefaultDeclaration")) {
-    return "default";
-  }
+  // ExportDefaultDeclaration → return null (treat as anonymous).
+  // Upstream's rules-of-hooks deliberately doesn't enforce on
+  // default-exported anonymous arrows / functions because the
+  // file's caller pattern is unknown — it could be a component, a
+  // hook, or a utility. The "anonymous walk-out" logic in the rule
+  // handles this conservatively.
   return null;
 };
 
@@ -365,27 +402,30 @@ const findEnclosingFunctionInfo = (node: EsTreeNode): FunctionInfo | null => {
 };
 
 const isInsideClassComponent = (node: EsTreeNode): boolean => {
+  // Walk all ancestors. If we reach a Class container (Definition /
+  // Expression / Declaration / MethodDefinition / PropertyDefinition)
+  // BEFORE any standalone (non-class-method) function boundary,
+  // we're inside a class.
+  //
+  // Functions are class methods iff their parent is a MethodDefinition
+  // or PropertyDefinition. Those don't terminate the walk.
   let current: EsTreeNode | null | undefined = node.parent;
   while (current) {
+    if (isNodeOfType(current, "ClassDeclaration") || isNodeOfType(current, "ClassExpression")) {
+      return true;
+    }
     if (
       isNodeOfType(current, "FunctionDeclaration") ||
       isNodeOfType(current, "FunctionExpression") ||
       isNodeOfType(current, "ArrowFunctionExpression")
     ) {
-      // Stop at the nearest function — anything beyond is irrelevant.
-      // BUT if the function we hit is itself a class method, the class
-      // is inside, so check for ClassDeclaration/Expression as a
-      // closer ancestor first.
-      break;
-    }
-    if (
-      isNodeOfType(current, "MethodDefinition") ||
-      isNodeOfType(current, "ClassDeclaration") ||
-      isNodeOfType(current, "ClassExpression")
-    ) {
-      // Found a class/method ancestor inside the same scope chain
-      // before any function boundary. Treat as class component.
-      return true;
+      const fnParent = current.parent;
+      const isClassMember =
+        fnParent !== undefined &&
+        fnParent !== null &&
+        (isNodeOfType(fnParent, "MethodDefinition") ||
+          isNodeOfType(fnParent, "PropertyDefinition"));
+      if (!isClassMember) return false;
     }
     current = current.parent ?? null;
   }
@@ -501,9 +541,11 @@ export const rulesOfHooks = defineRule<Rule>({
         // still be inside a component/hook scope.
         const isUseHook = isReactUseHook(hookName);
 
-        // The `use` hook (React 19) is allowed in callbacks inside a
-        // component / hook — walk outward looking for any
-        // component/hook context.
+        // The `use` hook (React 19) RELAXES the conditional / loop
+        // / early-return checks (it's intentionally callable
+        // conditionally) BUT still:
+        //   - must be inside a component / custom hook scope
+        //   - must NOT be inside try / catch / finally
         if (isUseHook) {
           let outerCheck: EsTreeNode | null = enclosing.node;
           let isInsideComponentOrHook = enclosing.isComponentOrHook;
@@ -518,23 +560,43 @@ export const rulesOfHooks = defineRule<Rule>({
               node: node.callee,
               message: buildNonComponentMessage(hookName, enclosing.name),
             });
+            return;
+          }
+          if (isInsideTry(node as EsTreeNode, enclosing.node)) {
+            context.report({
+              node: node.callee,
+              message: buildTryMessage(hookName),
+            });
           }
           return;
         }
 
-        // Anonymous functions usually skip the non-component checks
-        // (OXC's rule can't determine the runtime context for a
-        // generic callback). EXCEPT when the callback is a JSX child
-        // / attribute value — those are render-prop callbacks where
-        // hook usage is unambiguously wrong.
+        // For anonymous callbacks, look outward: if any enclosing
+        // function IS a component / custom hook, this nested
+        // anonymous callback can't legally call a hook (Rule of Hooks
+        // forbids hooks in nested callbacks even when the outer
+        // function is a component). When NO outer function is a
+        // component / hook, the callback's runtime context is
+        // unknown — skip to avoid false positives on generic
+        // callbacks (e.g. utility / event-handler factories).
         if (!enclosing.hasResolvedName) {
-          const fnParent = enclosing.node.parent;
-          const isJsxRenderProp =
-            fnParent !== undefined &&
-            fnParent !== null &&
-            (isNodeOfType(fnParent, "JSXExpressionContainer") ||
-              (isNodeOfType(fnParent, "JSXAttribute") && false));
-          if (!isJsxRenderProp) return;
+          let outerCheckNode: EsTreeNode | null = enclosing.node;
+          let outerIsComponentOrHook = false;
+          while (outerCheckNode) {
+            const outerInfo = findEnclosingFunctionInfo(outerCheckNode);
+            if (!outerInfo) break;
+            if (outerInfo.isComponentOrHook) {
+              outerIsComponentOrHook = true;
+              break;
+            }
+            outerCheckNode = outerInfo.node;
+          }
+          if (!outerIsComponentOrHook) return;
+          context.report({
+            node: node.callee,
+            message: buildConditionalMessage(hookName),
+          });
+          return;
         }
 
         // Function-name check: must be PascalCase component or use<X>
