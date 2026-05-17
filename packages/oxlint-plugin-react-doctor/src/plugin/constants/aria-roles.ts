@@ -206,7 +206,10 @@ export const NON_INTERACTIVE_ROLES: ReadonlySet<string> = new Set([
   // always read-only — treated as non-interactive in practice.
   "progressbar",
   "region",
-  "row",
+  // `row` lives in INTERACTIVE_ROLES above (it's user-navigable inside
+  // a grid / treegrid). Upstream `eslint-plugin-jsx-a11y` classifies
+  // `rowgroup` (a passive container of rows) as non-interactive, but
+  // not `row` itself.
   "rowgroup",
   "search",
   "status",
