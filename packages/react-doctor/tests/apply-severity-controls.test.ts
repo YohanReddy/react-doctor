@@ -38,6 +38,12 @@ const externalPluginDiagnostic: Diagnostic = {
   category: "Security",
 };
 
+const nativePortedDiagnostic: Diagnostic = {
+  ...externalPluginDiagnostic,
+  plugin: "react-doctor",
+  rule: "no-danger",
+};
+
 describe("applySeverityControls", () => {
   it("returns input unchanged when no top-level severity fields are configured", () => {
     const diagnostics = [designDiagnostic, rnDiagnostic];
@@ -70,6 +76,20 @@ describe("applySeverityControls", () => {
   it("works on external-plugin diagnostics via rule key", () => {
     const config: ReactDoctorConfig = {
       rules: { "react/no-danger": "off" },
+    };
+    expect(applySeverityControls([externalPluginDiagnostic], config)).toEqual([]);
+  });
+
+  it("matches legacy rule keys against native ported diagnostics", () => {
+    const config: ReactDoctorConfig = {
+      rules: { "react/no-danger": "off" },
+    };
+    expect(applySeverityControls([nativePortedDiagnostic], config)).toEqual([]);
+  });
+
+  it("matches native rule keys against legacy plugin diagnostics", () => {
+    const config: ReactDoctorConfig = {
+      rules: { "react-doctor/no-danger": "off" },
     };
     expect(applySeverityControls([externalPluginDiagnostic], config)).toEqual([]);
   });

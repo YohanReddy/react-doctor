@@ -5,7 +5,7 @@ import { getJsxPropStringValue } from "../../utils/get-jsx-prop-string-value.js"
 import { hasJsxPropIgnoreCase } from "../../utils/has-jsx-prop-ignore-case.js";
 import type { Rule } from "../../utils/rule.js";
 import { NON_INTERACTIVE_ELEMENTS } from "../../constants/html-tags.js";
-import { INTERACTIVE_ROLES, PRESENTATION_ROLES } from "../../constants/aria-roles.js";
+import { INTERACTIVE_ROLES } from "../../constants/aria-roles.js";
 
 const buildMessage = (tag: string): string =>
   `Non-interactive element \`<${tag}>\` should not have interactive event handlers — convert to a semantic interactive element or add an interactive role.`;
@@ -39,7 +39,7 @@ export const noNoninteractiveElementInteractions = defineRule<Rule>({
       const roleAttr = hasJsxPropIgnoreCase(node.attributes, "role");
       if (roleAttr) {
         const role = getJsxPropStringValue(roleAttr);
-        if (role && (INTERACTIVE_ROLES.has(role) || PRESENTATION_ROLES.has(role))) return;
+        if (role && INTERACTIVE_ROLES.has(role)) return;
       }
       context.report({ node: node.name, message: buildMessage(tag) });
     },

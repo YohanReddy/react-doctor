@@ -54,7 +54,7 @@ npx oxlint .
 
 ## Available rules
 
-The full rule list lives in [`oxlint-config.ts`](https://github.com/millionco/react-doctor/blob/main/packages/react-doctor/src/oxlint-config.ts). All rules are namespaced under `react-doctor/*`.
+The full rule list lives in [`rule-registry.ts`](https://github.com/millionco/react-doctor/blob/main/packages/oxlint-plugin-react-doctor/src/plugin/rule-registry.ts). All rules are namespaced under `react-doctor/*`.
 
 Each rule can be set to `"error"`, `"warn"`, or `"off"`:
 

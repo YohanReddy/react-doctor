@@ -57,7 +57,7 @@ Pick only the configs that match your stack. `recommended` is framework-agnostic
 
 ## Available rules
 
-The full rule list lives in [`oxlint-config.ts`](https://github.com/millionco/react-doctor/blob/main/packages/react-doctor/src/oxlint-config.ts). Rules are namespaced under `react-doctor/*`.
+The full rule list lives in [`rule-registry.ts`](https://github.com/millionco/react-doctor/blob/main/packages/oxlint-plugin-react-doctor/src/plugin/rule-registry.ts). Rules are namespaced under `react-doctor/*`.
 
 To override a rule:
 

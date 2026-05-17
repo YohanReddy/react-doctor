@@ -70,12 +70,13 @@ export const noPassDataToParent = defineRule<Rule>({
     "Fetch the data in the parent and pass it to the child as a prop (or return it from the hook), instead of pushing it back up via a prop callback inside a useEffect. See https://react.dev/learn/you-might-not-need-an-effect#passing-data-to-the-parent",
   create: (context: RuleContext) => ({
     CallExpression(node: EsTreeNodeOfType<"CallExpression">) {
-      if (!isUseEffect(node) || hasCleanup(node)) return;
+      if (!isUseEffect(node)) return;
       const analysis = getProgramAnalysis(node);
       if (!analysis) return;
+      if (hasCleanup(analysis, node)) return;
       const effectFnRefs = getEffectFnRefs(analysis, node);
       if (!effectFnRefs) return;
-      const effectFn = getEffectFn(node);
+      const effectFn = getEffectFn(analysis, node);
       if (!effectFn) return;
 
       for (const ref of effectFnRefs) {

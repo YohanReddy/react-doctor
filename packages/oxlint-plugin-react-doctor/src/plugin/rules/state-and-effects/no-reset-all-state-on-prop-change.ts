@@ -55,11 +55,11 @@ const isSetStateToInitialValue = (analysis: ProgramAnalysis, setterRef: Referenc
 
 const countUseStates = (analysis: ProgramAnalysis, componentNode: EsTreeNode | null): number => {
   if (!componentNode) return 0;
-  let count = 0;
+  const stateVariables = new Set<Reference["resolved"]>();
   for (const ref of getDownstreamRefs(analysis, componentNode)) {
-    if (isState(ref)) count += 1;
+    if (isState(analysis, ref)) stateVariables.add(ref.resolved);
   }
-  return count;
+  return stateVariables.size;
 };
 
 const findPropUsedToResetAllState = (

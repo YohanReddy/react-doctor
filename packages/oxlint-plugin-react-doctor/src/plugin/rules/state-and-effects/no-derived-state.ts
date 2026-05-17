@@ -57,13 +57,14 @@ export const noDerivedState = defineRule<Rule>({
     "Compute derived state inline during render (or with useMemo if expensive) instead of mirroring it into useState via a useEffect. See https://react.dev/learn/you-might-not-need-an-effect#updating-state-based-on-props-or-state",
   create: (context: RuleContext) => ({
     CallExpression(node: EsTreeNodeOfType<"CallExpression">) {
-      if (!isUseEffect(node) || hasCleanup(node)) return;
+      if (!isUseEffect(node)) return;
       const analysis = getProgramAnalysis(node);
       if (!analysis) return;
+      if (hasCleanup(analysis, node)) return;
       const effectFnRefs = getEffectFnRefs(analysis, node);
       const depsRefs = getEffectDepsRefs(analysis, node);
       if (!effectFnRefs || !depsRefs) return;
-      const effectFn = getEffectFn(node);
+      const effectFn = getEffectFn(analysis, node);
       if (!effectFn) return;
 
       for (const ref of effectFnRefs) {
@@ -81,7 +82,7 @@ export const noDerivedState = defineRule<Rule>({
         );
 
         const isSomeArgsInternal = argsUpstreamRefs.some(
-          (argRef) => isState(argRef) || isProp(analysis, argRef),
+          (argRef) => isState(analysis, argRef) || isProp(analysis, argRef),
         );
 
         const isAllArgsInDeps =

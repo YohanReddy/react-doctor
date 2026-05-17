@@ -17,9 +17,10 @@ export const noEventHandler = defineRule<Rule>({
     "Move the side effect into the event handler that triggers it, instead of guarding on its state inside a useEffect. See https://react.dev/learn/you-might-not-need-an-effect#sharing-logic-between-event-handlers",
   create: (context: RuleContext) => ({
     CallExpression(node: EsTreeNodeOfType<"CallExpression">) {
-      if (!isUseEffect(node) || hasCleanup(node)) return;
+      if (!isUseEffect(node)) return;
       const analysis = getProgramAnalysis(node);
       if (!analysis) return;
+      if (hasCleanup(analysis, node)) return;
       const effectFnRefs = getEffectFnRefs(analysis, node);
       if (!effectFnRefs) return;
 
@@ -34,7 +35,7 @@ export const noEventHandler = defineRule<Rule>({
       });
 
       for (const ref of ifTestRefs) {
-        if (isState(ref)) {
+        if (isState(analysis, ref)) {
           context.report({
             node: ref.identifier as unknown as EsTreeNode,
             message:

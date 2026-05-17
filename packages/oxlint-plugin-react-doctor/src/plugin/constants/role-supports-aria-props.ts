@@ -1,4 +1,4 @@
-// GENERATED — do not edit by hand. Run `pnpm gen:role-aria-props`.
+// GENERATED - do not edit by hand.
 // Mirrors OXC's `is_valid_aria_property_for_role` table from
 // `oxc_linter::rules::jsx_a11y::role_supports_aria_props`.
 

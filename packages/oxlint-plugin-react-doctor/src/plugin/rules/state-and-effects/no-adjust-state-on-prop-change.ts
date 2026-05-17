@@ -35,7 +35,7 @@ export const noAdjustStateOnPropChange = defineRule<Rule>({
       const effectFnRefs = getEffectFnRefs(analysis, node);
       const depsRefs = getEffectDepsRefs(analysis, node);
       if (!effectFnRefs || !depsRefs) return;
-      const effectFn = getEffectFn(node);
+      const effectFn = getEffectFn(analysis, node);
       if (!effectFn) return;
 
       const isSomeDepsProps = depsRefs

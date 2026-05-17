@@ -121,7 +121,7 @@
       "idx": 7,
       "name": "Pass live internal state via later-destructured prop",
       "code": "\n        const Child = (props) => {\n          const [data, setData] = useState();\n          const { onFetched } = props;\n\n          useEffect(() => {\n            onFetched(data);\n          }, [onFetched, data]);\n        }\n      ",
-      "todo": true,
+      "todo": false,
       "errors": 1
     },
     {

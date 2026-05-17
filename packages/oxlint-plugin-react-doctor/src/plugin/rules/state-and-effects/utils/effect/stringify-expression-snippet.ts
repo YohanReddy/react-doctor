@@ -1,5 +1,6 @@
 import type { EsTreeNode } from "../../../../utils/es-tree-node.js";
 import { isNodeOfType } from "../../../../utils/is-node-of-type.js";
+import { MAX_EXPRESSION_SNIPPET_ITEMS_COUNT } from "./constants.js";
 
 // Small AST snippet → string formatter used by `no-initialize-state` so
 // the diagnostic can suggest `useState("Dr. " + name)` rather than just
@@ -9,7 +10,6 @@ import { isNodeOfType } from "../../../../utils/is-node-of-type.js";
 // Not a full pretty-printer; we deliberately do not chase MemberExpression
 // computed keys, AssignmentExpressions, ConditionalExpressions, or
 // arbitrary nesting beyond a few common shapes.
-const MAX_CALL_ARGS_DISPLAY = 3;
 const FALLBACK = "<expression>";
 
 const stringifyLiteral = (literal: { value?: unknown; raw?: string }): string => {
@@ -61,26 +61,27 @@ export const stringifyExpressionSnippet = (node: EsTreeNode | null | undefined):
         ? `${node.callee.object.name}.${node.callee.property.name}`
         : FALLBACK;
     const argText = (node.arguments ?? [])
-      .slice(0, MAX_CALL_ARGS_DISPLAY)
+      .slice(0, MAX_EXPRESSION_SNIPPET_ITEMS_COUNT)
       .map((argument) => stringifyExpressionSnippet(argument as EsTreeNode))
       .join(", ");
-    const suffix = (node.arguments?.length ?? 0) > MAX_CALL_ARGS_DISPLAY ? ", …" : "";
+    const suffix =
+      (node.arguments?.length ?? 0) > MAX_EXPRESSION_SNIPPET_ITEMS_COUNT ? ", ..." : "";
     return `${calleeText}(${argText}${suffix})`;
   }
   if (isNodeOfType(node, "ArrayExpression")) {
     const items = (node.elements ?? [])
-      .slice(0, MAX_CALL_ARGS_DISPLAY)
+      .slice(0, MAX_EXPRESSION_SNIPPET_ITEMS_COUNT)
       .map((element) => (element ? stringifyExpressionSnippet(element) : "<hole>"))
       .join(", ");
-    const suffix = (node.elements?.length ?? 0) > MAX_CALL_ARGS_DISPLAY ? ", …" : "";
+    const suffix = (node.elements?.length ?? 0) > MAX_EXPRESSION_SNIPPET_ITEMS_COUNT ? ", ..." : "";
     return `[${items}${suffix}]`;
   }
   if (isNodeOfType(node, "ObjectExpression")) {
     if ((node.properties?.length ?? 0) === 0) return "{}";
-    return "{ … }";
+    return "{ ... }";
   }
-  if (isNodeOfType(node, "ArrowFunctionExpression")) return "() => …";
-  if (isNodeOfType(node, "FunctionExpression")) return "function () { … }";
+  if (isNodeOfType(node, "ArrowFunctionExpression")) return "() => ...";
+  if (isNodeOfType(node, "FunctionExpression")) return "function () { ... }";
   if (isNodeOfType(node, "BinaryExpression") || isNodeOfType(node, "LogicalExpression")) {
     const left = stringifyExpressionSnippet(node.left);
     const right = stringifyExpressionSnippet(node.right);

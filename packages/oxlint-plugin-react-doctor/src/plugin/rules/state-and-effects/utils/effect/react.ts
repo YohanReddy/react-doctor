@@ -1,8 +1,9 @@
 import type { Reference, Scope } from "eslint-scope";
 import type { EsTreeNode } from "../../../../utils/es-tree-node.js";
 import type { EsTreeNodeOfType } from "../../../../utils/es-tree-node-of-type.js";
+import { isAstNode } from "../../../../utils/is-ast-node.js";
 import { isNodeOfType } from "../../../../utils/is-node-of-type.js";
-import { getDownstreamRefs, getUpstreamRefs, isEventualCallTo } from "./ast.js";
+import { getDownstreamRefs, getRef, getUpstreamRefs, isEventualCallTo } from "./ast.js";
 import type { ProgramAnalysis } from "./get-program-analysis.js";
 
 const getOuterScopeContaining = (analysis: ProgramAnalysis, node: EsTreeNode): Scope | null => {
@@ -147,10 +148,34 @@ export const isCustomHook = (node: EsTreeNode | null | undefined): boolean => {
   return false;
 };
 
-const isUseStateNode = (node: EsTreeNode | null | undefined): boolean => {
+const isReactNamedImportReference = (ref: Reference | null, importedName: string): boolean =>
+  Boolean(
+    ref?.resolved?.defs.some((def) => {
+      if (def.type !== "ImportBinding") return false;
+      const declarationNode = def.node as unknown as EsTreeNode;
+      if (!isNodeOfType(declarationNode, "ImportSpecifier")) return false;
+      const imported = declarationNode.imported as EsTreeNode;
+      if (!isNodeOfType(imported, "Identifier")) return false;
+      if (imported.name !== importedName) return false;
+      const importDeclaration = declarationNode.parent;
+      return Boolean(
+        importDeclaration &&
+        isNodeOfType(importDeclaration, "ImportDeclaration") &&
+        isNodeOfType(importDeclaration.source as EsTreeNode, "Literal") &&
+        importDeclaration.source.value === "react",
+      );
+    }),
+  );
+
+const isHookCallee = (
+  analysis: ProgramAnalysis,
+  node: EsTreeNode | null | undefined,
+  hookName: string,
+): boolean => {
   if (!node) return false;
   if (isNodeOfType(node, "Identifier")) {
-    if (node.name === "useState") return true;
+    if (node.name === hookName) return true;
+    if (isReactNamedImportReference(getRef(analysis, node), hookName)) return true;
     const parent = (node as unknown as { parent?: EsTreeNode | null }).parent;
     if (
       parent &&
@@ -158,7 +183,7 @@ const isUseStateNode = (node: EsTreeNode | null | undefined): boolean => {
       isNodeOfType(parent.object, "Identifier") &&
       parent.object.name === "React" &&
       isNodeOfType(parent.property, "Identifier") &&
-      parent.property.name === "useState"
+      parent.property.name === hookName
     ) {
       return true;
     }
@@ -169,7 +194,7 @@ const isUseStateNode = (node: EsTreeNode | null | undefined): boolean => {
       isNodeOfType(node.object, "Identifier") &&
       node.object.name === "React" &&
       isNodeOfType(node.property, "Identifier") &&
-      node.property.name === "useState"
+      node.property.name === hookName
     );
   }
   return false;
@@ -191,21 +216,35 @@ export const isUseEffect = (node: EsTreeNode | null | undefined): boolean => {
   return false;
 };
 
-export const getEffectFn = (node: EsTreeNode): EsTreeNode | null => {
+export const getEffectFn = (analysis: ProgramAnalysis, node: EsTreeNode): EsTreeNode | null => {
   if (!isNodeOfType(node, "CallExpression")) return null;
   const fn = node.arguments?.[0];
   if (!fn) return null;
-  if (!isNodeOfType(fn, "ArrowFunctionExpression") && !isNodeOfType(fn, "FunctionExpression")) {
-    return null;
+  if (isNodeOfType(fn, "ArrowFunctionExpression") || isNodeOfType(fn, "FunctionExpression")) {
+    return fn as EsTreeNode;
   }
-  return fn as EsTreeNode;
+  if (isNodeOfType(fn, "Identifier")) {
+    const ref = getRef(analysis, fn);
+    const definitionNode = ref?.resolved?.defs[0]?.node as unknown as EsTreeNode | undefined;
+    if (definitionNode && isFunctionLike(definitionNode)) return definitionNode;
+    if (definitionNode && isNodeOfType(definitionNode, "VariableDeclarator")) {
+      const initializer = definitionNode.init;
+      if (
+        isNodeOfType(initializer, "ArrowFunctionExpression") ||
+        isNodeOfType(initializer, "FunctionExpression")
+      ) {
+        return initializer;
+      }
+    }
+  }
+  return null;
 };
 
 export const getEffectFnRefs = (
   analysis: ProgramAnalysis,
   node: EsTreeNode,
 ): Reference[] | null => {
-  const fn = getEffectFn(node);
+  const fn = getEffectFn(analysis, node);
   if (!fn) return null;
   return getDownstreamRefs(analysis, fn);
 };
@@ -220,13 +259,13 @@ export const getEffectDepsRefs = (
   return getDownstreamRefs(analysis, deps as EsTreeNode);
 };
 
-export const isState = (ref: Reference): boolean =>
+export const isState = (analysis: ProgramAnalysis, ref: Reference): boolean =>
   Boolean(
     ref.resolved?.defs.some((def) => {
       const node = def.node as unknown as EsTreeNode;
       if (!isNodeOfType(node, "VariableDeclarator")) return false;
       if (!isNodeOfType(node.init, "CallExpression")) return false;
-      if (!isUseStateNode(node.init.callee as EsTreeNode)) return false;
+      if (!isHookCallee(analysis, node.init.callee as EsTreeNode, "useState")) return false;
       if (!isNodeOfType(node.id, "ArrayPattern")) return false;
       const elements = node.id.elements ?? [];
       if (elements.length !== 1 && elements.length !== 2) return false;
@@ -237,13 +276,13 @@ export const isState = (ref: Reference): boolean =>
     }),
   );
 
-export const isStateSetter = (ref: Reference): boolean =>
+export const isStateSetter = (analysis: ProgramAnalysis, ref: Reference): boolean =>
   Boolean(
     ref.resolved?.defs.some((def) => {
       const node = def.node as unknown as EsTreeNode;
       if (!isNodeOfType(node, "VariableDeclarator")) return false;
       if (!isNodeOfType(node.init, "CallExpression")) return false;
-      if (!isUseStateNode(node.init.callee as EsTreeNode)) return false;
+      if (!isHookCallee(analysis, node.init.callee as EsTreeNode, "useState")) return false;
       if (!isNodeOfType(node.id, "ArrayPattern")) return false;
       const elements = node.id.elements ?? [];
       if (elements.length !== 2) return false;
@@ -277,6 +316,29 @@ export const isProp = (analysis: ProgramAnalysis, ref: Reference): boolean =>
     }),
   );
 
+const isIdentifierOrMemberExpression = (node: EsTreeNode | null | undefined): boolean =>
+  isNodeOfType(node, "Identifier") || isNodeOfType(node, "MemberExpression");
+
+const isPropAlias = (analysis: ProgramAnalysis, ref: Reference): boolean => {
+  if (isProp(analysis, ref)) return true;
+  return Boolean(
+    ref.resolved?.defs.some((def) => {
+      const node = def.node as unknown as EsTreeNode;
+      if (!isNodeOfType(node, "VariableDeclarator")) return false;
+      const initializer = node.init as EsTreeNode | null;
+      if (!initializer) return false;
+      if (!isNodeOfType(node.id, "ObjectPattern") && !isIdentifierOrMemberExpression(initializer)) {
+        return false;
+      }
+      return getDownstreamRefs(analysis, initializer).some((initializerRef) =>
+        getUpstreamRefs(analysis, initializerRef).some((upstreamRef) =>
+          isProp(analysis, upstreamRef),
+        ),
+      );
+    }),
+  );
+};
+
 export const isConstant = (ref: Reference): boolean =>
   Boolean(
     (ref.resolved?.defs ?? []).some((def) => {
@@ -293,24 +355,13 @@ export const isConstant = (ref: Reference): boolean =>
     }),
   );
 
-export const isRef = (ref: Reference): boolean =>
+export const isRef = (analysis: ProgramAnalysis, ref: Reference): boolean =>
   Boolean(
     ref.resolved?.defs.some((def) => {
       const node = def.node as unknown as EsTreeNode;
       if (!isNodeOfType(node, "VariableDeclarator")) return false;
       if (!isNodeOfType(node.init, "CallExpression")) return false;
-      const callee = node.init.callee;
-      if (isNodeOfType(callee, "Identifier") && callee.name === "useRef") return true;
-      if (
-        isNodeOfType(callee, "MemberExpression") &&
-        isNodeOfType(callee.object, "Identifier") &&
-        callee.object.name === "React" &&
-        isNodeOfType(callee.property, "Identifier") &&
-        callee.property.name === "useRef"
-      ) {
-        return true;
-      }
-      return false;
+      return isHookCallee(analysis, node.init.callee as EsTreeNode, "useRef");
     }),
   );
 
@@ -322,17 +373,21 @@ export const isRefCurrent = (ref: Reference): boolean => {
 };
 
 export const isStateSetterCall = (analysis: ProgramAnalysis, ref: Reference): boolean =>
-  isEventualCallTo(analysis, ref, isStateSetter);
+  isEventualCallTo(analysis, ref, (innerRef) => isStateSetter(analysis, innerRef));
 
 export const isPropCall = (analysis: ProgramAnalysis, ref: Reference): boolean =>
-  isEventualCallTo(analysis, ref, (innerRef) => isProp(analysis, innerRef));
+  isEventualCallTo(analysis, ref, (innerRef) => isPropAlias(analysis, innerRef));
 
 export const isRefCall = (analysis: ProgramAnalysis, ref: Reference): boolean =>
-  isEventualCallTo(analysis, ref, (innerRef) => isRefCurrent(innerRef) || isRef(innerRef));
+  isEventualCallTo(
+    analysis,
+    ref,
+    (innerRef) => isRefCurrent(innerRef) || isRef(analysis, innerRef),
+  );
 
 export const getUseStateDecl = (analysis: ProgramAnalysis, ref: Reference): EsTreeNode | null => {
   const useStateRef = getUpstreamRefs(analysis, ref).find((upRef) =>
-    isUseStateNode(upRef.identifier as unknown as EsTreeNode),
+    isHookCallee(analysis, upRef.identifier as unknown as EsTreeNode, "useState"),
   );
   let node: EsTreeNode | null | undefined = useStateRef?.identifier as unknown as EsTreeNode;
   while (node && !isNodeOfType(node, "VariableDeclarator")) {
@@ -341,16 +396,61 @@ export const getUseStateDecl = (analysis: ProgramAnalysis, ref: Reference): EsTr
   return node ?? null;
 };
 
-export const hasCleanup = (node: EsTreeNode): boolean => {
-  const fn = node && isNodeOfType(node, "CallExpression") ? node.arguments?.[0] : null;
-  if (!fn) return false;
-  if (!isNodeOfType(fn, "ArrowFunctionExpression") && !isNodeOfType(fn, "FunctionExpression")) {
-    return false;
+const isCleanupReturnArgument = (analysis: ProgramAnalysis, node: EsTreeNode): boolean => {
+  if (isFunctionLike(node)) return true;
+  if (isNodeOfType(node, "MemberExpression")) return true;
+  if (isNodeOfType(node, "Identifier")) {
+    const ref = getRef(analysis, node);
+    const definitionNode = ref?.resolved?.defs[0]?.node as unknown as EsTreeNode | undefined;
+    if (definitionNode && isFunctionLike(definitionNode)) return true;
+    if (definitionNode && isNodeOfType(definitionNode, "VariableDeclarator")) {
+      const initializer = definitionNode.init;
+      return isFunctionLike(initializer as EsTreeNode | null | undefined);
+    }
   }
+  if (isNodeOfType(node, "ConditionalExpression")) {
+    return (
+      isCleanupReturnArgument(analysis, node.consequent as EsTreeNode) ||
+      isCleanupReturnArgument(analysis, node.alternate as EsTreeNode)
+    );
+  }
+  return false;
+};
+
+const hasCleanupReturn = (
+  analysis: ProgramAnalysis,
+  node: EsTreeNode,
+  visited: WeakSet<object> = new WeakSet(),
+): boolean => {
+  if (visited.has(node)) return false;
+  visited.add(node);
+  if (isNodeOfType(node, "ReturnStatement") && node.argument != null) {
+    return isCleanupReturnArgument(analysis, node.argument as EsTreeNode);
+  }
+  if (!isNodeOfType(node, "BlockStatement") && isFunctionLike(node)) return false;
+  const record = node as unknown as Record<string, unknown>;
+  for (const [key, value] of Object.entries(record)) {
+    if (key === "parent") continue;
+    if (Array.isArray(value)) {
+      if (
+        value.some(
+          (item) => isAstNode(item) && hasCleanupReturn(analysis, item as EsTreeNode, visited),
+        )
+      ) {
+        return true;
+      }
+    } else if (isAstNode(value) && hasCleanupReturn(analysis, value as EsTreeNode, visited)) {
+      return true;
+    }
+  }
+  return false;
+};
+
+export const hasCleanup = (analysis: ProgramAnalysis, node: EsTreeNode): boolean => {
+  const fn = getEffectFn(analysis, node);
+  if (!isFunctionLike(fn)) return false;
   if (!isNodeOfType(fn.body, "BlockStatement")) return false;
-  return (fn.body.body ?? []).some(
-    (stmt) => isNodeOfType(stmt, "ReturnStatement") && stmt.argument != null,
-  );
+  return hasCleanupReturn(analysis, fn.body as EsTreeNode);
 };
 
 export const findContainingNode = (

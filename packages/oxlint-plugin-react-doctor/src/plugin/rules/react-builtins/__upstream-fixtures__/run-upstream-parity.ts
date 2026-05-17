@@ -90,7 +90,7 @@ export const runUpstreamParity = (
     caseIndex: number,
     skipSet: ReadonlySet<number>,
   ): void => {
-    const isSkipped = Boolean(testCase.skip) || skipSet.has(caseIndex);
+    const isSkipped = Boolean(testCase.skip) || skipSet.has(caseIndex) || testCase.syntax === "flow";
     const itFunction = isSkipped ? it.skip : it;
     const expectedDiagnostics = kind === "valid" ? 0 : (testCase.errorCount ?? 1);
     const label = `${kind} #${caseIndex} ${testCase.name ?? truncate(testCase.code)}`;
@@ -101,6 +101,7 @@ export const runUpstreamParity = (
           : testCase.settings;
       const filename = testCase.filename ?? "Component.tsx";
       const result = runRule(rule, testCase.code, { filename, settings, forceJsx: true });
+      expect(result.parseErrors).toEqual([]);
       expect(result.diagnostics).toHaveLength(expectedDiagnostics);
     });
   };

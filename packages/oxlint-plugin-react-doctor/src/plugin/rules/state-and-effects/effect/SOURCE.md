@@ -7,10 +7,10 @@ Upstream: https://github.com/NickvanDyke/eslint-plugin-react-you-might-not-need-
 - Upstream version at time of port: `0.10.1` (HEAD of `main`)
 - Upstream license: **MIT** (Copyright © 2025 Nick van Dyke)
 
-The eight rules listed below are AST-only 1:1 ports of the upstream
-ESLint plugin's rule set. Diagnostic messages match upstream verbatim
-(with `{{state}}` / `{{arguments}}` / `{{prop}}` template variables
-substituted in JS rather than via ESLint's message templating).
+The eight rules listed below are native TypeScript ports of the
+upstream ESLint plugin's rule set. They preserve upstream's scope-aware
+reference chasing and diagnostic messages where the oxlint host exposes
+enough source information.
 
 | Rule ID (this package, `react-doctor/<id>`) | Upstream file                                    |
 | ------------------------------------------- | ------------------------------------------------ |
@@ -41,30 +41,24 @@ The upstream plugin is ESLint-native and uses
 `context.sourceCode.getScope().references[]` plus
 `ref.resolved.defs[].node.init/body` recursively to chase the
 ultimate source of every value (its "upstream refs"). Oxlint JS
-plugins have no scope manager — only AST visitors. The port builds
-an equivalent component-scoped binding table (see
-`../utils/effect/analyze-component-bindings.ts`) that classifies
-every local name as `state` / `setter` / `ref` / `prop` / `constant`
-/ `local-function` / `data` and precomputes
-`callsAnyStateSetter` / `callsAnyPropFunction` / `callsAnyRefMethod`
-flags on local function bindings. This is the AST-only analog of
-upstream's `isStateSetterCall` / `isPropCall` / `isRefCall`.
+plugins do not hand JS rules an ESLint scope manager, so this port
+builds one lazily per `Program` with `eslint-scope` in
+`../utils/effect/get-program-analysis.ts`, then threads that
+`ProgramAnalysis` through the helpers in `../utils/effect/ast.ts` and
+`../utils/effect/react.ts`.
 
 ## Known divergences
 
-- **Renamed `useState` imports** — `import { useState as useStateFoo }
-from "react"; const [x, setX] = useStateFoo(...)`. Upstream
-  documents this as a `todo: true` test (skipped); we mirror the
-  same limitation.
-- **`useState` calls inside conditionals or loops** — illegal under
-  the rules of hooks, but technically parseable. Upstream ignores
-  them; we ignore them via top-level-only collection in
-  `collectUseStateBindings`.
+- **Flow-only syntax** — upstream includes Flow `component` / `hook`
+  syntax in adjacent React Hooks fixtures. The oxlint parser path here
+  is TS/TSX, so Flow-only syntax is intentionally skipped in parity
+  suites.
 - **Diagnostic message templates** — upstream uses
   `messageId: "avoidDerivedState", data: { state: "fullName" }`,
   which ESLint expands via the `meta.messages` table. Oxlint plugins
-  emit pre-substituted strings. The substituted text matches upstream
-  byte-for-byte; the `messageId` is not exposed as a separate field.
+  emit pre-substituted strings. Most substituted text matches upstream
+  byte-for-byte; `no-initialize-state` uses a bounded AST stringifier
+  where oxlint does not expose original source text.
 
 ## Upstream `LICENSE` (MIT, retained for attribution)
 

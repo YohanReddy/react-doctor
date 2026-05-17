@@ -1,9 +1,9 @@
-import * as eslintVisitorKeys from "eslint-visitor-keys";
 import type { Reference } from "eslint-scope";
 import type { EsTreeNode } from "../../../../utils/es-tree-node.js";
 import { isAstNode } from "../../../../utils/is-ast-node.js";
 import { isNodeOfType } from "../../../../utils/is-node-of-type.js";
 import { getScopeForNode, type ProgramAnalysis } from "./get-program-analysis.js";
+import { VISITOR_KEYS } from "./constants.js";
 
 // 1:1 port of upstream `src/util/ast.js` from
 // `eslint-plugin-react-you-might-not-need-an-effect`. Upstream uses
@@ -12,11 +12,8 @@ import { getScopeForNode, type ProgramAnalysis } from "./get-program-analysis.js
 // through every helper and use `eslint-visitor-keys.KEYS` as the
 // static visitorKeys table.
 
-// Use the union of KEYS plus the JSX additions so we walk JSX children
-// the same way ESLint would.
-const VISITOR_KEYS: Readonly<Record<string, ReadonlyArray<string>>> = {
-  ...eslintVisitorKeys.KEYS,
-};
+const getChildKeys = (node: EsTreeNode): ReadonlyArray<string> =>
+  VISITOR_KEYS[node.type] ?? Object.keys(node).filter((key) => key !== "parent");
 
 const ascend = (
   analysis: ProgramAnalysis,
@@ -55,7 +52,7 @@ const descend = (
   visit(node);
   visited.add(node);
 
-  const keys = VISITOR_KEYS[node.type] ?? [];
+  const keys = getChildKeys(node);
   const record = node as unknown as Record<string, unknown>;
   for (const key of keys) {
     const child = record[key];

@@ -1,3 +1,5 @@
+import { isSameRuleKey } from "./rule-key-aliases.js";
+
 // HACK: ESLint convention — text after ` -- ` on a disable comment is a
 // human-readable description, not part of the rule list. Strip it
 // before tokenizing so trailing prose like `-- read in render via
@@ -14,5 +16,5 @@ export const isRuleListedInComment = (ruleList: string | undefined, ruleId: stri
   if (!trimmed) return true;
   const ruleSection = stripDescriptionTail(trimmed).trim();
   if (!ruleSection) return true;
-  return ruleSection.split(/[,\s]+/).some((token) => token.trim() === ruleId);
+  return ruleSection.split(/[,\s]+/).some((token) => isSameRuleKey(token.trim(), ruleId));
 };

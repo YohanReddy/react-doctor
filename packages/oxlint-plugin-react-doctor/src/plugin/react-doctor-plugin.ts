@@ -1,5 +1,6 @@
 import { ruleRegistry } from "./rule-registry.js";
 import type { Rule } from "./utils/rule.js";
+import type { HostRule } from "./utils/rule-plugin.js";
 import type { RulePlugin } from "./utils/rule-plugin.js";
 import { wrapReactNativeRule } from "./utils/wrap-react-native-rule.js";
 import { wrapWithSemanticContext } from "./utils/wrap-with-semantic-context.js";
@@ -15,8 +16,8 @@ import { wrapWithSemanticContext } from "./utils/wrap-with-semantic-context.js";
 // Then wraps EVERY rule with the semantic-context wrapper, which
 // builds a scope tree and CFG for the file lazily on first access.
 // Rules that never read `context.scopes` / `context.cfg` pay nothing.
-const applyFrameworkRuleWrappers = (registry: Record<string, Rule>): Record<string, Rule> => {
-  const wrapped: Record<string, Rule> = {};
+const applyFrameworkRuleWrappers = (registry: Record<string, Rule>): Record<string, HostRule> => {
+  const wrapped: Record<string, HostRule> = {};
   for (const [ruleId, rule] of Object.entries(registry)) {
     const frameworkWrapped = rule.framework === "react-native" ? wrapReactNativeRule(rule) : rule;
     wrapped[ruleId] = wrapWithSemanticContext(frameworkWrapped);

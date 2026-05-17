@@ -423,6 +423,21 @@ describe("issue #141: oxlint config must not reference unloaded plugins", () => 
     expect(hasReactHooksJsPluginEntry).toBe(false);
   });
 
+  it("honors top-level off overrides before registering react-hooks-js rules", () => {
+    const config = createOxlintConfig({
+      pluginPath: "/tmp/react-doctor-plugin.js",
+      project: buildTestProject({ rootDirectory: "/tmp/test", hasReactCompiler: true }),
+      severityControls: {
+        rules: { "react-hooks-js/void-use-memo": "off" },
+      },
+    });
+
+    expect(config.rules["react-hooks-js/void-use-memo"]).toBeUndefined();
+    expect(Object.keys(config.rules).some((ruleKey) => ruleKey.startsWith("react-hooks-js/"))).toBe(
+      true,
+    );
+  });
+
   it("emits every react-hooks-js rule at error severity (so they fail CI under --fail-on error)", () => {
     // Regression for the silent severity downgrade introduced in PR
     // #140: every `react-hooks-js/*` entry got mass-converted from
@@ -500,5 +515,27 @@ describe("issue #141: oxlint config must not reference unloaded plugins", () => 
         (jsPlugin) => typeof jsPlugin === "object" && jsPlugin.name === "effect",
       ),
     ).toBe(false);
+  });
+
+  it("customRulesOnly still excludes the ported effect rule family", () => {
+    const config = createOxlintConfig({
+      pluginPath: "/tmp/react-doctor-plugin.js",
+      project: buildTestProject({ rootDirectory: "/tmp/test" }),
+      customRulesOnly: true,
+    });
+
+    const portedRuleIds = [
+      "no-derived-state",
+      "no-chain-state-updates",
+      "no-event-handler",
+      "no-adjust-state-on-prop-change",
+      "no-reset-all-state-on-prop-change",
+      "no-pass-live-state-to-parent",
+      "no-pass-data-to-parent",
+      "no-initialize-state",
+    ];
+    for (const ruleId of portedRuleIds) {
+      expect(config.rules[`react-doctor/${ruleId}`]).toBeUndefined();
+    }
   });
 });

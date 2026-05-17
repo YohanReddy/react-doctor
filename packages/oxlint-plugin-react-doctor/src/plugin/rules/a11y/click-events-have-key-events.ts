@@ -5,7 +5,6 @@ import { getJsxPropStringValue } from "../../utils/get-jsx-prop-string-value.js"
 import { hasJsxPropIgnoreCase } from "../../utils/has-jsx-prop-ignore-case.js";
 import { isHiddenFromScreenReader } from "../../utils/is-hidden-from-screen-reader.js";
 import { isInteractiveElement } from "../../utils/is-interactive-element.js";
-import { isNodeOfType } from "../../utils/is-node-of-type.js";
 import type { Rule } from "../../utils/rule.js";
 import { HTML_TAGS } from "../../constants/html-tags.js";
 
@@ -46,9 +45,6 @@ export const clickEventsHaveKeyEvents = defineRule<Rule>({
         const roleValue = getJsxPropStringValue(roleAttribute);
         if (roleValue && PRESENTATION_ROLES.has(roleValue)) return;
       }
-      // Suppress unused-name lint with isNodeOfType reference below.
-      void isNodeOfType;
-
       // Has a key handler? OK.
       const hasKeyHandler = KEY_HANDLERS.some((handler) =>
         hasJsxPropIgnoreCase(node.attributes, handler),

@@ -71,6 +71,7 @@ export const runOxcFixtures = (
           const result = runRule(rule, fixture.code, {
             settings,
             filename: fixture.oxcFilename,
+            forceJsx: true,
           });
           expect(result.diagnostics).toEqual([]);
         });

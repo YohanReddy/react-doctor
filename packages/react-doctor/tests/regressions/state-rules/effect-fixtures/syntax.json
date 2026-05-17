@@ -39,7 +39,7 @@
       "idx": 3,
       "name": "Derived state, with renamed import",
       "code": "\n        import { useState as stateUser, useEffect } from 'react';\n\n        function Form() {\n          const [firstName, setFirstName] = stateUser('Taylor');\n          const [lastName, setLastName] = stateUser('Swift');\n\n          const [fullName, setFullName] = stateUser('');\n          useEffect(() => setFullName(firstName + ' ' + lastName), [firstName, lastName]);\n        }\n      ",
-      "todo": true,
+      "todo": false,
       "errors": 1
     },
     {
@@ -200,7 +200,7 @@
       "idx": 26,
       "name": "Passing non-anonymous function to effect",
       "code": "\n        function Form() {\n          const [firstName, setFirstName] = useState('');\n          const [lastName, setLastName] = useState('');\n          const [name, setName] = useState('');\n\n          function setDerivedName() {\n            setName(firstName + ' ' + lastName);\n          }\n\n          useEffect(setDerivedName, [firstName, lastName]);\n        }\n      ",
-      "todo": true,
+      "todo": false,
       "errors": 1
     },
     {

@@ -25,6 +25,20 @@ const resolveSettingsRootDirectory = (rootDirectory: string): string => {
   return fs.realpathSync(rootDirectory);
 };
 
+const applyRuleSeverityControls = (
+  rules: Record<string, OxlintRuleSeverity>,
+  severityControls: RuleSeverityControls | undefined,
+): Record<string, OxlintRuleSeverity> => {
+  const enabledRules: Record<string, OxlintRuleSeverity> = {};
+  for (const [ruleKey, defaultSeverity] of Object.entries(rules)) {
+    const severity =
+      resolveRuleSeverityOverride({ ruleKey }, severityControls) ?? defaultSeverity;
+    if (severity === "off") continue;
+    enabledRules[ruleKey] = severity;
+  }
+  return enabledRules;
+};
+
 export const createOxlintConfig = ({
   pluginPath,
   project,
@@ -36,10 +50,13 @@ export const createOxlintConfig = ({
 }: OxlintConfigOptions) => {
   const reactHooksJsPlugin = resolveReactHooksJsPlugin(project.hasReactCompiler, customRulesOnly);
   const reactCompilerRules = reactHooksJsPlugin
-    ? filterRulesToAvailable(
-        REACT_COMPILER_RULES,
-        "react-hooks-js",
-        reactHooksJsPlugin.availableRuleNames,
+    ? applyRuleSeverityControls(
+        filterRulesToAvailable(
+          REACT_COMPILER_RULES,
+          "react-hooks-js",
+          reactHooksJsPlugin.availableRuleNames,
+        ),
+        severityControls,
       )
     : {};
 

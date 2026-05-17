@@ -1,7 +1,7 @@
 // Ported from oxc_linter::globals::AriaProperty. Each entry's
 // expected value type is from the WAI-ARIA spec.
 
-export type AriaPropertyType =
+type AriaPropertyType =
   | "boolean"
   | "string"
   | "id"

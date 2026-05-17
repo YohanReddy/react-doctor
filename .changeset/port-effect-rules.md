@@ -1,5 +1,6 @@
 ---
 "@react-doctor/core": patch
+"eslint-plugin-react-doctor": patch
 "oxlint-plugin-react-doctor": patch
 "react-doctor": patch
 ---

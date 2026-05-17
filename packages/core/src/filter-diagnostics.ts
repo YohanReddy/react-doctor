@@ -5,6 +5,7 @@ import {
 } from "./apply-ignore-overrides.js";
 import { evaluateSuppression } from "./evaluate-suppression.js";
 import { compileIgnoredFilePatterns, isFileIgnoredByPatterns } from "./is-ignored-file.js";
+import { isSameRuleKey } from "./rule-key-aliases.js";
 
 const OPENING_TAG_PATTERN = /<([A-Z][\w.]*)/;
 const JSX_CHILD_OPEN_PATTERN = /<[A-Za-z]/;
@@ -176,6 +177,13 @@ const isInsideStringOnlyWrapper = (
   return false;
 };
 
+const isIgnoredRule = (ignoredRules: ReadonlySet<string>, ruleIdentifier: string): boolean => {
+  for (const ignoredRule of ignoredRules) {
+    if (isSameRuleKey(ignoredRule, ruleIdentifier)) return true;
+  }
+  return false;
+};
+
 export const filterIgnoredDiagnostics = (
   diagnostics: Diagnostic[],
   config: ReactDoctorConfig,
@@ -205,7 +213,7 @@ export const filterIgnoredDiagnostics = (
 
   return diagnostics.filter((diagnostic) => {
     const ruleIdentifier = `${diagnostic.plugin}/${diagnostic.rule}`;
-    if (ignoredRules.has(ruleIdentifier)) return false;
+    if (isIgnoredRule(ignoredRules, ruleIdentifier)) return false;
     if (isFileIgnoredByPatterns(diagnostic.filePath, rootDirectory, ignoredFilePatterns)) {
       return false;
     }

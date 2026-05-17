@@ -30,18 +30,19 @@ export const noChainStateUpdates = defineRule<Rule>({
     "Update all related state simultaneously inside the event handler that originally fires, instead of reacting to one state update in a useEffect that writes another state. See https://react.dev/learn/you-might-not-need-an-effect#chains-of-computations",
   create: (context: RuleContext) => ({
     CallExpression(node: EsTreeNodeOfType<"CallExpression">) {
-      if (!isUseEffect(node) || hasCleanup(node)) return;
+      if (!isUseEffect(node)) return;
       const analysis = getProgramAnalysis(node);
       if (!analysis) return;
+      if (hasCleanup(analysis, node)) return;
       const effectFnRefs = getEffectFnRefs(analysis, node);
       const depsRefs = getEffectDepsRefs(analysis, node);
       if (!effectFnRefs || !depsRefs) return;
-      const effectFn = getEffectFn(node);
+      const effectFn = getEffectFn(analysis, node);
       if (!effectFn) return;
 
       const isSomeDepsState = depsRefs
         .flatMap((ref) => getUpstreamRefs(analysis, ref))
-        .some((ref) => isState(ref));
+        .some((ref) => isState(analysis, ref));
       if (!isSomeDepsState) return;
 
       for (const ref of effectFnRefs) {
@@ -51,7 +52,7 @@ export const noChainStateUpdates = defineRule<Rule>({
         if (!callExpr) continue;
         // Avoid overlap with no-derived-state
         const isSomeArgsState = getArgsUpstreamRefs(analysis, ref).some((argRef) =>
-          isState(argRef),
+          isState(analysis, argRef),
         );
         if (isSomeArgsState) continue;
         context.report({

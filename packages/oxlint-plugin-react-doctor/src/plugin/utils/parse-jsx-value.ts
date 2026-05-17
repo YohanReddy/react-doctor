@@ -39,10 +39,6 @@ export const parseJsxValue = (value: EsTreeNode | null | undefined): number | nu
       const parsed = Number(cooked);
       return Number.isFinite(parsed) ? parsed : null;
     }
-    // Mirror OXC's parse_expression conditional support: when the
-    // test is statically truthy, parse consequent; otherwise parse
-    // alternate. With unevaluable tests, default to truthy
-    // (matching OXC's `unwrap_or(true)`).
     if (isNodeOfType(expression, "ConditionalExpression")) {
       const wrap = (innerExpression: EsTreeNode): EsTreeNode =>
         ({
@@ -51,6 +47,13 @@ export const parseJsxValue = (value: EsTreeNode | null | undefined): number | nu
             unknown
           >),
         }) as EsTreeNode;
+      if (isNodeOfType(expression.test, "Literal")) {
+        return parseJsxValue(
+          wrap(
+            (expression.test.value ? expression.consequent : expression.alternate) as EsTreeNode,
+          ),
+        );
+      }
       return parseJsxValue(wrap(expression.consequent as EsTreeNode));
     }
   }

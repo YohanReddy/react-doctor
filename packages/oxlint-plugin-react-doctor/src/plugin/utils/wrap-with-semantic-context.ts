@@ -1,19 +1,12 @@
 import type { EsTreeNode } from "./es-tree-node.js";
 import type { Rule } from "./rule.js";
 import type { BaseRuleContext, RuleContext } from "./rule-context.js";
+import type { HostRule } from "./rule-plugin.js";
 import type { RuleVisitors } from "./rule-visitors.js";
 import { analyzeScopes } from "../semantic/scope-analysis.js";
 import type { ScopeAnalysis } from "../semantic/scope-analysis.js";
 import { analyzeControlFlow } from "../semantic/control-flow-graph.js";
 import type { ControlFlowAnalysis } from "../semantic/control-flow-graph.js";
-
-// Public Rule shape that hosts (oxlint, ESLint adapter, test harness)
-// hand to wrapWithSemanticContext. `create` accepts the host's
-// minimal context (no scopes / cfg pre-built) and the wrapper enriches
-// it before forwarding to the inner rule.
-export interface WrappedRule extends Omit<Rule, "create"> {
-  create: (context: BaseRuleContext) => RuleVisitors;
-}
 
 // Wraps a rule so `context.scopes` and `context.cfg` exist at runtime
 // even when oxlint's host context doesn't pre-build them. We build the
@@ -70,7 +63,7 @@ const findProgramRoot = (node: EsTreeNode): EsTreeNode | null => {
   return null;
 };
 
-export const wrapWithSemanticContext = (rule: Rule): WrappedRule => ({
+export const wrapWithSemanticContext = (rule: Rule): HostRule => ({
   ...rule,
   create: (baseContext: BaseRuleContext): RuleVisitors => {
     let programRoot: EsTreeNode | null = null;

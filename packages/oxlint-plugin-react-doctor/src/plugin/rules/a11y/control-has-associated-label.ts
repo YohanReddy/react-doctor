@@ -77,11 +77,6 @@ interface CheckChildContext {
   settings: Readonly<Record<string, unknown>> | undefined;
 }
 
-const isJsxFragment = (node: EsTreeNode): boolean =>
-  isNodeOfType(node, "JSXFragment") ||
-  (isNodeOfType(node, "JSXElement") &&
-    isNodeOfType(node.openingElement as EsTreeNode, "JSXOpeningFragment"));
-
 const checkChildForLabel = (
   child: EsTreeNode,
   currentDepth: number,
@@ -155,8 +150,6 @@ export const controlHasAssociatedLabel = defineRule<Rule>({
         for (const child of node.children) {
           if (checkChildForLabel(child as EsTreeNode, 1, checkContext)) return;
         }
-        // suppress unused warning for the fragment helper
-        void isJsxFragment;
         context.report({ node: opening, message: MESSAGE });
       },
     };

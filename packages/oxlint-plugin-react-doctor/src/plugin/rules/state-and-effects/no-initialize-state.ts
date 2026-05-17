@@ -38,10 +38,11 @@ export const noInitializeState = defineRule<Rule>({
       const effectFnRefs = getEffectFnRefs(analysis, node);
       const depsRefs = getEffectDepsRefs(analysis, node);
       if (!effectFnRefs || !depsRefs) return;
-      const effectFn = getEffectFn(node);
+      const effectFn = getEffectFn(analysis, node);
       if (!effectFn) return;
 
-      const isEffectRunOnlyOnMount = depsRefs.filter((ref) => !isStateSetter(ref)).length === 0;
+      const isEffectRunOnlyOnMount =
+        depsRefs.filter((ref) => !isStateSetter(analysis, ref)).length === 0;
       if (!isEffectRunOnlyOnMount) return;
 
       for (const ref of effectFnRefs) {

@@ -167,6 +167,26 @@ export const Form = ({ title }: { title: string }) => {
     expect(hits[0].message).toContain("fullName");
   });
 
+  it("flags derived state through TypeScript expression wrappers", async () => {
+    const projectDir = setupReactProject(tempRoot, "invalid-typescript-expression-wrappers", {
+      files: {
+        "src/Form.tsx": `import { useEffect, useState } from "react";
+
+export const Form = ({ count }: { count: number }) => {
+  const [doubled, setDoubled] = useState(0);
+  useEffect(() => {
+    setDoubled((count as number) * 2);
+  }, [count]);
+  return <span>{doubled}</span>;
+};
+`,
+      },
+    });
+
+    const hits = await collectRuleHits(projectDir, "no-derived-state");
+    expect(hits).toHaveLength(1);
+  });
+
   it("does NOT flag subscription effect (with cleanup)", async () => {
     const projectDir = setupReactProject(tempRoot, "valid-subscription-effect", {
       files: {

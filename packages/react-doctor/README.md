@@ -158,7 +158,7 @@ Create a `react-doctor.config.json` in your project root:
 ```json
 {
   "ignore": {
-    "rules": ["react/no-danger", "jsx-a11y/no-autofocus"],
+    "rules": ["react-doctor/no-danger", "react-doctor/no-autofocus"],
     "files": ["src/generated/**"],
     "overrides": [
       {
@@ -167,7 +167,7 @@ Create a `react-doctor.config.json` in your project root:
       },
       {
         "files": ["components/search/HighlightedSnippet.tsx"],
-        "rules": ["react/no-danger"]
+        "rules": ["react-doctor/no-danger"]
       }
     ]
   }
@@ -259,7 +259,7 @@ Block comments work inside JSX:
 
 <!-- prettier-ignore -->
 ```tsx
-{/* react-doctor-disable-next-line react/no-danger */}
+{/* react-doctor-disable-next-line react-doctor/no-danger */}
 <div dangerouslySetInnerHTML={{ __html }} />
 ```
 

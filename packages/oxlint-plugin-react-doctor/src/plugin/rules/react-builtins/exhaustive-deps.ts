@@ -266,7 +266,6 @@ const stringifyMemberChain = (node: EsTreeNode): string | null => {
 
 interface CaptureCollection {
   keys: Set<string>;
-  refsByKey: Map<string, ReferenceDescriptor[]>;
   // Names of bindings that the callback captured but that we filtered
   // out of `keys` because their value is structurally stable (literal
   // const, useState setter, useRef, useEffectEvent, module-scope).
@@ -279,7 +278,6 @@ interface CaptureCollection {
 // outermost member-expression chain).
 const collectCaptureDepKeys = (callback: EsTreeNode, scopes: ScopeAnalysis): CaptureCollection => {
   const keys = new Set<string>();
-  const refsByKey = new Map<string, ReferenceDescriptor[]>();
   const stableCapturedNames = new Set<string>();
   for (const reference of closureCaptures(callback, scopes)) {
     const symbol = reference.resolvedSymbol;
@@ -298,11 +296,8 @@ const collectCaptureDepKeys = (callback: EsTreeNode, scopes: ScopeAnalysis): Cap
     const depKey = computeDepKey(reference);
     if (!depKey) continue;
     keys.add(depKey);
-    const existingRefs = refsByKey.get(depKey) ?? [];
-    existingRefs.push(reference);
-    refsByKey.set(depKey, existingRefs);
   }
-  return { keys, refsByKey, stableCapturedNames };
+  return { keys, stableCapturedNames };
 };
 
 const FUNCTION_SCOPE_KINDS: ReadonlySet<string> = new Set(["function", "arrow-function", "method"]);

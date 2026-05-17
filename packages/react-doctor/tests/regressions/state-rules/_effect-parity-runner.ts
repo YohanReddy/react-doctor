@@ -86,6 +86,7 @@ export const runUpstreamParity = (
 ): void => {
   const ruleIdToFilter = options.ruleId ?? fixtureName;
   const tempRoot = createScopedTempRoot(`effect-${fixtureName}-parity`);
+  const failureLogPath = path.join(tempRoot, "parity-failures.log");
   const fixture = loadFixture(fixtureName);
 
   const wrapAsTsx = (code: string): string => {
@@ -106,9 +107,8 @@ export const runUpstreamParity = (
         if (options.assertNoneOfPortedRules) {
           const hits = await collectAnyPortedRuleHits(projectDir);
           if (hits.length !== 0) {
-            const fs = await import("node:fs");
             fs.appendFileSync(
-              "/tmp/parity-failures.log",
+              failureLogPath,
               `[${fixtureName}/any-ported] valid #${validCase.idx} "${validCase.name}" expected=0 got=${hits.length}\n  code:\n${validCase.code
                 .split("\n")
                 .map((l) => `    ${l}`)
@@ -120,9 +120,8 @@ export const runUpstreamParity = (
         }
         const hits = await collectRuleHits(projectDir, ruleIdToFilter);
         if (hits.length !== 0) {
-          const fs = await import("node:fs");
           fs.appendFileSync(
-            "/tmp/parity-failures.log",
+            failureLogPath,
             `[${ruleIdToFilter}] valid #${validCase.idx} "${validCase.name}" expected=0 got=${hits.length}\n  code:\n${validCase.code
               .split("\n")
               .map((l) => `    ${l}`)
@@ -145,9 +144,8 @@ export const runUpstreamParity = (
         );
         const hits = await collectRuleHits(projectDir, ruleIdToFilter);
         if (hits.length !== (invalidCase.errors ?? 1)) {
-          const fs = await import("node:fs");
           fs.appendFileSync(
-            "/tmp/parity-failures.log",
+            failureLogPath,
             `[${ruleIdToFilter}] invalid #${invalidCase.idx} "${invalidCase.name}" expected=${invalidCase.errors ?? 1} got=${hits.length}\n  code:\n${invalidCase.code
               .split("\n")
               .map((l) => `    ${l}`)

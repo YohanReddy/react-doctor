@@ -199,13 +199,9 @@ const buildBindingIndex = (root: EsTreeNode): Map<string, BindingInfo[]> => {
         }
       }
     }
-    // TS-only declarations bind names too — track them so jsx-no-undef
-    // and similar rules see them on the same level as JS declarations.
     if (
       node.type === "TSImportEqualsDeclaration" ||
       node.type === "TSEnumDeclaration" ||
-      node.type === "TSTypeAliasDeclaration" ||
-      node.type === "TSInterfaceDeclaration" ||
       node.type === "TSModuleDeclaration"
     ) {
       const idNode = (node as { id?: EsTreeNode }).id;

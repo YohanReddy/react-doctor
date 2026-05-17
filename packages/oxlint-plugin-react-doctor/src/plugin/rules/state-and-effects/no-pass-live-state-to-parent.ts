@@ -29,7 +29,7 @@ export const noPassLiveStateToParent = defineRule<Rule>({
       if (!analysis) return;
       const effectFnRefs = getEffectFnRefs(analysis, node);
       if (!effectFnRefs) return;
-      const effectFn = getEffectFn(node);
+      const effectFn = getEffectFn(analysis, node);
       if (!effectFn) return;
 
       for (const ref of effectFnRefs) {
@@ -38,7 +38,9 @@ export const noPassLiveStateToParent = defineRule<Rule>({
         const callExpr = getCallExpr(ref);
         if (!callExpr) continue;
 
-        const isStateInArgs = getArgsUpstreamRefs(analysis, ref).some((argRef) => isState(argRef));
+        const isStateInArgs = getArgsUpstreamRefs(analysis, ref).some((argRef) =>
+          isState(analysis, argRef),
+        );
         if (!isStateInArgs) continue;
 
         const containing = findContainingNode(analysis, node);

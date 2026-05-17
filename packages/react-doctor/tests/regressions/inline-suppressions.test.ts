@@ -151,6 +151,15 @@ describe("issue #144: inline suppressions — block comment forms", () => {
     expect(filtered).toHaveLength(0);
   });
 
+  it("legacy react/* suppressions match native react-doctor ports", () => {
+    const filtered = runFilter(
+      "jsx-block-disable-next-line-legacy-native",
+      `{/* react-doctor-disable-next-line react/no-danger */}\n<div dangerouslySetInnerHTML={{ __html }} />\n`,
+      [baseDiagnostic({ plugin: "react-doctor", rule: "no-danger", line: 2 })],
+    );
+    expect(filtered).toHaveLength(0);
+  });
+
   it("JSX-style block disable-line `{/* … */}` works for tsx files", () => {
     const filtered = runFilter(
       "jsx-block-disable-line",

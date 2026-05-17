@@ -2,6 +2,7 @@ import { analyze, type Scope, type ScopeManager } from "eslint-scope";
 import type { EsTreeNode } from "../../../../utils/es-tree-node.js";
 import type { EsTreeNodeOfType } from "../../../../utils/es-tree-node-of-type.js";
 import { isNodeOfType } from "../../../../utils/is-node-of-type.js";
+import { VISITOR_KEYS } from "./constants.js";
 
 export interface ProgramAnalysis {
   programNode: EsTreeNodeOfType<"Program">;
@@ -85,6 +86,8 @@ export const getProgramAnalysis = (anyNode: EsTreeNode): ProgramAnalysis | null 
       {
         ecmaVersion: 2024,
         sourceType: "module",
+        childVisitorKeys: VISITOR_KEYS,
+        fallback: "iteration",
       } as Parameters<typeof analyze>[1],
     );
   } finally {
