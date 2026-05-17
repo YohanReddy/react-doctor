@@ -134,13 +134,13 @@ Diagnostics flow through four independent surfaces — `cli`, `prComment`, `scor
 
 Each surface accepts `includeTags`, `excludeTags`, `includeCategories`, `excludeCategories`, `includeRules`, and `excludeRules`. Include wins over exclude when both match. Run the CLI with `--pr-comment` (the GitHub Action passes it automatically when `github-token` is set) to apply the `prComment` surface to the printed output destined for sticky PR comments.
 
-#### Severity overrides (per rule, category, or tag)
+#### Severity (per rule, category, or tag)
 
-When you want to change a rule's severity (or silence it entirely) across **every** surface at once — CLI, PR comment, score, and `--fail-on` — use `severityOverrides` instead of `surfaces`. Overrides apply at lint registration time (so `"off"` rules never run), and re-stamp the severity of any matching diagnostic so downstream consumers see what you asked for:
+The React Doctor analogue of ESLint's `rules: { ... }` and oxlint's `rules: { ... }` + `categories: { ... }`, extended with a `tags` channel for behavioral families. Use `severity` when you want to change a rule's severity — or silence it entirely — across **every** surface at once (CLI, PR comment, score, and `--fail-on`). Applied at lint registration time so `"off"` rules never run, and re-stamps the severity of any matching diagnostic so downstream consumers see what you asked for:
 
 ```json
 {
-  "severityOverrides": {
+  "severity": {
     "rules": { "react-doctor/no-array-index-as-key": "error" },
     "categories": { "React Native": "warn" },
     "tags": {
@@ -154,12 +154,12 @@ When you want to change a rule's severity (or silence it entirely) across **ever
 ```
 
 - **Channels (most specific wins):** `rules` > `categories` > `tags`.
-- **Within a channel:** when multiple tag overrides match the same rule, the most permissive one wins (`"off"` > `"warn"` > `"error"`), so silencing via any tag is always honored.
-- **Values:** `"error"`, `"warn"`, `"off"`.
+- **Within the tag channel:** when multiple tags match the same rule, the most permissive value wins (`"off"` > `"warn"` > `"error"`), so silencing via any tag is always honored.
+- **Values:** `"error"`, `"warn"`, `"off"` — the same form ESLint and oxlint accept.
 
 Available tags include `design` (style cleanup), `test-noise` (rules that fire noisily in test code), `react-native` (every rule in the React Native bucket), `server-action` (every rule in the Server bucket — `server-auth-actions`, `server-fetch-without-revalidate`, …), and `migration-hint` (React 18→19 / legacy-class migration prompts). Available categories include `"Architecture"`, `"Correctness"`, `"Performance"`, `"Server"`, `"React Native"`, `"Bundle Size"`, `"State & Effects"`, `"Security"`, `"Accessibility"`, and others.
 
-Use `surfaces` when you only want to hide a rule from one channel (e.g. keep the warning visible locally but skip it on the PR comment). Use `severityOverrides` when you want to remove a rule from every channel — or promote a quiet rule to an error that fails CI.
+Use `surfaces` when you only want to hide a rule from one channel (e.g. keep the warning visible locally but skip it on the PR comment). Use `severity` when you want to remove a rule from every channel — or promote a quiet rule to an error that fails CI.
 
 #### Optional companion plugins
 

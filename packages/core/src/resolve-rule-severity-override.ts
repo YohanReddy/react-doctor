@@ -1,4 +1,4 @@
-import type { RuleSeverityOverride, SeverityOverrideControls } from "@react-doctor/types";
+import type { RuleSeverityControls, RuleSeverityOverride } from "@react-doctor/types";
 
 interface RuleOverrideLookupInput {
   ruleKey: string;
@@ -32,7 +32,7 @@ const isMorePermissive = (
  */
 export const resolveRuleSeverityOverride = (
   input: RuleOverrideLookupInput,
-  overrides: SeverityOverrideControls | undefined,
+  overrides: RuleSeverityControls | undefined,
 ): RuleSeverityOverride | undefined => {
   if (!overrides) return undefined;
 

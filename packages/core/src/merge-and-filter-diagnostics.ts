@@ -1,6 +1,6 @@
 import reactDoctorPlugin from "oxlint-plugin-react-doctor";
 import type { Diagnostic, ReactDoctorConfig } from "@react-doctor/types";
-import { applySeverityOverrides } from "./apply-severity-overrides.js";
+import { applySeverityControls } from "./apply-severity-controls.js";
 import { filterIgnoredDiagnostics, filterInlineSuppressions } from "./filter-diagnostics.js";
 import { isTestFilePath } from "./is-test-file.js";
 
@@ -39,7 +39,7 @@ export const mergeAndFilterDiagnostics = (
   options: MergeAndFilterOptions = {},
 ): Diagnostic[] => {
   const autoFiltered = mergedDiagnostics.filter((diagnostic) => !shouldAutoSuppress(diagnostic));
-  const severityAdjusted = applySeverityOverrides(autoFiltered, userConfig);
+  const severityAdjusted = applySeverityControls(autoFiltered, userConfig);
   const filtered = userConfig
     ? filterIgnoredDiagnostics(severityAdjusted, userConfig, directory, readFileLinesSync)
     : severityAdjusted;

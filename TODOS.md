@@ -331,16 +331,19 @@ Status: landed.
 
 Done:
 
-- Added a `severityOverrides` config block with `rules`, `categories`,
-  and `tags` channels (values: `"error"`, `"warn"`, `"off"`). Applied
-  at lint registration time so `"off"` short-circuits before the rule
-  runs, and re-stamped post-lint so `--fail-on`, the score, the CLI
-  summary, and external-plugin rules all see the user-chosen severity.
-  Precedence: `rules` > `categories` > `tags`; when multiple tags
-  match, the most permissive wins (`"off"` > `"warn"` > `"error"`).
+- Added a `severity` config block with `rules`, `categories`, and
+  `tags` channels (values: `"error"`, `"warn"`, `"off"` — the same
+  form ESLint and oxlint accept). Mirrors oxlint's top-level
+  `rules` + `categories` plus a `tags` channel for behavioral
+  families. Applied at lint registration time so `"off"`
+  short-circuits before the rule runs, and re-stamped post-lint so
+  `--fail-on`, the score, the CLI summary, and external-plugin rules
+  all see the user-chosen severity. Precedence: `rules` >
+  `categories` > `tags`; when multiple tags match, the most
+  permissive wins (`"off"` > `"warn"` > `"error"`).
 - Composes with the existing `surfaces` controls: use `surfaces` to
   hide a rule from one channel (e.g. PR comment) while keeping it on
-  others; use `severityOverrides` to change severity (or fully silence)
+  others; use `severity` to change severity (or fully silence)
   across every channel at once.
 - Bucket-derived auto-tags so cross-cutting controls can target whole
   families without each rule repeating the tag — `"react-native"` on

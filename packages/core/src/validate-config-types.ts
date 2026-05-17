@@ -1,13 +1,13 @@
 import type {
   DiagnosticSurface,
   ReactDoctorConfig,
+  RuleSeverityControls,
   RuleSeverityOverride,
-  SeverityOverrideControls,
   SurfaceControls,
 } from "@react-doctor/types";
 import { DIAGNOSTIC_SURFACES, isDiagnosticSurface } from "./diagnostic-surface.js";
 
-const VALID_SEVERITY_OVERRIDES: ReadonlyArray<RuleSeverityOverride> = ["error", "warn", "off"];
+const VALID_RULE_SEVERITIES: ReadonlyArray<RuleSeverityOverride> = ["error", "warn", "off"];
 
 // Boolean fields where the user might write `"true"` / `"false"` strings
 // in JSON by mistake. We coerce-and-warn rather than silently accept the
@@ -33,16 +33,12 @@ const SURFACE_CONTROL_FIELD_NAMES = [
   "excludeRules",
 ] as const satisfies ReadonlyArray<keyof SurfaceControls>;
 
-const SEVERITY_OVERRIDE_CHANNEL_NAMES = [
-  "rules",
-  "categories",
-  "tags",
-] as const satisfies ReadonlyArray<keyof SeverityOverrideControls>;
+const SEVERITY_CHANNEL_NAMES = ["rules", "categories", "tags"] as const satisfies ReadonlyArray<
+  keyof RuleSeverityControls
+>;
 
-const isSeverityOverrideChannel = (
-  key: string,
-): key is (typeof SEVERITY_OVERRIDE_CHANNEL_NAMES)[number] =>
-  (SEVERITY_OVERRIDE_CHANNEL_NAMES as ReadonlyArray<string>).includes(key);
+const isSeverityChannel = (key: string): key is (typeof SEVERITY_CHANNEL_NAMES)[number] =>
+  (SEVERITY_CHANNEL_NAMES as ReadonlyArray<string>).includes(key);
 
 // HACK: write to stderr directly so the warning is visible even in
 // `--json` mode (where the logger is silenced to keep stdout a single
@@ -57,8 +53,8 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> =>
 const formatType = (value: unknown): string =>
   typeof value === "string" ? `"${value}"` : typeof value;
 
-const isRuleSeverityOverride = (value: unknown): value is RuleSeverityOverride =>
-  typeof value === "string" && (VALID_SEVERITY_OVERRIDES as ReadonlyArray<string>).includes(value);
+const isRuleSeverity = (value: unknown): value is RuleSeverityOverride =>
+  typeof value === "string" && (VALID_RULE_SEVERITIES as ReadonlyArray<string>).includes(value);
 
 const coerceMaybeBooleanString = (fieldName: string, value: unknown): boolean | undefined => {
   if (typeof value === "boolean") return value;
@@ -144,13 +140,13 @@ const validateSurfacesField = (
   return validated;
 };
 
-const validateSeverityOverrideChannel = (
+const validateSeverityChannel = (
   channelName: string,
   rawMap: unknown,
 ): Record<string, RuleSeverityOverride> | undefined => {
   if (!isPlainObject(rawMap)) {
     warnConfigField(
-      `config field "severityOverrides.${channelName}" must be an object (got ${typeof rawMap}); ignoring this channel.`,
+      `config field "severity.${channelName}" must be an object (got ${typeof rawMap}); ignoring this channel.`,
     );
     return undefined;
   }
@@ -158,13 +154,13 @@ const validateSeverityOverrideChannel = (
   for (const [key, value] of Object.entries(rawMap)) {
     if (key.length === 0) {
       warnConfigField(
-        `config field "severityOverrides.${channelName}" has an empty key; ignoring the entry.`,
+        `config field "severity.${channelName}" has an empty key; ignoring the entry.`,
       );
       continue;
     }
-    if (!isRuleSeverityOverride(value)) {
+    if (!isRuleSeverity(value)) {
       warnConfigField(
-        `config field "severityOverrides.${channelName}.${key}" must be one of: ${VALID_SEVERITY_OVERRIDES.join(", ")} (got ${formatType(value)}); ignoring the entry.`,
+        `config field "severity.${channelName}.${key}" must be one of: ${VALID_RULE_SEVERITIES.join(", ")} (got ${formatType(value)}); ignoring the entry.`,
       );
       continue;
     }
@@ -173,27 +169,25 @@ const validateSeverityOverrideChannel = (
   return validated;
 };
 
-const validateSeverityOverridesField = (
-  rawOverrides: unknown,
-): SeverityOverrideControls | undefined => {
-  if (!isPlainObject(rawOverrides)) {
+const validateSeverityField = (rawSeverity: unknown): RuleSeverityControls | undefined => {
+  if (!isPlainObject(rawSeverity)) {
     warnConfigField(
-      `config field "severityOverrides" must be an object (got ${typeof rawOverrides}); ignoring this field.`,
+      `config field "severity" must be an object (got ${typeof rawSeverity}); ignoring this field.`,
     );
     return undefined;
   }
-  const validated: SeverityOverrideControls = {};
+  const validated: RuleSeverityControls = {};
   // Iterate user-provided keys (not the channel allowlist) so typos
   // like `"rule"` instead of `"rules"` surface as a warning instead
   // of silently doing nothing — matches `validateSurfacesField`.
-  for (const [key, value] of Object.entries(rawOverrides)) {
-    if (!isSeverityOverrideChannel(key)) {
+  for (const [key, value] of Object.entries(rawSeverity)) {
+    if (!isSeverityChannel(key)) {
       warnConfigField(
-        `config field "severityOverrides.${key}" is not a known channel (expected one of: ${SEVERITY_OVERRIDE_CHANNEL_NAMES.join(", ")}); ignoring.`,
+        `config field "severity.${key}" is not a known channel (expected one of: ${SEVERITY_CHANNEL_NAMES.join(", ")}); ignoring.`,
       );
       continue;
     }
-    const channel = validateSeverityOverrideChannel(key, value);
+    const channel = validateSeverityChannel(key, value);
     if (channel !== undefined) validated[key] = channel;
   }
   return validated;
@@ -234,6 +228,6 @@ export const validateConfigTypes = (config: ReactDoctorConfig): ReactDoctorConfi
     applyFieldValidator(config, validated, fieldName, (value) => validateString(fieldName, value));
   }
   applyFieldValidator(config, validated, "surfaces", validateSurfacesField);
-  applyFieldValidator(config, validated, "severityOverrides", validateSeverityOverridesField);
+  applyFieldValidator(config, validated, "severity", validateSeverityField);
   return validated;
 };

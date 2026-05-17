@@ -116,10 +116,10 @@ describe("validateConfigTypes", () => {
     });
   });
 
-  describe("severityOverrides", () => {
-    it("passes through a well-formed severityOverrides config untouched", () => {
+  describe("severity", () => {
+    it("passes through a well-formed severity config untouched", () => {
       const input: ReactDoctorConfig = {
-        severityOverrides: {
+        severity: {
           rules: { "react-doctor/no-array-index-as-key": "error" },
           categories: { "React Native": "warn" },
           tags: { design: "off", "migration-hint": "warn" },
@@ -131,44 +131,44 @@ describe("validateConfigTypes", () => {
 
     it("drops invalid severity values with a stderr warning", () => {
       const result = validateConfigTypes({
-        severityOverrides: {
+        severity: {
           tags: { design: "loud", "test-noise": "warn" },
-        } as unknown as ReactDoctorConfig["severityOverrides"],
+        } as unknown as ReactDoctorConfig["severity"],
       });
-      expect(result.severityOverrides).toEqual({
+      expect(result.severity).toEqual({
         tags: { "test-noise": "warn" },
       });
-      expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("severityOverrides.tags"));
+      expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("severity.tags"));
     });
 
-    it("drops the entire severityOverrides field when it isn't an object", () => {
+    it("drops the entire severity field when it isn't an object", () => {
       const result = validateConfigTypes({
-        severityOverrides: "off" as unknown as ReactDoctorConfig["severityOverrides"],
+        severity: "off" as unknown as ReactDoctorConfig["severity"],
       });
-      expect(result.severityOverrides).toBeUndefined();
-      expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("severityOverrides"));
+      expect(result.severity).toBeUndefined();
+      expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("severity"));
     });
 
     it("drops invalid channel shapes (arrays, strings) but keeps valid sibling channels", () => {
       const result = validateConfigTypes({
-        severityOverrides: {
+        severity: {
           rules: ["off"] as unknown as Record<string, "off">,
           categories: { Server: "off" },
         },
       });
-      expect(result.severityOverrides).toEqual({ categories: { Server: "off" } });
-      expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("severityOverrides.rules"));
+      expect(result.severity).toEqual({ categories: { Server: "off" } });
+      expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("severity.rules"));
     });
 
     it("warns and ignores unknown channel keys (typos like `rule` / `category` / `tag`)", () => {
       const result = validateConfigTypes({
-        severityOverrides: {
+        severity: {
           rule: { "react-doctor/no-array-index-as-key": "off" },
           tags: { design: "off" },
-        } as unknown as ReactDoctorConfig["severityOverrides"],
+        } as unknown as ReactDoctorConfig["severity"],
       });
-      expect(result.severityOverrides).toEqual({ tags: { design: "off" } });
-      expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining(`severityOverrides.rule`));
+      expect(result.severity).toEqual({ tags: { design: "off" } });
+      expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("severity.rule"));
     });
   });
 });

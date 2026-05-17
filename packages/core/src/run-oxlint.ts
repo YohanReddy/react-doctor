@@ -424,7 +424,7 @@ export const runOxlint = async (options: RunOxlintOptions): Promise<Diagnostic[]
         (entry): entry is string => typeof entry === "string" && entry.length > 0,
       )
     : undefined;
-  const severityOverrides = userConfig?.severityOverrides;
+  const severityControls = userConfig?.severity;
 
   validateRuleRegistration();
 
@@ -462,7 +462,7 @@ export const runOxlint = async (options: RunOxlintOptions): Promise<Diagnostic[]
     extendsPaths,
     ignoredTags,
     serverAuthFunctionNames,
-    severityOverrides,
+    severityControls,
   });
   // HACK: only neutralize disable comments in audit mode. Default
   // behavior respects the user's existing `// eslint-disable*` /
@@ -596,7 +596,7 @@ export const runOxlint = async (options: RunOxlintOptions): Promise<Diagnostic[]
         extendsPaths: [],
         ignoredTags,
         serverAuthFunctionNames,
-        severityOverrides,
+        severityControls,
       });
       writeOxlintConfig(fallbackConfig);
       return await spawnLintBatches();

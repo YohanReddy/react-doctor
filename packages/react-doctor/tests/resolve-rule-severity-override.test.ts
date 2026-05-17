@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { SeverityOverrideControls } from "@react-doctor/types";
+import type { RuleSeverityControls } from "@react-doctor/types";
 import { resolveRuleSeverityOverride } from "@react-doctor/core";
 
 describe("resolveRuleSeverityOverride", () => {
@@ -13,7 +13,7 @@ describe("resolveRuleSeverityOverride", () => {
   });
 
   it("returns the per-rule override when one matches", () => {
-    const overrides: SeverityOverrideControls = {
+    const overrides: RuleSeverityControls = {
       rules: { "react-doctor/no-array-index-as-key": "warn" },
     };
     expect(
@@ -25,7 +25,7 @@ describe("resolveRuleSeverityOverride", () => {
   });
 
   it("prefers per-rule over per-category over per-tag", () => {
-    const overrides: SeverityOverrideControls = {
+    const overrides: RuleSeverityControls = {
       rules: { "react-doctor/example-rule": "error" },
       categories: { Architecture: "warn" },
       tags: { design: "off" },
@@ -43,7 +43,7 @@ describe("resolveRuleSeverityOverride", () => {
   });
 
   it("falls back to category when no rule key matches", () => {
-    const overrides: SeverityOverrideControls = {
+    const overrides: RuleSeverityControls = {
       categories: { Server: "warn" },
       tags: { "server-action": "off" },
     };
@@ -60,7 +60,7 @@ describe("resolveRuleSeverityOverride", () => {
   });
 
   it("falls back to tags when neither rule nor category matches", () => {
-    const overrides: SeverityOverrideControls = {
+    const overrides: RuleSeverityControls = {
       tags: { "react-native": "off" },
     };
     expect(
@@ -76,7 +76,7 @@ describe("resolveRuleSeverityOverride", () => {
   });
 
   it("picks the most permissive override when multiple tags match (off > warn > error)", () => {
-    const overrides: SeverityOverrideControls = {
+    const overrides: RuleSeverityControls = {
       tags: { design: "off", "test-noise": "warn" },
     };
     expect(
@@ -92,7 +92,7 @@ describe("resolveRuleSeverityOverride", () => {
   });
 
   it("returns undefined when no override channel matches the rule", () => {
-    const overrides: SeverityOverrideControls = {
+    const overrides: RuleSeverityControls = {
       rules: { "react-doctor/other-rule": "error" },
       categories: { Security: "warn" },
       tags: { design: "off" },

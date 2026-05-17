@@ -20,7 +20,7 @@ const restampSeverity = (
 };
 
 /**
- * Applies the user's `severityOverrides` to a post-lint diagnostic list:
+ * Applies the user's `severity` config to a post-lint diagnostic list:
  *
  * - `"off"` drops the diagnostic entirely. For react-doctor rules
  *   this also happens at lint-registration time; this post-filter
@@ -30,19 +30,19 @@ const restampSeverity = (
  *   consumers — `--fail-on`, the score input, the CLI summary — see
  *   the user-chosen severity rather than the rule's built-in one.
  *
- * Returns the input array by identity when no overrides are configured
+ * Returns the input array by identity when no controls are configured
  * so the common path stays allocation-free.
  */
-export const applySeverityOverrides = (
+export const applySeverityControls = (
   diagnostics: Diagnostic[],
   config: ReactDoctorConfig | null,
 ): Diagnostic[] => {
-  const overrides = config?.severityOverrides;
-  if (!overrides) return diagnostics;
+  const controls = config?.severity;
+  if (!controls) return diagnostics;
 
   const adjusted: Diagnostic[] = [];
   for (const diagnostic of diagnostics) {
-    const override = resolveRuleSeverityOverride(getDiagnosticRuleIdentity(diagnostic), overrides);
+    const override = resolveRuleSeverityOverride(getDiagnosticRuleIdentity(diagnostic), controls);
     if (override === "off") continue;
     adjusted.push(override === undefined ? diagnostic : restampSeverity(diagnostic, override));
   }

@@ -6,13 +6,16 @@
 ---
 
 Add category-level rule controls: per-rule, per-category, and per-tag
-severity overrides applied at lint registration time.
+severity, applied at lint registration time. The React Doctor analogue
+of ESLint's `rules: { ... }` and oxlint's `rules: { ... }` +
+`categories: { ... }`.
 
-- New `severityOverrides` config field on `ReactDoctorConfig` accepting
+- New `severity` config field on `ReactDoctorConfig` accepting
   `rules`, `categories`, and `tags` channels. Values are `"error"`,
-  `"warn"`, or `"off"`. Precedence: `rules` > `categories` > `tags`;
-  when multiple tags match the same rule, the most permissive override
-  wins (`"off"` > `"warn"` > `"error"`).
+  `"warn"`, or `"off"` — the same form ESLint and oxlint accept.
+  Precedence: `rules` > `categories` > `tags`; when multiple tags
+  match the same rule, the most permissive value wins
+  (`"off"` > `"warn"` > `"error"`).
 - `"off"` skips registration in the generated oxlint config, so the
   rule never runs and never reaches any surface. `"warn"` / `"error"`
   re-stamp the registered severity and the post-lint diagnostic so
@@ -28,8 +31,7 @@ severity overrides applied at lint registration time.
     `no-legacy-class-lifecycles`, and `no-legacy-context-api` now
     carry `"migration-hint"`.
 
-These compose with the existing `surfaces` controls — use `surfaces`
-when you only want to hide a rule from one channel (e.g. PR comments)
-while keeping it on the CLI; use `severityOverrides` when you want a
-single value applied across CLI, PR comment, score, and CI failure at
-once.
+Composes with the existing `surfaces` controls — use `surfaces` when
+you only want to hide a rule from one channel (e.g. PR comments)
+while keeping it on the CLI; use `severity` when you want a single
+value applied across CLI, PR comment, score, and CI failure at once.

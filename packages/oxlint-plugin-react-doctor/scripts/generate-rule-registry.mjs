@@ -29,7 +29,7 @@ const BUCKET_TO_FRAMEWORK = {
 
 // Bucket directory → behavioral tags merged onto every rule in that
 // bucket at registry-build time. Lets cross-cutting controls
-// (`severityOverrides.tags`, `surfaces.*.excludeTags`,
+// (`severity.tags`, `surfaces.*.excludeTags`,
 // `config.ignore.tags`) target whole rule families without each rule
 // needing to repeat the tag in its `defineRule({...})` call. Rule-
 // authored tags layer on top (deduped at runtime), so a rule can both

@@ -9,7 +9,7 @@ export interface DiagnosticRuleIdentity {
 
 /**
  * Projects a diagnostic onto the three axes every rule-targeted control
- * (`surfaces`, `severityOverrides`, `ignore.tags`) reasons about:
+ * (`surfaces`, `severity`, `ignore.tags`) reasons about:
  *
  * - `ruleKey` — the fully-qualified `"<plugin>/<rule>"` form users
  *   put in config files.

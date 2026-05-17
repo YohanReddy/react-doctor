@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { Diagnostic, ReactDoctorConfig } from "@react-doctor/types";
-import { applySeverityOverrides } from "@react-doctor/core";
+import { applySeverityControls } from "@react-doctor/core";
 
 const designDiagnostic: Diagnostic = {
   filePath: "src/App.tsx",
@@ -38,51 +38,51 @@ const externalPluginDiagnostic: Diagnostic = {
   category: "Security",
 };
 
-describe("applySeverityOverrides", () => {
-  it("returns input unchanged when no overrides are configured", () => {
+describe("applySeverityControls", () => {
+  it("returns input unchanged when no controls are configured", () => {
     const diagnostics = [designDiagnostic, rnDiagnostic];
-    expect(applySeverityOverrides(diagnostics, null)).toBe(diagnostics);
-    expect(applySeverityOverrides(diagnostics, {})).toBe(diagnostics);
+    expect(applySeverityControls(diagnostics, null)).toBe(diagnostics);
+    expect(applySeverityControls(diagnostics, {})).toBe(diagnostics);
   });
 
-  it('drops diagnostics whose rule tag is overridden to "off"', () => {
+  it('drops diagnostics whose rule tag is set to "off"', () => {
     const config: ReactDoctorConfig = {
-      severityOverrides: { tags: { design: "off" } },
+      severity: { tags: { design: "off" } },
     };
-    const filtered = applySeverityOverrides([designDiagnostic, rnDiagnostic], config);
+    const filtered = applySeverityControls([designDiagnostic, rnDiagnostic], config);
     expect(filtered).toEqual([rnDiagnostic]);
   });
 
-  it('drops diagnostics whose category is overridden to "off"', () => {
+  it('drops diagnostics whose category is set to "off"', () => {
     const config: ReactDoctorConfig = {
-      severityOverrides: { categories: { "React Native": "off" } },
+      severity: { categories: { "React Native": "off" } },
     };
-    const filtered = applySeverityOverrides([designDiagnostic, rnDiagnostic], config);
+    const filtered = applySeverityControls([designDiagnostic, rnDiagnostic], config);
     expect(filtered).toEqual([designDiagnostic]);
   });
 
   it("re-stamps severity for matching rules", () => {
     const config: ReactDoctorConfig = {
-      severityOverrides: { rules: { "react-doctor/rn-no-raw-text": "warn" } },
+      severity: { rules: { "react-doctor/rn-no-raw-text": "warn" } },
     };
-    const filtered = applySeverityOverrides([rnDiagnostic], config);
+    const filtered = applySeverityControls([rnDiagnostic], config);
     expect(filtered).toEqual([{ ...rnDiagnostic, severity: "warning" }]);
   });
 
   it("works on external-plugin diagnostics via rule key and category (no rule tags available)", () => {
     const config: ReactDoctorConfig = {
-      severityOverrides: { rules: { "react/no-danger": "off" } },
+      severity: { rules: { "react/no-danger": "off" } },
     };
-    expect(applySeverityOverrides([externalPluginDiagnostic], config)).toEqual([]);
+    expect(applySeverityControls([externalPluginDiagnostic], config)).toEqual([]);
   });
 
-  it("promotes warning to error when override demands it", () => {
+  it("promotes warning to error when severity demands it", () => {
     const config: ReactDoctorConfig = {
-      severityOverrides: {
+      severity: {
         categories: { Security: "error" },
       },
     };
-    const filtered = applySeverityOverrides([externalPluginDiagnostic], config);
+    const filtered = applySeverityControls([externalPluginDiagnostic], config);
     expect(filtered).toEqual([{ ...externalPluginDiagnostic, severity: "error" }]);
   });
 });

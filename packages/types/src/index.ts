@@ -3,8 +3,8 @@ export type {
   FailOnLevel,
   ReactDoctorConfig,
   ReactDoctorIgnoreOverride,
+  RuleSeverityControls,
   RuleSeverityOverride,
-  SeverityOverrideControls,
   SurfaceControls,
 } from "./config.js";
 export type { DiagnoseOptions, DiagnoseResult } from "./diagnose.js";
