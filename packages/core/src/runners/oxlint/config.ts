@@ -1,8 +1,7 @@
 import fs from "node:fs";
 import reactDoctorPlugin, {
-  BUILTIN_A11Y_RULES,
-  BUILTIN_REACT_RULES,
   REACT_COMPILER_RULES,
+  REACT_DOCTOR_RULES,
 } from "oxlint-plugin-react-doctor";
 import type { OxlintRuleSeverity } from "oxlint-plugin-react-doctor";
 import type { ProjectInfo, RuleSeverityControls } from "@react-doctor/types";
@@ -50,8 +49,15 @@ export const createOxlintConfig = ({
   const capabilities = buildCapabilities(project);
 
   const enabledReactDoctorRules: Record<string, OxlintRuleSeverity> = {};
-  for (const [ruleId, rule] of Object.entries(reactDoctorPlugin.rules)) {
-    const fullKey = `react-doctor/${ruleId}`;
+  for (const registryEntry of REACT_DOCTOR_RULES) {
+    const rule = reactDoctorPlugin.rules[registryEntry.id];
+    if (!rule) continue;
+    // `customRulesOnly` opts users out of upstream-equivalent rules so
+    // diagnostics stay narrow to react-doctor's distinctive checks.
+    // Rules ported 1:1 from OXC's `react/*` and `jsx-a11y/*` plugins
+    // are flagged via `originallyExternal: true` in the generated
+    // registry and skipped here when the flag is on.
+    if (customRulesOnly && registryEntry.originallyExternal) continue;
     // Framework-specific rules MUST opt in via a `requires` capability
     // (e.g. `requires: ["nextjs"]`). Global rules ship without `requires`
     // and activate unconditionally once any tag filters pass.
@@ -62,11 +68,11 @@ export const createOxlintConfig = ({
     // straight into the oxlint config as the registered severity.
     const severity =
       resolveRuleSeverityOverride(
-        { ruleKey: fullKey, category: rule.category },
+        { ruleKey: registryEntry.key, category: rule.category },
         severityControls,
       ) ?? rule.severity;
     if (severity === "off") continue;
-    enabledReactDoctorRules[fullKey] = severity;
+    enabledReactDoctorRules[registryEntry.key] = severity;
   }
 
   return {
@@ -97,8 +103,6 @@ export const createOxlintConfig = ({
       },
     },
     rules: {
-      ...(customRulesOnly ? {} : BUILTIN_REACT_RULES),
-      ...(customRulesOnly ? {} : BUILTIN_A11Y_RULES),
       ...reactCompilerRules,
       ...enabledReactDoctorRules,
     },

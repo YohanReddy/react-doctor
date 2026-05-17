@@ -62,11 +62,16 @@ export const wrapWithSemanticContext = (rule: Rule): WrappedRule => {
         referenceFor: () => null,
         isGlobalReference: () => false,
       };
+      // HACK: `isUnconditionalFromEntry` / `dominatesExit` default to
+      // `false` (the conservative answer) so that if the program root
+      // capture ever fails — which it shouldn't, see captureRootIfNeeded
+      // — a rule like `rules-of-hooks` errs toward flagging a possible
+      // violation rather than silently allowing one.
       const fallbackCfg: ControlFlowAnalysis = {
         cfgFor: () => null,
         enclosingFunction: () => null,
-        isUnconditionalFromEntry: () => true,
-        dominatesExit: () => true,
+        isUnconditionalFromEntry: () => false,
+        dominatesExit: () => false,
       };
 
       const getScopes = (): ScopeAnalysis => {

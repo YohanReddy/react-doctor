@@ -55,8 +55,15 @@ export const ARIA_PROPERTY_NAMES: ReadonlySet<string> = new Set([
   "valuetext",
 ]);
 
-export const isValidAriaProperty = (name: string): boolean => {
-  if (!name.startsWith("aria-")) return false;
-  const suffix = name.slice(5).toLowerCase();
+// Case-insensitive variant of the spec-strict `isValidAriaProperty`
+// (see `./aria-properties.ts`). HTML attribute names are
+// case-insensitive, so JSX like `<div aria-LABEL="…" />` should still
+// be considered valid by the `no-unknown-property` rule. The
+// spec-strict (case-sensitive) variant continues to live in
+// `aria-properties.ts` for `aria-props`'s exact-match check.
+export const isValidDomAriaProperty = (name: string): boolean => {
+  const ARIA_PREFIX = "aria-";
+  if (!name.startsWith(ARIA_PREFIX)) return false;
+  const suffix = name.slice(ARIA_PREFIX.length).toLowerCase();
   return ARIA_PROPERTY_NAMES.has(suffix);
 };

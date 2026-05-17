@@ -1,4 +1,4 @@
-import { isValidAriaProperty } from "../../constants/dom-aria-properties.js";
+import { isValidDomAriaProperty } from "../../constants/dom-aria-properties.js";
 import {
   DOM_ATTRIBUTES_TO_CAMEL,
   DOM_PROPERTIES_IGNORE_CASE,
@@ -118,7 +118,7 @@ export const noUnknownProperty = defineRule<Rule>({
             continue;
           }
 
-          if (isValidAriaProperty(actualName)) continue;
+          if (isValidDomAriaProperty(actualName)) continue;
           if (!isValidHtmlTag) continue;
 
           const normalizedName = normalizeAttributeCase(actualName);
