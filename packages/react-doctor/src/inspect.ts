@@ -210,7 +210,10 @@ const runInspect = async (
           ? null
           : spinner("Analyzing dead code...").start();
         try {
-          const deadCodeDiagnostics = await checkDeadCode({ rootDirectory: directory });
+          const deadCodeDiagnostics = await checkDeadCode({
+            rootDirectory: directory,
+            userConfig,
+          });
           deadCodeSpinner?.succeed("Analyzing dead code.");
           return deadCodeDiagnostics;
         } catch (error) {

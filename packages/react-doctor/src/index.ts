@@ -172,7 +172,7 @@ export const diagnose = async (
   // so we skip it in diff mode just like `checkReducedMotion`.
   const shouldRunDeadCode = effectiveDeadCode && !isDiffMode;
   const deadCodePromise = shouldRunDeadCode
-    ? checkDeadCode({ rootDirectory: resolvedDirectory }).catch((error: unknown) => {
+    ? checkDeadCode({ rootDirectory: resolvedDirectory, userConfig }).catch((error: unknown) => {
         console.error("Dead-code analysis failed:", error);
         return EMPTY_DIAGNOSTICS;
       })

@@ -93,6 +93,40 @@ describe("checkDeadCode", () => {
     }
   });
 
+  it("skips files matched by .gitignore", async () => {
+    const projectDirectory = setupDeslopProject("gitignore-skip", {
+      "src/index.ts": "export const used = 1;\n",
+      "src/orphan.ts": "export const orphan = 1;\n",
+      ".gitignore": "src/orphan.ts\n",
+    });
+
+    const diagnostics = await checkDeadCode({ rootDirectory: projectDirectory });
+
+    const orphanHits = diagnostics.filter(
+      (diagnostic) =>
+        diagnostic.rule === "unused-file" && diagnostic.filePath.endsWith("orphan.ts"),
+    );
+    expect(orphanHits).toEqual([]);
+  });
+
+  it("honors userConfig.ignore.files when forwarded", async () => {
+    const projectDirectory = setupDeslopProject("config-ignore-files", {
+      "src/index.ts": "export const used = 1;\n",
+      "src/orphan.ts": "export const orphan = 1;\n",
+    });
+
+    const diagnostics = await checkDeadCode({
+      rootDirectory: projectDirectory,
+      userConfig: { ignore: { files: ["src/orphan.ts"] } },
+    });
+
+    const orphanHits = diagnostics.filter(
+      (diagnostic) =>
+        diagnostic.rule === "unused-file" && diagnostic.filePath.endsWith("orphan.ts"),
+    );
+    expect(orphanHits).toEqual([]);
+  });
+
   it("flags dependencies in package.json that are never imported", async () => {
     const projectDirectory = setupDeslopProject(
       "unused-dependency",

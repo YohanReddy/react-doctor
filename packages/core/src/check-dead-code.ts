@@ -1,7 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { analyze, defineConfig } from "deslop-js";
-import type { Diagnostic } from "@react-doctor/types";
+import type { Diagnostic, ReactDoctorConfig } from "@react-doctor/types";
+import { collectIgnorePatterns } from "./collect-ignore-patterns.js";
+import { readIgnoreFile } from "./read-ignore-file.js";
 
 interface CheckDeadCodeOptions {
   rootDirectory: string;
@@ -14,11 +16,20 @@ interface CheckDeadCodeOptions {
    */
   tsConfigPath?: string;
   /**
-   * Patterns to exclude from analysis. Mirrors the project's
-   * `ignore.files` plus a few defaults so generated / vendored code
-   * doesn't show up as "unused".
+   * Extra patterns to exclude from analysis on top of the project's
+   * `.gitignore` / `.eslintignore` / `.oxlintignore` / `.prettierignore` /
+   * `.gitattributes` linguist annotations and `userConfig.ignore.files`,
+   * which are auto-collected. Use this to layer call-site specific
+   * exclusions on top of the defaults.
    */
   ignorePatterns?: string[];
+  /**
+   * Loaded react-doctor config. When provided, `ignore.files` is
+   * forwarded to deslop so files the user has told react-doctor to
+   * skip don't show up as "unused" or distort the reachability graph
+   * for legitimate imports.
+   */
+  userConfig?: ReactDoctorConfig | null;
 }
 
 const TSCONFIG_FILENAMES = ["tsconfig.json", "tsconfig.base.json"];
@@ -29,6 +40,38 @@ const resolveTsConfigPath = (rootDirectory: string): string | undefined => {
     if (fs.existsSync(candidate)) return candidate;
   }
   return undefined;
+};
+
+// HACK: `collectIgnorePatterns` intentionally omits `.gitignore` because
+// oxlint reads it automatically — deslop does not, so we pull it in
+// explicitly here. Patterns are deduped before being passed to deslop
+// so we don't blow up the matcher with redundant entries when the
+// project repeats them across files.
+const collectDeadCodeIgnorePatterns = (
+  rootDirectory: string,
+  userConfig: ReactDoctorConfig | null | undefined,
+  extraPatterns: string[] | undefined,
+): string[] => {
+  const patterns: string[] = [];
+  const seen = new Set<string>();
+  const addPattern = (pattern: string): void => {
+    if (pattern.length === 0 || seen.has(pattern)) return;
+    seen.add(pattern);
+    patterns.push(pattern);
+  };
+  for (const pattern of readIgnoreFile(path.join(rootDirectory, ".gitignore"))) {
+    addPattern(pattern);
+  }
+  for (const pattern of collectIgnorePatterns(rootDirectory)) {
+    addPattern(pattern);
+  }
+  for (const pattern of userConfig?.ignore?.files ?? []) {
+    addPattern(pattern);
+  }
+  for (const pattern of extraPatterns ?? []) {
+    addPattern(pattern);
+  }
+  return patterns;
 };
 
 const DEAD_CODE_PLUGIN_NAME = "deslop";
@@ -50,7 +93,7 @@ const toRelativeFilePath = (rootDirectory: string, filePath: string): string => 
 };
 
 export const checkDeadCode = async (options: CheckDeadCodeOptions): Promise<Diagnostic[]> => {
-  const { rootDirectory, tsConfigPath, ignorePatterns } = options;
+  const { rootDirectory, tsConfigPath, ignorePatterns, userConfig } = options;
 
   // No package.json → no entry-point heuristic for deslop to use, and
   // typically not a real project. Skip silently to keep the broader
@@ -58,11 +101,16 @@ export const checkDeadCode = async (options: CheckDeadCodeOptions): Promise<Diag
   if (!fs.existsSync(path.join(rootDirectory, "package.json"))) return [];
 
   const resolvedTsConfigPath = tsConfigPath ?? resolveTsConfigPath(rootDirectory);
+  const effectiveIgnorePatterns = collectDeadCodeIgnorePatterns(
+    rootDirectory,
+    userConfig,
+    ignorePatterns,
+  );
 
   const deslopConfig = defineConfig({
     rootDir: rootDirectory,
     tsConfigPath: resolvedTsConfigPath,
-    ...(ignorePatterns && ignorePatterns.length > 0 ? { ignorePatterns } : {}),
+    ...(effectiveIgnorePatterns.length > 0 ? { ignorePatterns: effectiveIgnorePatterns } : {}),
   });
 
   const result = await analyze(deslopConfig);
