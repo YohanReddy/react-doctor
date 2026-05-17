@@ -1,4 +1,5 @@
 import type { EsTreeNode } from "../utils/es-tree-node.js";
+import type { EsTreeNodeOfType } from "../utils/es-tree-node-of-type.js";
 import { isAstNode } from "../utils/is-ast-node.js";
 import { isNodeOfType } from "../utils/is-node-of-type.js";
 
@@ -541,6 +542,36 @@ const shouldPushBlockScope = (block: EsTreeNode): boolean => {
 // reference to a variable. e.g. in `obj.foo`, `foo` is property
 // access, not a reference. Same for the `key` of a non-computed
 // Property in an ObjectExpression.
+// True when the JSXIdentifier `node` actually resolves through the
+// binding scope chain — i.e. it's a real reference, not just a syntax
+// fragment. Carves out:
+//   - `<div />` — lowercase tag name is the HTML string "div", not
+//     a binding lookup.
+//   - `<obj.Foo />` — `Foo` is the JSXMemberExpression.property, an
+//     attribute-like name. Only `obj` (the .object end of the chain)
+//     resolves through scope.
+//   - `<svg:rect />` — JSXNamespacedName parts are syntax fragments.
+const isJsxIdentifierBindingReference = (
+  identifier: EsTreeNodeOfType<"JSXIdentifier">,
+): boolean => {
+  const parent = identifier.parent;
+  if (!parent) return false;
+  if (parent.type === "JSXMemberExpression") {
+    // Only the leftmost (.object) of the chain is a reference.
+    return parent.object === identifier;
+  }
+  if (parent.type === "JSXNamespacedName") return false;
+  // JSXOpeningElement / JSXClosingElement: lowercase first char is
+  // an HTML tag string, not a binding.
+  const ASCII_LOWERCASE_A = 97;
+  const ASCII_LOWERCASE_Z = 122;
+  const firstCharCode = identifier.name.charCodeAt(0);
+  if (firstCharCode >= ASCII_LOWERCASE_A && firstCharCode <= ASCII_LOWERCASE_Z) {
+    return false;
+  }
+  return true;
+};
+
 const isNonReferencePosition = (identifier: EsTreeNode): boolean => {
   const parent = identifier.parent;
   if (!parent) return false;
@@ -807,14 +838,15 @@ const walk = (node: EsTreeNode, state: BuilderState): void => {
     !bindingPositionMarker.has(node) &&
     !isNonReferencePosition(node)
   ) {
-    // JSXIdentifier with lowercase first char is an HTML tag name —
-    // not a reference.
+    // JSXIdentifier needs an extra filter: tag-position lowercase
+    // names like `div` / `span` are HTML strings, not bindings, and
+    // a JSXMemberExpression's `.property` (the `Foo` in `<obj.Foo />`)
+    // is an attribute-like name, not a reference. Only the FIRST
+    // segment of a JSXMemberExpression chain (the `obj`) and a
+    // standalone uppercase tag name (`<Component />`) actually
+    // resolve through the scope chain.
     if (isNodeOfType(node, "JSXIdentifier")) {
-      const firstCharCode = node.name.charCodeAt(0);
-      const isLowercase = firstCharCode >= 97 && firstCharCode <= 122;
-      if (isLowercase) {
-        // skip
-      } else {
+      if (isJsxIdentifierBindingReference(node)) {
         recordReference(state, node, inferReferenceFlag(node));
       }
     } else {
