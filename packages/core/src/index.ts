@@ -1,4 +1,5 @@
 export * from "./apply-ignore-overrides.js";
+export * from "./apply-severity-overrides.js";
 export * from "./batch-include-paths.js";
 export * from "./build-json-report-error.js";
 export * from "./build-json-report.js";
@@ -33,6 +34,7 @@ export * from "./read-ignore-file.js";
 export * from "./resolve-compatible-node.js";
 export * from "./resolve-config-root-dir.js";
 export * from "./resolve-diagnose-target.js";
+export * from "./resolve-rule-severity-override.js";
 export * from "./resolve-lint-include-paths.js";
 export * from "./run-oxlint.js";
 export * from "./summarize-diagnostics.js";

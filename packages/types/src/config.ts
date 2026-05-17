@@ -34,6 +34,42 @@ interface ReactDoctorIgnoreConfig {
  */
 export type DiagnosticSurface = "cli" | "prComment" | "score" | "ciFailure";
 
+/**
+ * Per-rule severity override. `"error"` and `"warn"` change the
+ * registered severity of a rule; `"off"` skips registration entirely
+ * so the rule never runs (and therefore never enters any surface).
+ *
+ * Use `"off"` to silence a whole rule family at the source. For
+ * visibility-only adjustments (silence on PR comments but keep on
+ * CLI / score), prefer `surfaces` instead — `severityOverrides`
+ * applies before lint runs and is the most aggressive control.
+ */
+export type RuleSeverityOverride = "error" | "warn" | "off";
+
+/**
+ * Group-aware severity overrides. Three lookup channels:
+ *
+ * - `rules` — by fully-qualified rule key (`"<plugin>/<rule>"`,
+ *   e.g. `"react-doctor/no-array-index-as-key"`). Most specific.
+ * - `categories` — by category label (e.g. `"Server"`,
+ *   `"React Native"`, `"Architecture"`). Affects every rule in
+ *   that category.
+ * - `tags` — by behavioral tag (e.g. `"design"`, `"test-noise"`,
+ *   `"react-native"`, `"server-action"`, `"migration-hint"`).
+ *   Affects every rule that carries the tag.
+ *
+ * Precedence (most specific wins): `rules` > `categories` > `tags`.
+ * Within a single channel, when multiple keys match the same rule,
+ * the *most permissive* override wins (`"off"` over `"warn"` over
+ * `"error"`) — silencing a rule via any matching key is always
+ * honored.
+ */
+export interface SeverityOverrideControls {
+  rules?: Record<string, RuleSeverityOverride>;
+  categories?: Record<string, RuleSeverityOverride>;
+  tags?: Record<string, RuleSeverityOverride>;
+}
+
 export interface SurfaceControls {
   /**
    * Tag names whose diagnostics should be force-included on the surface,
@@ -179,4 +215,28 @@ export interface ReactDoctorConfig {
    * score or PR-comment surface.
    */
   surfaces?: Partial<Record<DiagnosticSurface, SurfaceControls>>;
+  /**
+   * Per-rule, per-category, and per-tag severity overrides applied
+   * at lint registration time. Lets you promote a rule to `"error"`,
+   * demote it to `"warn"`, or fully disable it with `"off"` without
+   * editing source.
+   *
+   * Example: demote every React Native rule to a warning, silence
+   * the design family entirely, and promote one specific rule to
+   * an error:
+   *
+   * ```json
+   * {
+   *   "severityOverrides": {
+   *     "tags": { "react-native": "warn", "design": "off" },
+   *     "rules": { "react-doctor/no-array-index-as-key": "error" }
+   *   }
+   * }
+   * ```
+   *
+   * Precedence: `rules` > `categories` > `tags`. Use this when you
+   * want to remove a rule from every channel (CLI, PR comment, score,
+   * CI failure) at once. For visibility-only changes, use `surfaces`.
+   */
+  severityOverrides?: SeverityOverrideControls;
 }
