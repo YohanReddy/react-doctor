@@ -1,4 +1,4 @@
-import { mkdtempSync } from "node:fs";
+import fs, { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
@@ -19,7 +19,8 @@ import {
 } from "@react-doctor/core";
 import type { TouchedLinesByFile } from "@react-doctor/core";
 import { inspect } from "../../inspect.js";
-import type { Diagnostic, DiffInfo, InspectResult } from "@react-doctor/types";
+import type { Diagnostic, DiffInfo, InspectResult, JsonReport } from "@react-doctor/types";
+import { buildPrCommentMarkdown } from "../utils/build-pr-comment-markdown.js";
 import { STAGED_FILES_TEMP_DIR_PREFIX } from "../utils/constants.js";
 import { getStagedSourceFiles, materializeStagedFiles } from "../utils/get-staged-files.js";
 import type { InspectFlags } from "../utils/inspect-flags.js";
@@ -44,8 +45,23 @@ import { runWithConcurrency } from "../utils/run-with-concurrency.js";
 import { selectProjects } from "../utils/select-projects.js";
 import { shouldFailForDiagnostics } from "../utils/should-fail-for-diagnostics.js";
 import { shouldSkipPrompts } from "../utils/should-skip-prompts.js";
+import { setSpinnerSilent } from "../utils/spinner.js";
 import { validateModeFlags } from "../utils/validate-mode-flags.js";
 import { VERSION } from "../utils/version.js";
+
+const writePrCommentMarkdownIfRequested = (
+  outputPath: string | undefined,
+  report: JsonReport,
+  baseDirectory: string,
+): void => {
+  if (!outputPath) return;
+  const markdown = buildPrCommentMarkdown(report, { baseDirectory });
+  const directory = path.dirname(outputPath);
+  if (directory && directory !== "." && !fs.existsSync(directory)) {
+    fs.mkdirSync(directory, { recursive: true });
+  }
+  fs.writeFileSync(outputPath, `${markdown}\n`);
+};
 
 const resolveTouchedLinesByFile = (
   projectDirectory: string,
@@ -64,6 +80,7 @@ const resolveTouchedLinesByFile = (
 export const inspectAction = async (directory: string, flags: InspectFlags): Promise<void> => {
   const isScoreOnly = Boolean(flags.score);
   const isJsonMode = Boolean(flags.json);
+  const prCommentOutput = flags.prCommentOutput;
   const isQuiet = isScoreOnly || isJsonMode;
   const requestedDirectory = path.resolve(directory);
   const startTime = performance.now();
@@ -71,6 +88,10 @@ export const inspectAction = async (directory: string, flags: InspectFlags): Pro
   if (isJsonMode) {
     enableJsonMode({ compact: Boolean(flags.jsonCompact), directory: requestedDirectory });
   }
+  // `--pr-comment-output` writes a side file; suppress the spinner
+  // so it doesn't intersperse with the CLI's stdout output. Logger
+  // is left alone - users still want to see the build-log summary.
+  if (prCommentOutput) setSpinnerSilent(true);
 
   try {
     validateModeFlags(flags);
@@ -117,18 +138,19 @@ export const inspectAction = async (directory: string, flags: InspectFlags): Pro
       setJsonReportMode("staged");
       const stagedFiles = getStagedSourceFiles(resolvedDirectory);
       if (stagedFiles.length === 0) {
-        if (isJsonMode) {
-          writeJsonReport(
-            buildJsonReport({
-              version: VERSION,
-              directory: resolvedDirectory,
-              mode: "staged",
-              diff: null,
-              scans: [],
-              totalElapsedMilliseconds: performance.now() - startTime,
-            }),
-          );
-        } else if (!isScoreOnly) {
+        if (isJsonMode || prCommentOutput) {
+          const emptyReport = buildJsonReport({
+            version: VERSION,
+            directory: resolvedDirectory,
+            mode: "staged",
+            diff: null,
+            scans: [],
+            totalElapsedMilliseconds: performance.now() - startTime,
+          });
+          if (isJsonMode) writeJsonReport(emptyReport);
+          writePrCommentMarkdownIfRequested(prCommentOutput, emptyReport, resolvedDirectory);
+        }
+        if (!isQuiet && !isScoreOnly) {
           logger.dim("No staged source files found.");
         }
         return;
@@ -181,7 +203,8 @@ export const inspectAction = async (directory: string, flags: InspectFlags): Pro
         const remappedDiagnostics = scanResult.diagnostics.map(remapDiagnostic);
         const remappedBaselineDiagnostics = scanResult.baselineDiagnostics?.map(remapDiagnostic);
 
-        if (isJsonMode) {
+        const needsStagedAggregatedReport = isJsonMode || prCommentOutput;
+        if (needsStagedAggregatedReport) {
           const remappedInspectResult: InspectResult = {
             ...scanResult,
             diagnostics: remappedDiagnostics,
@@ -190,16 +213,16 @@ export const inspectAction = async (directory: string, flags: InspectFlags): Pro
               ? { baselineDiagnostics: remappedBaselineDiagnostics }
               : {}),
           };
-          writeJsonReport(
-            buildJsonReport({
-              version: VERSION,
-              directory: resolvedDirectory,
-              mode: "staged",
-              diff: null,
-              scans: [{ directory: resolvedDirectory, result: remappedInspectResult }],
-              totalElapsedMilliseconds: performance.now() - startTime,
-            }),
-          );
+          const stagedReport = buildJsonReport({
+            version: VERSION,
+            directory: resolvedDirectory,
+            mode: "staged",
+            diff: null,
+            scans: [{ directory: resolvedDirectory, result: remappedInspectResult }],
+            totalElapsedMilliseconds: performance.now() - startTime,
+          });
+          if (isJsonMode) writeJsonReport(stagedReport);
+          writePrCommentMarkdownIfRequested(prCommentOutput, stagedReport, resolvedDirectory);
         }
 
         if (flags.updateBaseline) {
@@ -395,17 +418,18 @@ export const inspectAction = async (directory: string, flags: InspectFlags): Pro
       }
     }
 
-    if (isJsonMode) {
-      writeJsonReport(
-        buildJsonReport({
-          version: VERSION,
-          directory: resolvedDirectory,
-          mode: isDiffMode ? "diff" : "full",
-          diff: isDiffMode ? diffInfo : null,
-          scans: completedScans,
-          totalElapsedMilliseconds: performance.now() - startTime,
-        }),
-      );
+    let aggregatedReport: JsonReport | null = null;
+    if (isJsonMode || prCommentOutput) {
+      aggregatedReport = buildJsonReport({
+        version: VERSION,
+        directory: resolvedDirectory,
+        mode: isDiffMode ? "diff" : "full",
+        diff: isDiffMode ? diffInfo : null,
+        scans: completedScans,
+        totalElapsedMilliseconds: performance.now() - startTime,
+      });
+      if (isJsonMode) writeJsonReport(aggregatedReport);
+      writePrCommentMarkdownIfRequested(prCommentOutput, aggregatedReport, resolvedDirectory);
     }
 
     if (flags.annotations) {

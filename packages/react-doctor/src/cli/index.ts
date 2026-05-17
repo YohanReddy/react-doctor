@@ -53,6 +53,10 @@ const program = new Command()
   )
   .option("--concurrency <n>", "scan up to N workspace projects in parallel (default: 1)")
   .option(
+    "--pr-comment-output <path>",
+    "write a sticky-PR-comment-ready markdown document to this file as a side effect of the scan (compose with --pr-comment for the build-log plaintext)",
+  )
+  .option(
     "--explain <file:line>",
     "diagnose why a rule fired or why a suppression didn't apply at a specific location",
   )

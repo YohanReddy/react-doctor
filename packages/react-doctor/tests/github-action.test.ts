@@ -66,7 +66,9 @@ describe("GitHub Action contract", () => {
     );
 
     expect(scanStep).toContain('if [ -n "$INPUT_GITHUB_TOKEN" ]; then');
-    expect(scanStep).toContain('"${FLAGS[@]}" --pr-comment | tee "$RAW_FILE"');
+    expect(scanStep).toContain(
+      '"${FLAGS[@]}" \\ --pr-comment --pr-comment-output "$MARKDOWN_FILE" | tee "$RAW_FILE"',
+    );
     expect(scanStep).toContain('PIPELINE_EXIT_CODES=("${PIPESTATUS[@]}")');
     expect(scanStep).toContain('sed -E \'/^::(error|warning) /d\' "$RAW_FILE" > "$OUTPUT_FILE"');
     expect(scanStep).toContain('exit "${PIPELINE_EXIT_CODES[0]}"');

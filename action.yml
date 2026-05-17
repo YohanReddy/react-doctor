@@ -101,21 +101,27 @@ runs:
         esac
 
         OUTPUT_FILE="${RUNNER_TEMP:-/tmp}/react-doctor-output-${GITHUB_RUN_ID:-$$}.txt"
+        MARKDOWN_FILE="${RUNNER_TEMP:-/tmp}/react-doctor-comment-${GITHUB_RUN_ID:-$$}.md"
         echo "REACT_DOCTOR_OUTPUT_FILE=$OUTPUT_FILE" >> "$GITHUB_ENV"
+        echo "REACT_DOCTOR_MARKDOWN_FILE=$MARKDOWN_FILE" >> "$GITHUB_ENV"
 
         if [ -n "$INPUT_GITHUB_TOKEN" ]; then
-          # --pr-comment demotes weak-signal rule families (default:
-          # `design` tag) from the printed output and the fail-on gate
-          # so style cleanup doesn't dilute meaningful React findings
-          # in the sticky PR comment. Configure overrides via
-          # config.surfaces.{prComment,ciFailure} in react-doctor.config.json.
+          # Single scan, two outputs:
+          # - stdout: human-readable diagnostics for the build log
+          #   (piped through a sed that strips GitHub `::error`/`::warning`
+          #   workflow commands; the runner still parses those from the
+          #   live step log).
+          # - $MARKDOWN_FILE: structured sticky-comment markdown written
+          #   as a side effect via `--pr-comment-output`.
+          # `set +e`/PIPESTATUS preserves the scan's exit code through the
+          # `| tee` pipeline so a failing scan still fails the composite
+          # action - while letting the sticky-comment markdown land first.
           RAW_FILE="${RUNNER_TEMP:-/tmp}/react-doctor-raw-${GITHUB_RUN_ID:-$$}.txt"
           set +e
-          npx react-doctor@latest "$INPUT_DIRECTORY" "${FLAGS[@]}" --pr-comment | tee "$RAW_FILE"
+          npx react-doctor@latest "$INPUT_DIRECTORY" "${FLAGS[@]}" \
+            --pr-comment --pr-comment-output "$MARKDOWN_FILE" | tee "$RAW_FILE"
           PIPELINE_EXIT_CODES=("${PIPESTATUS[@]}")
           set -e
-          # Strip annotation workflow commands from the PR-comment body;
-          # the runner still parses them from the live step log.
           sed -E '/^::(error|warning) /d' "$RAW_FILE" > "$OUTPUT_FILE"
           if [ "${PIPELINE_EXIT_CODES[1]}" -ne 0 ]; then exit "${PIPELINE_EXIT_CODES[1]}"; fi
           exit "${PIPELINE_EXIT_CODES[0]}"
@@ -146,25 +152,41 @@ runs:
       uses: actions/github-script@v7
       env:
         REACT_DOCTOR_OUTPUT_FILE: ${{ env.REACT_DOCTOR_OUTPUT_FILE }}
+        REACT_DOCTOR_MARKDOWN_FILE: ${{ env.REACT_DOCTOR_MARKDOWN_FILE }}
         REACT_DOCTOR_SCORE: ${{ steps.score.outputs.score }}
       with:
         github-token: ${{ inputs.github-token }}
         script: |
           const fs = require("fs");
-          const path = process.env.REACT_DOCTOR_OUTPUT_FILE;
-          if (!path || !fs.existsSync(path)) return;
-          const output = fs.readFileSync(path, "utf8").trim();
-          if (!output) return;
-
-          const score = process.env.REACT_DOCTOR_SCORE;
-          const scoreLine =
-            score && /^[0-9]+$/.test(score)
-              ? `**Score:** \`${score}\` / 100\n\n`
-              : "";
-
           const marker = "<!-- react-doctor -->";
-          const fence = "````";
-          const body = `${marker}\n## React Doctor\n\n${scoreLine}${fence}\n${output}\n${fence}`;
+
+          // Prefer the CLI's first-class sticky-comment markdown when
+          // it produced a non-empty document - it ships per-rule
+          // <details>, per-package summaries, baseline framing, and
+          // suppression snippets straight out of the CLI. Fall back to
+          // the legacy plaintext-in-fence layout when the markdown
+          // capture wasn't generated (older react-doctor versions).
+          const markdownPath = process.env.REACT_DOCTOR_MARKDOWN_FILE;
+          let body = null;
+          if (markdownPath && fs.existsSync(markdownPath)) {
+            const markdown = fs.readFileSync(markdownPath, "utf8").trim();
+            if (markdown.startsWith(marker)) body = markdown;
+          }
+          if (!body) {
+            const outputPath = process.env.REACT_DOCTOR_OUTPUT_FILE;
+            if (!outputPath || !fs.existsSync(outputPath)) return;
+            const output = fs.readFileSync(outputPath, "utf8").trim();
+            if (!output) return;
+
+            const score = process.env.REACT_DOCTOR_SCORE;
+            const scoreLine =
+              score && /^[0-9]+$/.test(score)
+                ? `**Score:** \`${score}\` / 100\n\n`
+                : "";
+
+            const fence = "````";
+            body = `${marker}\n## React Doctor\n\n${scoreLine}${fence}\n${output}\n${fence}`;
+          }
 
           const { data: comments } = await github.rest.issues.listComments({
             ...context.repo,

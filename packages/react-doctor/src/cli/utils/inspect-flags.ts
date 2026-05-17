@@ -32,4 +32,15 @@ export interface InspectFlags {
   touchedLines?: boolean;
   /** Maximum number of workspace projects to scan in parallel. */
   concurrency?: string;
+  /**
+   * When set, write the sticky-PR-comment-ready markdown document
+   * (with the `<!-- react-doctor -->` marker, per-rule `<details>`
+   * groups, suppression snippets, per-package summary, and baseline
+   * framing) to this file as a side effect of the normal scan.
+   *
+   * The CLI's main stdout output is unaffected, so the same invocation
+   * can `| tee` the human-readable plaintext into a build log while
+   * the action posts the markdown file as a sticky comment.
+   */
+  prCommentOutput?: string;
 }

@@ -27,7 +27,7 @@ const toJsonDiff = (diff: DiffInfo | null): JsonReportDiffInfo | null => {
   };
 };
 
-const findWorstScoredProject = (
+export const findWorstScoredProject = (
   projects: JsonReportProjectEntry[],
 ): JsonReportProjectEntry | null => {
   let worst: JsonReportProjectEntry | null = null;
