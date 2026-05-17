@@ -32,7 +32,7 @@ const SURFACE_CONTROL_FIELD_NAMES = [
   "excludeRules",
 ] as const satisfies ReadonlyArray<keyof SurfaceControls>;
 
-const SEVERITY_FIELD_NAMES = ["rules", "categories", "tags"] as const satisfies ReadonlyArray<
+const SEVERITY_FIELD_NAMES = ["rules", "categories"] as const satisfies ReadonlyArray<
   keyof ReactDoctorConfig
 >;
 

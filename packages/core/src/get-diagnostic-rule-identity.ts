@@ -8,17 +8,18 @@ export interface DiagnosticRuleIdentity {
 }
 
 /**
- * Projects a diagnostic onto the three axes every rule-targeted control
- * (`surfaces`, `severity`, `ignore.tags`) reasons about:
+ * Projects a diagnostic onto the three axes rule-targeted controls
+ * reason about:
  *
  * - `ruleKey` — the fully-qualified `"<plugin>/<rule>"` form users
- *   put in config files.
- * - `category` — the diagnostic's category label (`"Server"`,
- *   `"React Native"`, `"Architecture"`, …).
- * - `tags` — behavioral tags from the rule registry (e.g. `"design"`,
- *   `"test-noise"`, `"react-native"`, `"server-action"`,
- *   `"migration-hint"`). Empty for diagnostics emitted by plugins
- *   other than `react-doctor` because we don't own their metadata.
+ *   put in config files (consumed by top-level `rules` severity and
+ *   `surfaces.*.{include,exclude}Rules`).
+ * - `category` — the diagnostic's category label (consumed by
+ *   top-level `categories` severity and
+ *   `surfaces.*.{include,exclude}Categories`).
+ * - `tags` — behavioral tags from the rule registry (consumed by
+ *   `ignore.tags` and `surfaces.*.{include,exclude}Tags`). Empty
+ *   for non-`react-doctor` plugins.
  */
 export const getDiagnosticRuleIdentity = (diagnostic: Diagnostic): DiagnosticRuleIdentity => ({
   ruleKey: `${diagnostic.plugin}/${diagnostic.rule}`,

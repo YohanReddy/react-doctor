@@ -78,7 +78,7 @@ export const createOxlintConfig = ({
     // straight into the oxlint config as the registered severity.
     const severity =
       resolveRuleSeverityOverride(
-        { ruleKey: fullKey, category: rule.category, tags: rule.tags },
+        { ruleKey: fullKey, category: rule.category },
         severityControls,
       ) ?? rule.severity;
     if (severity === "off") continue;

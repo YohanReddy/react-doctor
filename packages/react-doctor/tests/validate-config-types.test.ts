@@ -116,12 +116,11 @@ describe("validateConfigTypes", () => {
     });
   });
 
-  describe("severity (top-level rules / categories / tags)", () => {
+  describe("severity (top-level rules / categories)", () => {
     it("passes through the ESLint-shaped top-level severity fields untouched", () => {
       const input: ReactDoctorConfig = {
         rules: { "react-doctor/no-array-index-as-key": "error" },
         categories: { "React Native": "warn" },
-        tags: { design: "off", "migration-hint": "warn" },
       };
       expect(validateConfigTypes(input)).toEqual(input);
       expect(stderrSpy).not.toHaveBeenCalled();
@@ -129,10 +128,10 @@ describe("validateConfigTypes", () => {
 
     it("drops invalid severity values with a stderr warning, keeping valid siblings", () => {
       const result = validateConfigTypes({
-        tags: { design: "loud", "test-noise": "warn" } as unknown as Record<string, "warn">,
+        categories: { "React Native": "loud", Server: "warn" } as unknown as Record<string, "warn">,
       });
-      expect(result.tags).toEqual({ "test-noise": "warn" });
-      expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("tags.design"));
+      expect(result.categories).toEqual({ Server: "warn" });
+      expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining(`categories.React Native`));
     });
 
     it("drops the entire rules field when it isn't an object", () => {
@@ -143,13 +142,13 @@ describe("validateConfigTypes", () => {
       expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining(`config field "rules"`));
     });
 
-    it("drops arrays passed where a severity map is expected", () => {
+    it("drops arrays passed where a severity map is expected, keeping valid siblings", () => {
       const result = validateConfigTypes({
         categories: ["off"] as unknown as ReactDoctorConfig["categories"],
-        tags: { design: "off" },
+        rules: { "react-doctor/no-array-index-as-key": "error" },
       });
       expect(result.categories).toBeUndefined();
-      expect(result.tags).toEqual({ design: "off" });
+      expect(result.rules).toEqual({ "react-doctor/no-array-index-as-key": "error" });
       expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining(`config field "categories"`));
     });
   });

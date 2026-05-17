@@ -91,21 +91,21 @@ Status: landed.
 Done:
 
 - Added the ESLint / oxlint-shaped severity surface: top-level
-  `rules`, `categories`, and `tags` fields on `ReactDoctorConfig`,
-  each a `Record<string, "error" | "warn" | "off">`. `rules` is the
-  exact ESLint `.eslintrc` / flat-config shape; `categories` mirrors
-  oxlint's `categories` field (keyed by display category); `tags` is
-  the React Doctor extension for behavioral families. Applied at
-  lint registration time so `"off"` short-circuits before the rule
-  runs, and re-stamped post-lint so `--fail-on`, the score, the CLI
+  `rules` and `categories` fields on `ReactDoctorConfig`, each a
+  `Record<string, "error" | "warn" | "off">`. `rules` is the exact
+  ESLint `.eslintrc` / flat-config shape; `categories` mirrors
+  oxlint's `categories` field, keyed by React Doctor's display
+  categories. Per-rule wins over per-category. Applied at lint
+  registration time so `"off"` short-circuits before the rule runs,
+  and re-stamped post-lint so `--fail-on`, the score, the CLI
   summary, and external-plugin rules all see the user-chosen
-  severity. Precedence: `rules` > `categories` > `tags`; when
-  multiple tags match, the most permissive wins
-  (`"off"` > `"warn"` > `"error"`).
-- Composes with the existing `surfaces` controls: use `surfaces` to
-  hide a rule from one channel (e.g. PR comment) while keeping it on
-  others; use `rules` / `categories` / `tags` to change severity
-  (or fully silence) across every channel at once.
+  severity.
+- Composes with the existing `surfaces` controls (per-channel
+  visibility) and `ignore.tags` (whole-family suppression for
+  behavioral groupings like `"design"` / `"test-noise"` /
+  `"migration-hint"` that don't align with a single category). Use
+  `rules` / `categories` to change severity across every channel
+  at once.
 - Bucket-derived auto-tags so cross-cutting controls can target whole
   families without each rule repeating the tag — `"react-native"` on
   every rule in the `react-native/` bucket, `"server-action"` on every

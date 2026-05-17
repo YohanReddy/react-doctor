@@ -205,19 +205,18 @@ Diagnostics flow through four independent surfaces — `cli`, `prComment`, `scor
 
 Each surface accepts `includeTags`, `excludeTags`, `includeCategories`, `excludeCategories`, `includeRules`, and `excludeRules`. Include wins over exclude when both match. Run the CLI with `--pr-comment` (the GitHub Action passes it automatically when `github-token` is set) to apply the `prComment` surface to the printed output destined for sticky PR comments.
 
-#### Rule severity (`rules`, `categories`, `tags`)
+#### Rule severity (`rules`, `categories`)
 
-Same shape as ESLint / oxlint. `rules` is ESLint's exact field; `categories` mirrors oxlint's; `tags` is the React Doctor extension for behavioral families (`design`, `test-noise`, `react-native`, `server-action`, `migration-hint`).
+Same shape as ESLint / oxlint. `rules` is ESLint's exact field; `categories` mirrors oxlint's, keyed by React Doctor display categories (`"React Native"`, `"Server"`, `"Architecture"`, …).
 
 ```json
 {
   "rules": { "react-doctor/no-array-index-as-key": "error" },
-  "categories": { "React Native": "warn" },
-  "tags": { "design": "off", "migration-hint": "warn" }
+  "categories": { "React Native": "warn" }
 }
 ```
 
-Precedence is `rules` > `categories` > `tags`; within `tags`, the most permissive value wins (`"off"` > `"warn"` > `"error"`). `"off"` short-circuits before the rule runs; `"warn"` / `"error"` re-stamps the diagnostic so every channel — CLI, PR comment, score, `--fail-on` — sees the chosen severity, including for external-plugin rules. Use `surfaces` instead when you only want to hide a rule from one channel.
+Per-rule wins over per-category. `"off"` short-circuits before the rule runs; `"warn"` / `"error"` re-stamps the diagnostic so every channel — CLI, PR comment, score, `--fail-on` — sees the chosen severity, including for external-plugin rules. Use `surfaces` instead when you only want to hide a rule from one channel; use `ignore.tags` to silence a whole tag-defined family (`"design"`, `"test-noise"`, `"migration-hint"`) that doesn't align with a single category.
 
 #### Optional companion plugins
 

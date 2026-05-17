@@ -35,42 +35,27 @@ interface ReactDoctorIgnoreConfig {
 export type DiagnosticSurface = "cli" | "prComment" | "score" | "ciFailure";
 
 /**
- * Severity value accepted by the top-level `rules`, `categories`,
- * and `tags` config fields. Exactly the same form ESLint and oxlint
- * accept: `"off"` skips registration entirely (the rule never runs
- * and never enters any surface); `"error"` / `"warn"` change the
- * rule's registered severity.
+ * Severity value accepted by the top-level `rules` and `categories`
+ * config fields. Exactly the same form ESLint and oxlint accept:
+ * `"off"` skips registration entirely (the rule never runs and
+ * never enters any surface); `"error"` / `"warn"` change the rule's
+ * registered severity.
  *
- * Use `"off"` to silence a whole rule family at the source. For
- * visibility-only adjustments (silence on PR comments but keep on
- * CLI / score), prefer `surfaces` instead — severity applies before
- * lint runs and is the most aggressive control.
+ * For visibility-only adjustments (silence on PR comments but keep
+ * on CLI / score), prefer `surfaces` instead — severity applies
+ * before lint runs and is the most aggressive control.
  */
 export type RuleSeverityOverride = "error" | "warn" | "off";
 
 /**
  * Internal shape consumed by `resolveRuleSeverityOverride` and
  * `applySeverityControls`. Assembled at runtime from the top-level
- * `rules`, `categories`, and `tags` fields on `ReactDoctorConfig`.
- *
- * - `rules` — by fully-qualified rule key (`"<plugin>/<rule>"`,
- *   e.g. `"react-doctor/no-array-index-as-key"`). Most specific.
- * - `categories` — by category label (e.g. `"Server"`,
- *   `"React Native"`, `"Architecture"`). Affects every rule in
- *   that category.
- * - `tags` — by behavioral tag (e.g. `"design"`, `"test-noise"`,
- *   `"react-native"`, `"server-action"`, `"migration-hint"`).
- *   Affects every rule that carries the tag.
- *
- * Precedence (most specific wins): `rules` > `categories` > `tags`.
- * Within the tag channel, when multiple tags match the same rule,
- * the *most permissive* value wins (`"off"` over `"warn"` over
- * `"error"`) so silencing via any matching tag is always honored.
+ * `rules` and `categories` fields on `ReactDoctorConfig`. Per-rule
+ * wins over per-category when both match the same diagnostic.
  */
 export interface RuleSeverityControls {
   rules?: Record<string, RuleSeverityOverride>;
   categories?: Record<string, RuleSeverityOverride>;
-  tags?: Record<string, RuleSeverityOverride>;
 }
 
 export interface SurfaceControls {
@@ -249,23 +234,10 @@ export interface ReactDoctorConfig {
    * ```json
    * { "categories": { "React Native": "warn", "Server": "off" } }
    * ```
+   *
+   * To silence a whole tag-defined rule family (e.g. `"design"`,
+   * `"test-noise"`, `"migration-hint"`) that doesn't align with a
+   * single category, use `ignore.tags` instead.
    */
   categories?: Record<string, RuleSeverityOverride>;
-  /**
-   * Per-tag severity map. React Doctor extension on top of the
-   * ESLint / oxlint surface — keys are behavioral tags
-   * (`"design"`, `"test-noise"`, `"react-native"`, `"server-action"`,
-   * `"migration-hint"`). When multiple tags match a rule, the most
-   * permissive value wins (`"off"` > `"warn"` > `"error"`).
-   *
-   * ```json
-   * { "tags": { "design": "off", "migration-hint": "warn" } }
-   * ```
-   *
-   * Distinct from `ignore.tags` (which lists tags to drop entirely
-   * from the scan and accepts a `string[]`): `tags` here is a
-   * severity map and additionally allows demoting (`"warn"`) or
-   * promoting (`"error"`).
-   */
-  tags?: Record<string, RuleSeverityOverride>;
 }

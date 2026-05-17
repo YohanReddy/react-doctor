@@ -45,16 +45,18 @@ describe("applySeverityControls", () => {
     expect(applySeverityControls(diagnostics, {})).toBe(diagnostics);
   });
 
-  it('drops diagnostics whose rule tag is set to "off" via top-level `tags`', () => {
-    const config: ReactDoctorConfig = { tags: { design: "off" } };
-    const filtered = applySeverityControls([designDiagnostic, rnDiagnostic], config);
-    expect(filtered).toEqual([rnDiagnostic]);
-  });
-
   it('drops diagnostics whose category is set to "off" via top-level `categories`', () => {
     const config: ReactDoctorConfig = { categories: { "React Native": "off" } };
     const filtered = applySeverityControls([designDiagnostic, rnDiagnostic], config);
     expect(filtered).toEqual([designDiagnostic]);
+  });
+
+  it('drops diagnostics whose rule is set to "off" via top-level `rules`', () => {
+    const config: ReactDoctorConfig = {
+      rules: { "react-doctor/design-no-redundant-size-axes": "off" },
+    };
+    const filtered = applySeverityControls([designDiagnostic, rnDiagnostic], config);
+    expect(filtered).toEqual([rnDiagnostic]);
   });
 
   it("re-stamps severity for matching rules via top-level `rules` (ESLint shape)", () => {
@@ -65,7 +67,7 @@ describe("applySeverityControls", () => {
     expect(filtered).toEqual([{ ...rnDiagnostic, severity: "warning" }]);
   });
 
-  it("works on external-plugin diagnostics via rule key (no rule tags available)", () => {
+  it("works on external-plugin diagnostics via rule key", () => {
     const config: ReactDoctorConfig = {
       rules: { "react/no-danger": "off" },
     };
@@ -78,5 +80,15 @@ describe("applySeverityControls", () => {
     };
     const filtered = applySeverityControls([externalPluginDiagnostic], config);
     expect(filtered).toEqual([{ ...externalPluginDiagnostic, severity: "error" }]);
+  });
+
+  it("per-rule wins over per-category", () => {
+    const config: ReactDoctorConfig = {
+      rules: { "react-doctor/rn-no-raw-text": "warn" },
+      categories: { "React Native": "off" },
+    };
+    expect(applySeverityControls([rnDiagnostic], config)).toEqual([
+      { ...rnDiagnostic, severity: "warning" },
+    ]);
   });
 });

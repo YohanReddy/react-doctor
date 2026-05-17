@@ -44,7 +44,8 @@ export const applySeverityControls = (
 
   const adjusted: Diagnostic[] = [];
   for (const diagnostic of diagnostics) {
-    const override = resolveRuleSeverityOverride(getDiagnosticRuleIdentity(diagnostic), controls);
+    const { ruleKey, category } = getDiagnosticRuleIdentity(diagnostic);
+    const override = resolveRuleSeverityOverride({ ruleKey, category }, controls);
     if (override === "off") continue;
     adjusted.push(override === undefined ? diagnostic : restampSeverity(diagnostic, override));
   }
