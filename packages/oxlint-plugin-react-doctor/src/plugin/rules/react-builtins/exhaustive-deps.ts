@@ -109,10 +109,7 @@ const HOOKS_REQUIRING_DEPS_MATCH: ReadonlySet<string> = new Set([
 // useInsertionEffect tolerate omitting deps (intentional
 // run-on-every-render); useMemo / useCallback / useImperativeHandle
 // do not.
-const HOOKS_REQUIRING_DEPS_ARRAY: ReadonlySet<string> = new Set([
-  "useMemo",
-  "useCallback",
-]);
+const HOOKS_REQUIRING_DEPS_ARRAY: ReadonlySet<string> = new Set(["useMemo", "useCallback"]);
 
 const EFFECT_HOOKS_ALLOWING_EXTRA_REACTIVE_DEPS: ReadonlySet<string> = new Set([
   "useEffect",
@@ -178,7 +175,11 @@ const inferFunctionName = (functionNode: EsTreeNode): string | null => {
     if (calleeName && REACT_HOC_NAMES.has(calleeName)) parent = parent.parent ?? null;
     else break;
   }
-  if (parent && isNodeOfType(parent, "VariableDeclarator") && isNodeOfType(parent.id, "Identifier")) {
+  if (
+    parent &&
+    isNodeOfType(parent, "VariableDeclarator") &&
+    isNodeOfType(parent.id, "Identifier")
+  ) {
     return parent.id.name;
   }
   return null;
@@ -335,7 +336,8 @@ const symbolHasStableValue = (
   scopes: ScopeAnalysis,
   visitedSymbolIds: Set<number> = new Set(),
 ): boolean =>
-  symbolHasStableHookOrigin(symbol) || symbolHasStableFunctionOrigin(symbol, scopes, visitedSymbolIds);
+  symbolHasStableHookOrigin(symbol) ||
+  symbolHasStableFunctionOrigin(symbol, scopes, visitedSymbolIds);
 
 const getDestructuredPropertyPath = (pattern: EsTreeNode): string | null => {
   if (!isNodeOfType(pattern, "ObjectPattern")) return null;
@@ -343,12 +345,11 @@ const getDestructuredPropertyPath = (pattern: EsTreeNode): string | null => {
   if (!firstProperty || !isNodeOfType(firstProperty, "Property")) return null;
   const key = firstProperty.key as EsTreeNode;
   const value = firstProperty.value as EsTreeNode;
-  const keyName =
-    isNodeOfType(key, "Identifier")
-      ? key.name
-      : isNodeOfType(key, "Literal") && typeof key.value === "string"
-        ? key.value
-        : null;
+  const keyName = isNodeOfType(key, "Identifier")
+    ? key.name
+    : isNodeOfType(key, "Literal") && typeof key.value === "string"
+      ? key.value
+      : null;
   if (!keyName) return null;
   const nestedPath = getDestructuredPropertyPath(value);
   return nestedPath ? `${keyName}.${nestedPath}` : keyName;
@@ -384,7 +385,11 @@ const computeDepKey = (reference: ReferenceDescriptor): string => {
     !isNodeOfType(parent, "MemberExpression") ||
     parent.object !== referencedIdentifier
   ) {
-    if (parent && isNodeOfType(parent, "VariableDeclarator") && parent.init === referencedIdentifier) {
+    if (
+      parent &&
+      isNodeOfType(parent, "VariableDeclarator") &&
+      parent.init === referencedIdentifier
+    ) {
       const destructuredPath = getDestructuredPropertyPath(parent.id);
       const rootName = flattenReferenceRootName(reference);
       if (destructuredPath && rootName) return `${rootName}.${destructuredPath}`;
@@ -415,7 +420,11 @@ const computeDepKey = (reference: ReferenceDescriptor): string => {
   const fullName = stringifyMemberChain(outermost);
   if (fullName === null) return flattenReferenceRootName(reference);
   const declarator = outermost.parent;
-  if (declarator && isNodeOfType(declarator, "VariableDeclarator") && declarator.init === outermost) {
+  if (
+    declarator &&
+    isNodeOfType(declarator, "VariableDeclarator") &&
+    declarator.init === outermost
+  ) {
     const destructuredPath = getDestructuredPropertyPath(declarator.id);
     if (destructuredPath) return `${fullName}.${destructuredPath}`;
   }
@@ -653,7 +662,8 @@ const hasDirectIdentifierDeclarator = (symbol: SymbolDescriptor): boolean =>
     isNodeOfType(symbol.declarationNode.id, "Identifier")) ||
   isNodeOfType(symbol.declarationNode, "ClassDeclaration");
 
-const isFunctionValueSymbol = (symbol: SymbolDescriptor): boolean => getFunctionValueNode(symbol) !== null;
+const isFunctionValueSymbol = (symbol: SymbolDescriptor): boolean =>
+  getFunctionValueNode(symbol) !== null;
 
 const isStableSetterLikeSymbol = (symbol: SymbolDescriptor): boolean => {
   if (!symbolHasStableHookOrigin(symbol)) return false;
@@ -745,14 +755,18 @@ const findRefCurrentInCleanup = (callback: EsTreeNode, scopes: ScopeAnalysis): s
   let cleanupFunction: EsTreeNode | null = null;
   const findReturn = (node: EsTreeNode): void => {
     if (cleanupFunction) return;
-    if (node !== callback && (isNodeOfType(node, "FunctionExpression") || isNodeOfType(node, "ArrowFunctionExpression"))) {
+    if (
+      node !== callback &&
+      (isNodeOfType(node, "FunctionExpression") || isNodeOfType(node, "ArrowFunctionExpression"))
+    ) {
       return;
     }
     if (isNodeOfType(node, "ReturnStatement")) {
       const argument = node.argument as EsTreeNode | null;
       if (
         argument &&
-        (isNodeOfType(argument, "FunctionExpression") || isNodeOfType(argument, "ArrowFunctionExpression"))
+        (isNodeOfType(argument, "FunctionExpression") ||
+          isNodeOfType(argument, "ArrowFunctionExpression"))
       ) {
         cleanupFunction = argument;
         return;
@@ -806,7 +820,10 @@ const hasRefCurrentAssignment = (callback: EsTreeNode, refCurrentName: string): 
   let didAssignRefCurrent = false;
   const visit = (node: EsTreeNode): void => {
     if (didAssignRefCurrent) return;
-    if (node !== callback && (isNodeOfType(node, "FunctionExpression") || isNodeOfType(node, "ArrowFunctionExpression"))) {
+    if (
+      node !== callback &&
+      (isNodeOfType(node, "FunctionExpression") || isNodeOfType(node, "ArrowFunctionExpression"))
+    ) {
       return;
     }
     if (isNodeOfType(node, "AssignmentExpression")) {
@@ -896,7 +913,11 @@ export const exhaustiveDeps = defineRule<Rule>({
     const additionalHooksRegex = buildAdditionalHooksRegex(settings.additionalHooks);
     const isHookOfInterest = (hookName: string, callee: EsTreeNode): boolean => {
       if (HOOKS_REQUIRING_DEPS_MATCH.has(hookName)) return true;
-      if (additionalHooksRegex && isNodeOfType(callee, "Identifier") && additionalHooksRegex.test(hookName)) {
+      if (
+        additionalHooksRegex &&
+        isNodeOfType(callee, "Identifier") &&
+        additionalHooksRegex.test(hookName)
+      ) {
         return true;
       }
       return false;
@@ -936,7 +957,9 @@ export const exhaustiveDeps = defineRule<Rule>({
           ) {
             forcedCaptureKeys.add(callbackExpression.name);
           } else if (depsArgumentRaw) {
-            if (depsArrayContainsIdentifier(depsArgumentRaw as EsTreeNode, callbackExpression.name)) {
+            if (
+              depsArrayContainsIdentifier(depsArgumentRaw as EsTreeNode, callbackExpression.name)
+            ) {
               return;
             }
             context.report({
@@ -995,10 +1018,7 @@ export const exhaustiveDeps = defineRule<Rule>({
         }
 
         if (!depsArgumentRaw) {
-          if (
-            callbackToAnalyze &&
-            EFFECT_HOOKS_ALLOWING_EXTRA_REACTIVE_DEPS.has(hookName)
-          ) {
+          if (callbackToAnalyze && EFFECT_HOOKS_ALLOWING_EXTRA_REACTIVE_DEPS.has(hookName)) {
             const setterName = findStableSetterReference(callbackToAnalyze, context.scopes);
             if (setterName) {
               context.report({
@@ -1037,7 +1057,8 @@ export const exhaustiveDeps = defineRule<Rule>({
             callbackToAnalyze !== null
               ? new Set(collectCaptureDepKeys(callbackToAnalyze, context.scopes).keys)
               : new Set<string>();
-          for (const forcedCaptureKey of forcedCaptureKeys) nonArrayCaptureKeys.add(forcedCaptureKey);
+          for (const forcedCaptureKey of forcedCaptureKeys)
+            nonArrayCaptureKeys.add(forcedCaptureKey);
           if (nonArrayCaptureKeys.size > 0) {
             context.report({ node: depsArgument, message: buildNonArrayDepsMessage(hookName) });
             context.report({
@@ -1054,7 +1075,8 @@ export const exhaustiveDeps = defineRule<Rule>({
             callbackToAnalyze !== null
               ? new Set(collectCaptureDepKeys(callbackToAnalyze, context.scopes).keys)
               : new Set<string>();
-          for (const forcedCaptureKey of forcedCaptureKeys) nonArrayCaptureKeys.add(forcedCaptureKey);
+          for (const forcedCaptureKey of forcedCaptureKeys)
+            nonArrayCaptureKeys.add(forcedCaptureKey);
           if (nonArrayCaptureKeys.size > 0) {
             context.report({
               node: depsArgument,
@@ -1160,7 +1182,11 @@ export const exhaustiveDeps = defineRule<Rule>({
           declaredKeys.add(key);
           declaredKeyToReportNode.set(key, elementNode);
         }
-        addAggregatePropsDependency(captureKeys, declaredKeys, callbackToAnalyze ?? callbackArgument);
+        addAggregatePropsDependency(
+          captureKeys,
+          declaredKeys,
+          callbackToAnalyze ?? callbackArgument,
+        );
 
         const missingCaptureKeys: string[] = [];
         for (const captureKey of captureKeys) {
@@ -1301,7 +1327,11 @@ export const exhaustiveDeps = defineRule<Rule>({
           }
           if (
             missingCaptureKeys.length > 0 &&
-            isOuterFunctionScopeDep(reportNode, callbackToAnalyze ?? callbackArgument, context.scopes)
+            isOuterFunctionScopeDep(
+              reportNode,
+              callbackToAnalyze ?? callbackArgument,
+              context.scopes,
+            )
           ) {
             continue;
           }

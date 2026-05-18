@@ -31,8 +31,7 @@ const applyRuleSeverityControls = (
 ): Record<string, OxlintRuleSeverity> => {
   const enabledRules: Record<string, OxlintRuleSeverity> = {};
   for (const [ruleKey, defaultSeverity] of Object.entries(rules)) {
-    const severity =
-      resolveRuleSeverityOverride({ ruleKey }, severityControls) ?? defaultSeverity;
+    const severity = resolveRuleSeverityOverride({ ruleKey }, severityControls) ?? defaultSeverity;
     if (severity === "off") continue;
     enabledRules[ruleKey] = severity;
   }

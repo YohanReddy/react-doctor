@@ -1,5 +1,5 @@
 import type { RuleSeverityControls, RuleSeverityOverride } from "@react-doctor/types";
-import { getEquivalentRuleKeys, isSameRuleKey } from "./rule-key-aliases.js";
+import { getEquivalentRuleKeys } from "./rule-key-aliases.js";
 
 interface RuleOverrideLookupInput {
   ruleKey: string;
@@ -23,11 +23,6 @@ export const resolveRuleSeverityOverride = (
     if (equivalentRuleKey === input.ruleKey) continue;
     const equivalentRuleOverride = controls.rules?.[equivalentRuleKey];
     if (equivalentRuleOverride !== undefined) return equivalentRuleOverride;
-  }
-  for (const [configuredRuleKey, configuredRuleOverride] of Object.entries(controls.rules ?? {})) {
-    if (isSameRuleKey(configuredRuleKey, input.ruleKey)) {
-      return configuredRuleOverride;
-    }
   }
   return input.category !== undefined ? controls.categories?.[input.category] : undefined;
 };

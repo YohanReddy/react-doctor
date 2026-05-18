@@ -22,15 +22,12 @@ export const DIVERGENCES: Record<string, OxcDivergence> = {
   // The pass[23] fixture passes no options at all and so OXC silently
   // disables warnOnDuplicates — we keep our defaults aligned with
   // production OXC where these flags are enabled.
-
   // OXC's jsx-pascal-case uses `fast_glob` for the `ignore` setting,
   // which supports brace-alternation patterns like
   // `*_*[DEPRECATED,IGNORED]`. Our matcher implements only `*` (any
   // sequence) — a `fast_glob` parity would mean importing a full glob
   // library for one fixture's worth of value.
-
   // only-export-components: covers basic named/default export
   // shapes; OXC's port handles 'export type', 'export interface',
   // and HoC-aware component detection that we don't.
-
 };

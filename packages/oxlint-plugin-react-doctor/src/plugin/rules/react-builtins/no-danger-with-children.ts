@@ -54,7 +54,10 @@ const resolvePropsShape = (
   const shape: PropsShape = { hasDangerously: false, hasChildren: false };
   for (const property of expression.properties) {
     if (isNodeOfType(property, "SpreadElement")) {
-      mergePropsShape(shape, resolvePropsShape(property.argument as EsTreeNode, scopes, visitedSymbolIds));
+      mergePropsShape(
+        shape,
+        resolvePropsShape(property.argument as EsTreeNode, scopes, visitedSymbolIds),
+      );
       continue;
     }
     if (!isNodeOfType(property, "Property") || property.computed) continue;

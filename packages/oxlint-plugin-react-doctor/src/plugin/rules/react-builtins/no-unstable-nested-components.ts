@@ -167,12 +167,11 @@ const isComponentDeclaredInProp = (candidateNode: EsTreeNode): { propName: strin
   let walker: EsTreeNode | null | undefined = candidateNode.parent;
   while (walker) {
     if (isNodeOfType(walker, "Property")) {
-      const propName =
-        isNodeOfType(walker.key, "Identifier")
-          ? walker.key.name
-          : isNodeOfType(walker.key, "Literal") && typeof walker.key.value === "string"
-            ? walker.key.value
-            : null;
+      const propName = isNodeOfType(walker.key, "Identifier")
+        ? walker.key.name
+        : isNodeOfType(walker.key, "Literal") && typeof walker.key.value === "string"
+          ? walker.key.value
+          : null;
       let propertyWalker: EsTreeNode | null | undefined = walker.parent;
       while (propertyWalker) {
         if (isNodeOfType(propertyWalker, "JSXExpressionContainer")) {
@@ -229,12 +228,11 @@ const isHocCallee = (call: EsTreeNodeOfType<"CallExpression">): boolean => {
 const isObjectCallbackCandidate = (node: EsTreeNode): boolean => {
   const parent = node.parent;
   if (!parent || !isNodeOfType(parent, "Property")) return false;
-  const keyName =
-    isNodeOfType(parent.key, "Identifier")
-      ? parent.key.name
-      : isNodeOfType(parent.key, "Literal") && typeof parent.key.value === "string"
-        ? parent.key.value
-        : null;
+  const keyName = isNodeOfType(parent.key, "Identifier")
+    ? parent.key.name
+    : isNodeOfType(parent.key, "Literal") && typeof parent.key.value === "string"
+      ? parent.key.value
+      : null;
   if (keyName && keyName.startsWith("render")) return false;
   let walker = parent.parent;
   while (walker) {

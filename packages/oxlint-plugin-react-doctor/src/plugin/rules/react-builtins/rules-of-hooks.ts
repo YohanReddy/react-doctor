@@ -617,9 +617,9 @@ const isUseEffectEventInitializer = (node: EsTreeNodeOfType<"CallExpression">): 
   const parent = node.parent;
   return Boolean(
     parent &&
-      isNodeOfType(parent, "VariableDeclarator") &&
-      parent.init === node &&
-      isNodeOfType(parent.id, "Identifier"),
+    isNodeOfType(parent, "VariableDeclarator") &&
+    parent.init === node &&
+    isNodeOfType(parent.id, "Identifier"),
   );
 };
 

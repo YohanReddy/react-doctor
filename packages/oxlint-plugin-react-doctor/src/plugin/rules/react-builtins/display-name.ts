@@ -72,7 +72,11 @@ const containsJsx = (root: EsTreeNode): boolean => {
 const getStaticMemberName = (node: EsTreeNode): string | null => {
   if (!isNodeOfType(node, "MemberExpression")) return null;
   if (!node.computed && isNodeOfType(node.property, "Identifier")) return node.property.name;
-  if (node.computed && isNodeOfType(node.property, "Literal") && typeof node.property.value === "string") {
+  if (
+    node.computed &&
+    isNodeOfType(node.property, "Literal") &&
+    typeof node.property.value === "string"
+  ) {
     return node.property.value;
   }
   return null;
@@ -127,7 +131,9 @@ const isCreateContextCall = (node: EsTreeNode): boolean => {
   if (!isNodeOfType(node, "CallExpression")) return false;
   const callee = node.callee;
   if (isNodeOfType(callee, "Identifier")) return callee.name === "createContext";
-  return isNodeOfType(callee, "MemberExpression") && getStaticMemberName(callee) === "createContext";
+  return (
+    isNodeOfType(callee, "MemberExpression") && getStaticMemberName(callee) === "createContext"
+  );
 };
 
 const isObserverCall = (node: EsTreeNode): boolean => {
@@ -167,7 +173,10 @@ const supportsComposedForwardRefDisplayName = (version: string): boolean => {
   return Boolean(match && Number(match[1]) >= 11);
 };
 
-const shouldReportHoCDisplayName = (node: EsTreeNode, settings: Required<DisplayNameSettings>): boolean => {
+const shouldReportHoCDisplayName = (
+  node: EsTreeNode,
+  settings: Required<DisplayNameSettings>,
+): boolean => {
   if (!isDisplayNameHoC(node)) return false;
   if (!containsJsx(node)) return false;
 
@@ -355,12 +364,11 @@ export const displayName = defineRule<Rule>({
         if (node.id && isReactComponentName(node.id.name) && ignoreNamed) return;
         if (isNodeOfType(node.parent, "Property") && node.parent.method) {
           const key = node.parent.key as EsTreeNode;
-          const propertyName =
-            isNodeOfType(key, "Identifier")
-              ? key.name
-              : isNodeOfType(key, "Literal") && typeof key.value === "string"
-                ? key.value
-                : null;
+          const propertyName = isNodeOfType(key, "Identifier")
+            ? key.name
+            : isNodeOfType(key, "Literal") && typeof key.value === "string"
+              ? key.value
+              : null;
           const programRoot = findProgramRoot(node);
           if (
             propertyName &&
