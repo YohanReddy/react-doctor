@@ -168,17 +168,10 @@ export const diagnose = async (
       })
     : Promise.resolve(EMPTY_DIAGNOSTICS);
 
-  // Dead-code reachability is meaningful only across the whole project,
-  // so we skip it in diff mode just like `checkReducedMotion`.
+  // Skip dead-code in diff mode (reachability is whole-project).
+  // Silently swallow failures so a deslop crash never breaks the
+  // programmatic API consumer's lint result.
   const shouldRunDeadCode = effectiveDeadCode && !isDiffMode;
-  // HACK: silent fallback. Dead-code analysis is additive — when
-  // deslop crashes (missing deps, malformed tsconfig, parser bug on
-  // an exotic file, …) the programmatic API consumer should still
-  // get a clean lint result rather than a stderr error and a partial
-  // diagnostic list. The catch arm intentionally swallows the error
-  // and returns an empty array; callers that need visibility into a
-  // dead-code failure should use the CLI's `--json` output, which
-  // surfaces the failure reason via `skippedCheckReasons["dead-code"]`.
   const deadCodePromise = shouldRunDeadCode
     ? checkDeadCode({ rootDirectory: resolvedDirectory, userConfig }).catch(() => EMPTY_DIAGNOSTICS)
     : Promise.resolve(EMPTY_DIAGNOSTICS);

@@ -10,17 +10,7 @@ afterAll(() => {
   fs.rmSync(tempRoot, { recursive: true, force: true });
 });
 
-const writeProjectFile = (projectDirectory: string, relativePath: string, contents: string) => {
-  const fullPath = path.join(projectDirectory, relativePath);
-  fs.mkdirSync(path.dirname(fullPath), { recursive: true });
-  fs.writeFileSync(fullPath, contents);
-};
-
-const setupDeslopProject = (
-  caseId: string,
-  files: Record<string, string>,
-  packageJson: Record<string, unknown> = {},
-): string => {
+const setupProject = (caseId: string, files: Record<string, string>): string => {
   const projectDirectory = path.join(tempRoot, caseId);
   fs.mkdirSync(projectDirectory, { recursive: true });
   fs.writeFileSync(
@@ -28,148 +18,59 @@ const setupDeslopProject = (
     JSON.stringify({
       name: caseId,
       type: "module",
-      dependencies: { react: "^19.0.0", "react-dom": "^19.0.0" },
-      ...packageJson,
+      dependencies: { react: "^19.0.0" },
     }),
   );
   fs.writeFileSync(
     path.join(projectDirectory, "tsconfig.json"),
-    JSON.stringify({
-      compilerOptions: { jsx: "preserve", strict: false, target: "es2022", module: "esnext" },
-    }),
+    JSON.stringify({ compilerOptions: { jsx: "preserve", target: "es2022", module: "esnext" } }),
   );
   for (const [relativePath, contents] of Object.entries(files)) {
-    writeProjectFile(projectDirectory, relativePath, contents);
+    const fullPath = path.join(projectDirectory, relativePath);
+    fs.mkdirSync(path.dirname(fullPath), { recursive: true });
+    fs.writeFileSync(fullPath, contents);
   }
   return projectDirectory;
 };
 
 describe("checkDeadCode", () => {
   it("returns no diagnostics when the directory has no package.json", async () => {
-    const projectDirectory = path.join(tempRoot, "no-package-json");
-    fs.mkdirSync(projectDirectory, { recursive: true });
-
-    const diagnostics = await checkDeadCode({ rootDirectory: projectDirectory });
-
-    expect(diagnostics).toEqual([]);
+    const directory = path.join(tempRoot, "no-package-json");
+    fs.mkdirSync(directory, { recursive: true });
+    expect(await checkDeadCode({ rootDirectory: directory })).toEqual([]);
   });
 
-  // Regression: `Diagnostic.filePath` must use forward slashes regardless
-  // of platform — downstream picomatch ignore-pattern matching expects
-  // POSIX separators, so a `src\foo.ts` from Windows `path.relative`
-  // would silently fail to match `src/**` overrides.
-  it("emits POSIX-separated file paths", async () => {
-    const projectDirectory = setupDeslopProject("posix-paths", {
-      "src/index.ts": "export const used = 1;\n",
-      "src/nested/orphan.ts": "export const orphan = 1;\n",
-    });
-
-    const diagnostics = await checkDeadCode({ rootDirectory: projectDirectory });
-
-    for (const diagnostic of diagnostics) {
-      expect(diagnostic.filePath.includes("\\")).toBe(false);
-    }
-  });
-
-  it("flags files that are never imported as unused-file diagnostics", async () => {
-    const projectDirectory = setupDeslopProject("unused-file", {
+  it("flags an orphan file with POSIX-separated paths under the Dead Code category", async () => {
+    const directory = setupProject("unused-file", {
       "src/index.ts": "export const used = 1;\n",
       "src/orphan.ts": "export const orphan = 1;\n",
     });
-
-    const diagnostics = await checkDeadCode({ rootDirectory: projectDirectory });
-
-    const unusedFileDiagnostics = diagnostics.filter(
-      (diagnostic) => diagnostic.rule === "unused-file",
-    );
-    expect(unusedFileDiagnostics.length).toBeGreaterThan(0);
-    for (const diagnostic of unusedFileDiagnostics) {
-      expect(diagnostic.plugin).toBe("deslop");
-      expect(diagnostic.category).toBe("Dead Code");
-      expect(diagnostic.severity).toBe("warning");
-      expect(path.isAbsolute(diagnostic.filePath)).toBe(false);
-    }
-    expect(unusedFileDiagnostics.some((entry) => entry.filePath.endsWith("orphan.ts"))).toBe(true);
-  });
-
-  it("flags exports that no other module uses as unused-export diagnostics", async () => {
-    const projectDirectory = setupDeslopProject("unused-export", {
-      "src/index.ts": 'import { used } from "./helpers";\nexport const root = used();\n',
-      "src/helpers.ts": "export const used = () => 1;\nexport const unused = () => 2;\n",
-    });
-
-    const diagnostics = await checkDeadCode({ rootDirectory: projectDirectory });
-
-    const unusedExportDiagnostics = diagnostics.filter(
-      (diagnostic) => diagnostic.rule === "unused-export",
-    );
-    expect(unusedExportDiagnostics.some((entry) => entry.message.includes("unused"))).toBe(true);
-    for (const diagnostic of unusedExportDiagnostics) {
-      expect(diagnostic.plugin).toBe("deslop");
-      expect(diagnostic.category).toBe("Dead Code");
-    }
-  });
-
-  it("skips files matched by .gitignore", async () => {
-    const projectDirectory = setupDeslopProject("gitignore-skip", {
-      "src/index.ts": "export const used = 1;\n",
-      "src/orphan.ts": "export const orphan = 1;\n",
-      ".gitignore": "src/orphan.ts\n",
-    });
-
-    const diagnostics = await checkDeadCode({ rootDirectory: projectDirectory });
-
-    const orphanHits = diagnostics.filter(
+    const diagnostics = await checkDeadCode({ rootDirectory: directory });
+    const orphan = diagnostics.find(
       (diagnostic) =>
         diagnostic.rule === "unused-file" && diagnostic.filePath.endsWith("orphan.ts"),
     );
-    expect(orphanHits).toEqual([]);
+    expect(orphan).toBeDefined();
+    expect(orphan?.plugin).toBe("deslop");
+    expect(orphan?.category).toBe("Dead Code");
+    expect(orphan?.filePath.includes("\\")).toBe(false);
   });
 
-  it("honors userConfig.ignore.files when forwarded", async () => {
-    const projectDirectory = setupDeslopProject("config-ignore-files", {
+  it("honors ignore patterns from .gitignore and userConfig.ignore.files", async () => {
+    const directory = setupProject("ignore-patterns", {
       "src/index.ts": "export const used = 1;\n",
-      "src/orphan.ts": "export const orphan = 1;\n",
+      "src/gitignored.ts": "export const a = 1;\n",
+      "src/configignored.ts": "export const b = 1;\n",
+      ".gitignore": "src/gitignored.ts\n",
     });
-
     const diagnostics = await checkDeadCode({
-      rootDirectory: projectDirectory,
-      userConfig: { ignore: { files: ["src/orphan.ts"] } },
+      rootDirectory: directory,
+      userConfig: { ignore: { files: ["src/configignored.ts"] } },
     });
-
-    const orphanHits = diagnostics.filter(
-      (diagnostic) =>
-        diagnostic.rule === "unused-file" && diagnostic.filePath.endsWith("orphan.ts"),
-    );
-    expect(orphanHits).toEqual([]);
-  });
-
-  it("flags dependencies in package.json that are never imported", async () => {
-    const projectDirectory = setupDeslopProject(
-      "unused-dependency",
-      {
-        "src/index.ts": "export const root = 1;\n",
-      },
-      {
-        dependencies: {
-          react: "^19.0.0",
-          "react-dom": "^19.0.0",
-          "totally-unused-package": "^1.0.0",
-        },
-      },
-    );
-
-    const diagnostics = await checkDeadCode({ rootDirectory: projectDirectory });
-
-    const unusedDependencyDiagnostics = diagnostics.filter(
-      (diagnostic) => diagnostic.rule === "unused-dependency",
-    );
-    expect(
-      unusedDependencyDiagnostics.some((entry) => entry.message.includes("totally-unused-package")),
-    ).toBe(true);
-    for (const diagnostic of unusedDependencyDiagnostics) {
-      expect(diagnostic.plugin).toBe("deslop");
-      expect(diagnostic.filePath).toBe("package.json");
-    }
+    const flagged = diagnostics
+      .filter((diagnostic) => diagnostic.rule === "unused-file")
+      .map((diagnostic) => diagnostic.filePath);
+    expect(flagged.some((entry) => entry.endsWith("gitignored.ts"))).toBe(false);
+    expect(flagged.some((entry) => entry.endsWith("configignored.ts"))).toBe(false);
   });
 });

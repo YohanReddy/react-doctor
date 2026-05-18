@@ -6,7 +6,6 @@ import {
   combineDiagnostics,
   computeJsxIncludePaths,
   filterDiagnosticsForSurface,
-  formatDeadCodeFailureReason,
   formatErrorChain,
   highlighter,
   isLoggerSilent,
@@ -144,13 +143,9 @@ const runInspect = async (
   let didLintFail = false;
   let lintFailureReason: string | null = null;
   const lintPartialFailures: string[] = [];
-  let didDeadCodeFail = false;
-  let deadCodeFailureReason: string | null = null;
 
-  // Dead-code reachability is a whole-project property — running it
-  // against a diff would mis-report files that became "unused" only
-  // because their importers were not in the diff scope. Always skip
-  // in diff / staged mode, matching how `checkReducedMotion` is gated
+  // Dead-code reachability is a whole-project property — skip in
+  // diff / staged mode, matching how `checkReducedMotion` is gated
   // in `combineDiagnostics`.
   const shouldRunDeadCode = options.deadCode && !isDiffMode;
 
@@ -205,31 +200,22 @@ const runInspect = async (
       })()
     : Promise.resolve<Diagnostic[]>([]);
 
+  // HACK: silent fallback. Dead-code analysis is additive — a deslop
+  // crash (missing node_modules, malformed tsconfig, parser bug on
+  // an exotic file) shouldn't surface a red error or fail the scan.
+  // Finalize the spinner with the success text either way so the
+  // failure is invisible.
   const deadCodePromise = shouldRunDeadCode
     ? (async () => {
         const deadCodeSpinner = options.scoreOnly
           ? null
           : spinner("Analyzing dead code...").start();
         try {
-          const deadCodeDiagnostics = await checkDeadCode({
-            rootDirectory: directory,
-            userConfig,
-          });
-          deadCodeSpinner?.succeed("Analyzing dead code.");
-          return deadCodeDiagnostics;
-        } catch (error) {
-          // HACK: silent fallback. Dead-code analysis is an additive
-          // check — if deslop can't run (missing deps, malformed
-          // tsconfig, parser crash on an exotic file, …) the user
-          // should still get a clean lint scan instead of a scary red
-          // error block. Finalize the spinner with the same "complete"
-          // text the success path uses so the failure is invisible to
-          // the user, and record the reason in `skippedCheckReasons`
-          // (JSON only) for consumers who actually want to debug it.
-          didDeadCodeFail = true;
-          deadCodeFailureReason = formatDeadCodeFailureReason(error);
-          deadCodeSpinner?.succeed("Analyzing dead code.");
+          return await checkDeadCode({ rootDirectory: directory, userConfig });
+        } catch {
           return [];
+        } finally {
+          deadCodeSpinner?.succeed("Analyzing dead code.");
         }
       })()
     : Promise.resolve<Diagnostic[]>([]);
@@ -248,12 +234,6 @@ const runInspect = async (
 
   const skippedChecks: string[] = [];
   if (didLintFail) skippedChecks.push("lint");
-  // HACK: deliberately NOT pushing `"dead-code"` here even on
-  // failure — silent fallback is a deslop-specific contract (the
-  // analysis is purely additive, so a crash shouldn't trigger the
-  // "Note: <check> failed — score may be incomplete" banner or the
-  // top-of-output warning). The reason still flows into
-  // `skippedCheckReasons` below so JSON consumers can debug.
   const hasSkippedChecks = skippedChecks.length > 0;
 
   // HACK: --offline opts out of the score API entirely; without a
@@ -283,9 +263,6 @@ const runInspect = async (
     // batch) but some batches timed out — surface the partial-failure
     // notes so JSON consumers see why a few files weren't checked.
     skippedCheckReasons["lint:partial"] = lintPartialFailures.join("; ");
-  }
-  if (didDeadCodeFail && deadCodeFailureReason !== null) {
-    skippedCheckReasons["dead-code"] = deadCodeFailureReason;
   }
 
   const buildResult = (): InspectResult => ({

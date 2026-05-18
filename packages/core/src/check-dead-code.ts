@@ -8,28 +8,7 @@ import { toRelativePath } from "./utils/to-relative-path.js";
 
 interface CheckDeadCodeOptions {
   rootDirectory: string;
-  /**
-   * Tsconfig path forwarded to deslop for path-alias resolution. When
-   * undefined, deslop falls back to filesystem-only resolution. The
-   * react-doctor scan already resolves a tsconfig for oxlint — the same
-   * value is passed through here so dead-code analysis honors the same
-   * `paths` aliases.
-   */
-  tsConfigPath?: string;
-  /**
-   * Extra patterns to exclude from analysis on top of the project's
-   * `.gitignore` / `.eslintignore` / `.oxlintignore` / `.prettierignore` /
-   * `.gitattributes` linguist annotations and `userConfig.ignore.files`,
-   * which are auto-collected. Use this to layer call-site specific
-   * exclusions on top of the defaults.
-   */
-  ignorePatterns?: string[];
-  /**
-   * Loaded react-doctor config. When provided, `ignore.files` is
-   * forwarded to deslop so files the user has told react-doctor to
-   * skip don't show up as "unused" or distort the reachability graph
-   * for legitimate imports.
-   */
+  /** Loaded react-doctor config — `ignore.files` is forwarded to deslop. */
   userConfig?: ReactDoctorConfig | null;
 }
 
@@ -44,143 +23,103 @@ const resolveTsConfigPath = (rootDirectory: string): string | undefined => {
 };
 
 // HACK: `collectIgnorePatterns` intentionally omits `.gitignore` because
-// oxlint reads it automatically — deslop does not, so we pull it in
-// explicitly here. Patterns are deduped before being passed to deslop
-// so we don't blow up the matcher with redundant entries when the
-// project repeats them across files.
+// oxlint reads it automatically — deslop does not, so we pull it in.
 const collectDeadCodeIgnorePatterns = (
   rootDirectory: string,
   userConfig: ReactDoctorConfig | null | undefined,
-  extraPatterns: string[] | undefined,
 ): string[] => {
-  const patterns: string[] = [];
   const seen = new Set<string>();
-  const addPattern = (pattern: string): void => {
-    if (pattern.length === 0 || seen.has(pattern)) return;
-    seen.add(pattern);
-    patterns.push(pattern);
-  };
-  for (const pattern of readIgnoreFile(path.join(rootDirectory, ".gitignore"))) {
-    addPattern(pattern);
+  const sources = [
+    readIgnoreFile(path.join(rootDirectory, ".gitignore")),
+    collectIgnorePatterns(rootDirectory),
+    userConfig?.ignore?.files ?? [],
+  ];
+  for (const source of sources) {
+    for (const pattern of source) seen.add(pattern);
   }
-  for (const pattern of collectIgnorePatterns(rootDirectory)) {
-    addPattern(pattern);
-  }
-  for (const pattern of userConfig?.ignore?.files ?? []) {
-    addPattern(pattern);
-  }
-  for (const pattern of extraPatterns ?? []) {
-    addPattern(pattern);
-  }
-  return patterns;
+  return [...seen].filter((pattern) => pattern.length > 0);
 };
 
-const DEAD_CODE_PLUGIN_NAME = "deslop";
-const DEAD_CODE_CATEGORY = "Dead Code";
-
-const UNUSED_FILE_RECOMMENDATION =
-  "Delete the file if it is truly unreachable, or import it from an entry point if it should be reachable.";
-const UNUSED_EXPORT_RECOMMENDATION =
-  "Drop the `export` keyword (or remove the declaration entirely) if no other module uses this symbol.";
-const UNUSED_DEPENDENCY_RECOMMENDATION =
-  "Remove the dependency from package.json if it is genuinely unused, or import it from somewhere if it should be.";
-const CIRCULAR_DEPENDENCY_RECOMMENDATION =
-  "Break the import cycle by extracting the shared code into a third module that both files import.";
-
-// Wrap the shared `toRelativePath` helper with the same fallthrough
-// behavior so deslop output is always project-relative AND uses forward
-// slashes — critical on Windows, where `path.relative` returns
-// `src\foo.ts` and downstream picomatch ignore-pattern matching expects
-// `src/foo.ts`. Without this normalization, ignore overrides silently
-// stop matching dead-code diagnostics on Windows.
+// HACK: route through `toRelativePath` (which normalizes backslashes to
+// forward slashes) so deslop output matches every other diagnostic on
+// Windows. Downstream picomatch ignore-pattern matching requires POSIX
+// separators or `src/**` overrides silently miss.
 const toRelativeFilePath = (rootDirectory: string, filePath: string): string => {
   const relative = toRelativePath(filePath, rootDirectory);
   return relative.length > 0 ? relative : filePath.replace(/\\/g, "/");
 };
 
 export const checkDeadCode = async (options: CheckDeadCodeOptions): Promise<Diagnostic[]> => {
-  const { rootDirectory, tsConfigPath, ignorePatterns, userConfig } = options;
-
-  // No package.json → no entry-point heuristic for deslop to use, and
-  // typically not a real project. Skip silently to keep the broader
-  // scan from short-circuiting on this check.
+  const { rootDirectory, userConfig } = options;
   if (!fs.existsSync(path.join(rootDirectory, "package.json"))) return [];
 
-  const resolvedTsConfigPath = tsConfigPath ?? resolveTsConfigPath(rootDirectory);
-  const effectiveIgnorePatterns = collectDeadCodeIgnorePatterns(
-    rootDirectory,
-    userConfig,
-    ignorePatterns,
+  const ignorePatterns = collectDeadCodeIgnorePatterns(rootDirectory, userConfig);
+  const result = await analyze(
+    defineConfig({
+      rootDir: rootDirectory,
+      tsConfigPath: resolveTsConfigPath(rootDirectory),
+      ...(ignorePatterns.length > 0 ? { ignorePatterns } : {}),
+    }),
   );
-
-  const deslopConfig = defineConfig({
-    rootDir: rootDirectory,
-    tsConfigPath: resolvedTsConfigPath,
-    ...(effectiveIgnorePatterns.length > 0 ? { ignorePatterns: effectiveIgnorePatterns } : {}),
-  });
-
-  const result = await analyze(deslopConfig);
+  const toRelative = (filePath: string): string => toRelativeFilePath(rootDirectory, filePath);
   const diagnostics: Diagnostic[] = [];
 
   for (const unusedFile of result.unusedFiles) {
     diagnostics.push({
-      filePath: toRelativeFilePath(rootDirectory, unusedFile.path),
-      plugin: DEAD_CODE_PLUGIN_NAME,
+      filePath: toRelative(unusedFile.path),
+      plugin: "deslop",
       rule: "unused-file",
       severity: "warning",
       message: "Unused file — not reachable from any entry point",
-      help: UNUSED_FILE_RECOMMENDATION,
+      help: "Delete the file if it is truly unreachable, or import it from an entry point.",
       line: 0,
       column: 0,
-      category: DEAD_CODE_CATEGORY,
+      category: "Dead Code",
     });
   }
 
   for (const unusedExport of result.unusedExports) {
+    const label = unusedExport.isTypeOnly ? "type export" : "export";
     diagnostics.push({
-      filePath: toRelativeFilePath(rootDirectory, unusedExport.path),
-      plugin: DEAD_CODE_PLUGIN_NAME,
+      filePath: toRelative(unusedExport.path),
+      plugin: "deslop",
       rule: unusedExport.isTypeOnly ? "unused-type" : "unused-export",
       severity: "warning",
-      message: unusedExport.isTypeOnly
-        ? `Unused type export: \`${unusedExport.name}\``
-        : `Unused export: \`${unusedExport.name}\``,
-      help: UNUSED_EXPORT_RECOMMENDATION,
+      message: `Unused ${label}: \`${unusedExport.name}\``,
+      help: "Drop the `export` keyword (or remove the declaration) if no other module uses this symbol.",
       line: unusedExport.line,
       column: unusedExport.column,
-      category: DEAD_CODE_CATEGORY,
+      category: "Dead Code",
     });
   }
 
   for (const unusedDependency of result.unusedDependencies) {
+    const label = unusedDependency.isDevDependency ? "devDependency" : "dependency";
     diagnostics.push({
       filePath: "package.json",
-      plugin: DEAD_CODE_PLUGIN_NAME,
+      plugin: "deslop",
       rule: unusedDependency.isDevDependency ? "unused-dev-dependency" : "unused-dependency",
       severity: "warning",
-      message: `Unused ${unusedDependency.isDevDependency ? "devDependency" : "dependency"}: \`${unusedDependency.name}\``,
-      help: UNUSED_DEPENDENCY_RECOMMENDATION,
+      message: `Unused ${label}: \`${unusedDependency.name}\``,
+      help: "Remove the dependency from package.json if it is genuinely unused.",
       line: 0,
       column: 0,
-      category: DEAD_CODE_CATEGORY,
+      category: "Dead Code",
     });
   }
 
   for (const cycle of result.circularDependencies) {
     if (cycle.files.length === 0) continue;
-    const cycleDescription = cycle.files
-      .map((entry) => toRelativeFilePath(rootDirectory, entry))
-      .join(" → ");
     diagnostics.push({
-      filePath: toRelativeFilePath(rootDirectory, cycle.files[0]),
-      plugin: DEAD_CODE_PLUGIN_NAME,
+      filePath: toRelative(cycle.files[0]),
+      plugin: "deslop",
       rule: "circular-dependency",
       severity: "warning",
-      message: `Circular import cycle: ${cycleDescription}`,
-      help: CIRCULAR_DEPENDENCY_RECOMMENDATION,
+      message: `Circular import cycle: ${cycle.files.map(toRelative).join(" → ")}`,
+      help: "Break the cycle by extracting the shared code into a third module that both files import.",
       line: 0,
       column: 0,
-      category: DEAD_CODE_CATEGORY,
+      category: "Dead Code",
     });
   }
 

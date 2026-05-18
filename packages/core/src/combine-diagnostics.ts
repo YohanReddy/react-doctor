@@ -11,12 +11,7 @@ interface CombineDiagnosticsInput {
   readFileLinesSync?: (filePath: string) => string[] | null;
   includeEnvironmentChecks?: boolean;
   respectInlineDisables?: boolean;
-  /**
-   * Extra project-level diagnostics produced by async checks the caller
-   * ran before invoking combineDiagnostics (e.g. dead-code analysis via
-   * `checkDeadCode`). Merged with the lint and environment diagnostics
-   * before suppressions and severity controls run.
-   */
+  /** Extra diagnostics from async project-level checks (e.g. `checkDeadCode`). */
   extraDiagnostics?: Diagnostic[];
 }
 
