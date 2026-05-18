@@ -5,7 +5,6 @@ import { printBrandedHeader } from "../utils/print-branded-header.js";
 interface InstallCommandOptions {
   yes?: boolean;
   dryRun?: boolean;
-  spinner?: boolean;
   // Commander's `--cwd` always supplies `process.cwd()` as the default,
   // so this is defined when invoked via the CLI. The fallback is for
   // direct callers (tests) that construct the options object manually.
@@ -13,9 +12,6 @@ interface InstallCommandOptions {
 }
 
 export const installAction = async (options: InstallCommandOptions): Promise<void> => {
-  if (options.spinner === false) {
-    process.env.NO_SPINNER = "1";
-  }
   printBrandedHeader();
   try {
     await runInstallSkill({

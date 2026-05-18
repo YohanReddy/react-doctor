@@ -51,14 +51,6 @@ export const inspectAction = async (directory: string, flags: InspectFlags): Pro
     enableJsonMode({ compact: Boolean(flags.jsonCompact), directory: requestedDirectory });
   }
 
-  // `--no-spinner` flows through the same env var that
-  // `isSpinnerInteractive` already consults, so autodetection, the env
-  // var, and the CLI flag share one signal path and the choice
-  // propagates to spawned tools too.
-  if (flags.spinner === false) {
-    process.env.NO_SPINNER = "1";
-  }
-
   try {
     validateModeFlags(flags);
 

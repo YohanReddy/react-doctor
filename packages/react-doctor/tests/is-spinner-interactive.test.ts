@@ -60,7 +60,7 @@ const NON_INTERACTIVE_ENV_VARS = [
   "CODEX_CI",
   "OPENCODE",
   "AMP_HOME",
-  "NO_SPINNER",
+  "GIT_DIR",
   "TERM",
 ] as const;
 
@@ -147,11 +147,6 @@ describe("isSpinnerInteractive", () => {
     expect(isSpinnerInteractive()).toBe(false);
   });
 
-  it("returns false when NO_SPINNER is set (explicit opt-out)", () => {
-    process.env.NO_SPINNER = "1";
-    expect(isSpinnerInteractive()).toBe(false);
-  });
-
   it("returns false when CI env var is set, even on a TTY", () => {
     process.env.CI = "true";
     expect(isSpinnerInteractive()).toBe(false);
@@ -159,6 +154,15 @@ describe("isSpinnerInteractive", () => {
 
   it("returns false when CURSOR_AGENT env var is set", () => {
     process.env.CURSOR_AGENT = "1";
+    expect(isSpinnerInteractive()).toBe(false);
+  });
+
+  // Regression guard for #293's primary trigger: lefthook/husky/etc.
+  // hook scripts run with `GIT_DIR` set by git itself (per
+  // `git-hooks(5)`). This catches every git-hook manager at once
+  // without needing per-tool env vars.
+  it("returns false when GIT_DIR is set (git hook execution)", () => {
+    process.env.GIT_DIR = "/repo/.git";
     expect(isSpinnerInteractive()).toBe(false);
   });
 });

@@ -52,10 +52,6 @@ const program = new Command()
     "--no-respect-inline-disables",
     "audit mode: neutralize inline lint suppressions before scanning",
   )
-  .option(
-    "--no-spinner",
-    "disable animated spinners (useful inside Git hooks, `script(1)`, and other non-interactive shells)",
-  )
   .addHelpText(
     "after",
     `
@@ -77,10 +73,6 @@ program
   .option("-y, --yes", "skip prompts, install for all detected agents")
   .option("--dry-run", "show what would be installed without writing files")
   .option("-c, --cwd <cwd>", "working directory", process.cwd())
-  .option(
-    "--no-spinner",
-    "disable animated spinners (useful inside Git hooks, `script(1)`, and other non-interactive shells)",
-  )
   .action(installAction);
 
 // HACK: when stdout is piped into a process that closes early (e.g.

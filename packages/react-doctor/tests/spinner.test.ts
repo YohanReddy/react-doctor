@@ -11,13 +11,15 @@ const stripAnsi = (input: string): string => input.replace(ANSI_ESCAPE_PATTERN, 
 describe("spinner static (non-interactive) mode", () => {
   let stderrWriteSpy: ReturnType<typeof vi.spyOn>;
   let writtenChunks: string[];
-  let previousNoSpinner: string | undefined;
+  let previousGitDir: string | undefined;
 
   beforeEach(() => {
-    // `NO_SPINNER` is the single source of truth for "demote ora to
-    // one-shot succeed/fail lines"; the `--no-spinner` CLI flag sets it.
-    previousNoSpinner = process.env.NO_SPINNER;
-    process.env.NO_SPINNER = "1";
+    // `GIT_DIR` is the canonical "I'm inside a git hook" signal and
+    // routes through `isSpinnerInteractive` to demote ora to one-shot
+    // succeed/fail lines — same path #293 hits in real lefthook /
+    // husky / pre-commit runs.
+    previousGitDir = process.env.GIT_DIR;
+    process.env.GIT_DIR = "/fake/.git";
     setSpinnerSilent(false);
     writtenChunks = [];
     stderrWriteSpy = vi.spyOn(process.stderr, "write").mockImplementation(((
@@ -30,10 +32,10 @@ describe("spinner static (non-interactive) mode", () => {
 
   afterEach(() => {
     stderrWriteSpy.mockRestore();
-    if (previousNoSpinner === undefined) {
-      delete process.env.NO_SPINNER;
+    if (previousGitDir === undefined) {
+      delete process.env.GIT_DIR;
     } else {
-      process.env.NO_SPINNER = previousNoSpinner;
+      process.env.GIT_DIR = previousGitDir;
     }
   });
 
