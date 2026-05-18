@@ -33,19 +33,19 @@ describe("GitHub Action contract", () => {
 
     expect(scoreStep).toContain("--score");
     expect(scoreStep).toContain('"--fail-on" "none"');
-    expect(scoreStep).toContain("SCORE=$(npx react-doctor@beta");
+    expect(scoreStep).toContain("SCORE=$(npx react-doctor@latest");
     expect(scoreStep).toContain("|| true");
   });
 
-  it("issue #292: every `npx react-doctor` call resolves to the beta line that ships --pr-comment", () => {
-    const actionYaml = readActionYaml();
+  it("issue #292: --pr-comment is feature-detected so old CLIs don't choke on the unknown flag", () => {
+    const scanStep = normalizeWhitespace(
+      extractStep(readActionYaml(), "INPUT_FAIL_ON: ${{ inputs.fail-on }}"),
+    );
 
-    expect(actionYaml).not.toContain("npx react-doctor@latest");
-    const npxInvocations = actionYaml.match(/npx react-doctor@[^\s"']+/g) ?? [];
-    expect(npxInvocations.length).toBeGreaterThan(0);
-    for (const invocation of npxInvocations) {
-      expect(invocation).toBe("npx react-doctor@beta");
-    }
+    expect(scanStep).toContain("npx react-doctor@latest --help");
+    expect(scanStep).toContain("grep -q -- '--pr-comment'");
+    expect(scanStep).toContain('FLAGS+=("--pr-comment")');
+    expect(scanStep).not.toContain('"${FLAGS[@]}" --pr-comment');
   });
 
   it("issue #188 + #61: action exposes CI inputs used by the scan step", () => {
@@ -77,11 +77,11 @@ describe("GitHub Action contract", () => {
     );
 
     expect(scanStep).toContain('if [ -n "$INPUT_GITHUB_TOKEN" ]; then');
-    expect(scanStep).toContain('"${FLAGS[@]}" --pr-comment | tee "$RAW_FILE"');
+    expect(scanStep).toContain('FLAGS+=("--pr-comment")');
+    expect(scanStep).toContain('"${FLAGS[@]}" | tee "$RAW_FILE"');
     expect(scanStep).toContain('PIPELINE_EXIT_CODES=("${PIPESTATUS[@]}")');
     expect(scanStep).toContain('sed -E \'/^::(error|warning) /d\' "$RAW_FILE" > "$OUTPUT_FILE"');
     expect(scanStep).toContain('exit "${PIPELINE_EXIT_CODES[0]}"');
-    expect(scanStep).not.toContain('"${FLAGS[@]}" --pr-comment\n        else');
   });
 
   it("creates the sticky PR comment output before preserving scan failure", () => {

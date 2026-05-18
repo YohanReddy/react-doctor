@@ -88,12 +88,18 @@ runs:
           # in the sticky PR comment. Configure overrides via
           # config.surfaces.{prComment,ciFailure} in react-doctor.config.json.
           RAW_FILE="${RUNNER_TEMP:-/tmp}/react-doctor-raw-${GITHUB_RUN_ID:-$$}.txt"
+          # `--pr-comment` only exists on react-doctor@0.2.0-beta.x and
+          # later. The `@latest` dist-tag on npm still resolves to 0.1.6
+          # (betas don't promote to @latest), so passing the flag
+          # unconditionally fails every consumer PR with
+          # `unknown option '--pr-comment'` (issue #292). Feature-detect
+          # the flag via --help and fall back to the original invocation
+          # on older CLIs.
+          if npx react-doctor@latest --help 2>/dev/null | grep -q -- '--pr-comment'; then
+            FLAGS+=("--pr-comment")
+          fi
           set +e
-          # HACK: pin to @beta until 0.2.0 promotes to @latest on npm.
-          # `--pr-comment` only exists in the 0.2.0-beta.x line, and the
-          # `@latest` dist-tag still resolves to 0.1.6, which rejects the
-          # flag and fails every consumer PR (issue #292).
-          npx react-doctor@beta "$INPUT_DIRECTORY" "${FLAGS[@]}" --pr-comment | tee "$RAW_FILE"
+          npx react-doctor@latest "$INPUT_DIRECTORY" "${FLAGS[@]}" | tee "$RAW_FILE"
           PIPELINE_EXIT_CODES=("${PIPESTATUS[@]}")
           set -e
           # Strip annotation workflow commands from the PR-comment body;
@@ -102,7 +108,7 @@ runs:
           if [ "${PIPELINE_EXIT_CODES[1]}" -ne 0 ]; then exit "${PIPELINE_EXIT_CODES[1]}"; fi
           exit "${PIPELINE_EXIT_CODES[0]}"
         else
-          npx react-doctor@beta "$INPUT_DIRECTORY" "${FLAGS[@]}"
+          npx react-doctor@latest "$INPUT_DIRECTORY" "${FLAGS[@]}"
         fi
 
     - id: score
@@ -119,7 +125,7 @@ runs:
         # don't fail the composite action under `set -e -o pipefail`.
         SCORE_ARGS=("$INPUT_DIRECTORY" "--score" "--fail-on" "none")
         if [ "$INPUT_OFFLINE" = "true" ]; then SCORE_ARGS+=("--offline"); fi
-        SCORE=$(npx react-doctor@beta "${SCORE_ARGS[@]}" 2>/dev/null | tail -1 | tr -d '[:space:]') || true
+        SCORE=$(npx react-doctor@latest "${SCORE_ARGS[@]}" 2>/dev/null | tail -1 | tr -d '[:space:]') || true
         if [[ -n "$SCORE" && "$SCORE" =~ ^[0-9]+$ ]]; then
           echo "score=$SCORE" >> "$GITHUB_OUTPUT"
         fi
