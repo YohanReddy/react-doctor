@@ -6,6 +6,7 @@ import {
   combineDiagnostics,
   computeJsxIncludePaths,
   filterDiagnosticsForSurface,
+  formatDeadCodeFailureReason,
   formatErrorChain,
   highlighter,
   isLoggerSilent,
@@ -217,13 +218,17 @@ const runInspect = async (
           deadCodeSpinner?.succeed("Analyzing dead code.");
           return deadCodeDiagnostics;
         } catch (error) {
+          // HACK: silent fallback. Dead-code analysis is an additive
+          // check — if deslop can't run (missing deps, malformed
+          // tsconfig, parser crash on an exotic file, …) the user
+          // should still get a clean lint scan instead of a scary red
+          // error block. Finalize the spinner with the same "complete"
+          // text the success path uses so the failure is invisible to
+          // the user, and record the reason in `skippedCheckReasons`
+          // (JSON only) for consumers who actually want to debug it.
           didDeadCodeFail = true;
-          const deadCodeErrorChain = formatErrorChain(error);
-          deadCodeFailureReason = deadCodeErrorChain;
-          if (!options.scoreOnly) {
-            deadCodeSpinner?.fail("Dead-code analysis failed (non-fatal, skipping).");
-            logger.error(deadCodeErrorChain);
-          }
+          deadCodeFailureReason = formatDeadCodeFailureReason(error);
+          deadCodeSpinner?.succeed("Analyzing dead code.");
           return [];
         }
       })()
@@ -243,7 +248,12 @@ const runInspect = async (
 
   const skippedChecks: string[] = [];
   if (didLintFail) skippedChecks.push("lint");
-  if (didDeadCodeFail) skippedChecks.push("dead-code");
+  // HACK: deliberately NOT pushing `"dead-code"` here even on
+  // failure — silent fallback is a deslop-specific contract (the
+  // analysis is purely additive, so a crash shouldn't trigger the
+  // "Note: <check> failed — score may be incomplete" banner or the
+  // top-of-output warning). The reason still flows into
+  // `skippedCheckReasons` below so JSON consumers can debug.
   const hasSkippedChecks = skippedChecks.length > 0;
 
   // HACK: --offline opts out of the score API entirely; without a
