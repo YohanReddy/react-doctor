@@ -24,9 +24,9 @@ export const spinner = (text: string) => ({
     // hook or under `script(1)`, stderr inherits the TTY but `columns`
     // is 0, producing `Infinity` clears and pegging a core (issue #293).
     // `isSpinnerInteractive` demotes ora to one-shot succeed/fail lines
-    // in that case (and in CI, agent shells, `TERM=dumb`, and when
-    // `NO_SPINNER` is set). Stream and guard share one fd so they
-    // can't disagree about which `columns` value matters.
+    // in that case (and in CI, agent shells, git hooks via `GIT_DIR`,
+    // and `TERM=dumb`). Stream and guard share one fd so they can't
+    // disagree about which `columns` value matters.
     const stream = process.stderr;
     const isEnabled = isSpinnerInteractive(stream);
     const instance = ora({ text, indent: SPINNER_INDENT_CHARS, isEnabled, stream });
