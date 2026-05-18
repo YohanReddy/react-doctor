@@ -28,23 +28,6 @@ import { formatErrorChain } from "./format-error-chain.js";
 const FALLBACK_FAILURE_MESSAGE = "deslop dead-code analysis failed (no detail available)";
 
 /**
- * Tagged wrapper so call sites that need to distinguish a deslop
- * failure from another rejection in a `Promise.all` chain can do an
- * `instanceof DeadCodeAnalysisError` check. The original error is
- * preserved as `cause` so `formatErrorChain()` walks both levels.
- */
-export class DeadCodeAnalysisError extends Error {
-  readonly cause: unknown;
-
-  constructor(cause: unknown) {
-    const baseMessage = cause instanceof Error ? cause.message : String(cause);
-    super(baseMessage.length > 0 ? baseMessage : FALLBACK_FAILURE_MESSAGE);
-    this.name = "DeadCodeAnalysisError";
-    this.cause = cause;
-  }
-}
-
-/**
  * Project a raw rejection from `checkDeadCode()` into the string that
  * belongs in `InspectResult.skippedCheckReasons["dead-code"]`. Used
  * by every silent-fallback site so the format stays consistent and
