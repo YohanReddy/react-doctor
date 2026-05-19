@@ -77,6 +77,34 @@ const isProvenValidExpression = (
   return false;
 };
 
+// `<button type={type}>` (or `<button type={props.type}>`) is a
+// wrapper component forwarding the consumer's chosen type — the rule
+// should fire at the CONSUMER's call site (where the literal value
+// lives), not at the trampoline. Without this every styled-button
+// wrapper that exposes `type` to its caller eats a diagnostic.
+const isConsumerPropForward = (expression: EsTreeNode): boolean => {
+  if (isNodeOfType(expression, "Identifier") && expression.name === "type") {
+    return true;
+  }
+  if (
+    isNodeOfType(expression, "MemberExpression") &&
+    !expression.computed &&
+    isNodeOfType(expression.property, "Identifier") &&
+    expression.property.name === "type"
+  ) {
+    return true;
+  }
+  // `type={type ?? 'button'}` / `type={type || 'submit'}` — defaulted
+  // forward where the fallback is itself valid.
+  if (
+    isNodeOfType(expression, "LogicalExpression") &&
+    (expression.operator === "??" || expression.operator === "||")
+  ) {
+    return isConsumerPropForward(expression.left as EsTreeNode);
+  }
+  return false;
+};
+
 const reportInvalid = (
   context: Parameters<Rule["create"]>[0],
   reportNode: EsTreeNode,
@@ -125,6 +153,7 @@ export const buttonHasType = defineRule<Rule>({
         if (isNodeOfType(value, "JSXExpressionContainer")) {
           const expression = value.expression;
           if (!expression || expression.type === "JSXEmptyExpression") return;
+          if (isConsumerPropForward(expression as EsTreeNode)) return;
           if (!isProvenValidExpression(expression as EsTreeNode, settings)) {
             reportInvalid(context, typeAttr, settings);
           }
