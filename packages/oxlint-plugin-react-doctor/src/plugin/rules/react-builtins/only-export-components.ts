@@ -271,13 +271,15 @@ const collectAllNodes = (programRoot: EsTreeNode): EsTreeNode[] => {
 };
 
 // Directory names that mark a file as outside the Fast Refresh
-// surface — tests, fixtures, mocks, Cypress specs, Storybook MDX, etc.
+// surface — tests, fixtures, mocks, Cypress specs, Storybook MDX,
+// playground / demo / example apps that aren't dev-server-hosted, etc.
 // We match these as path segments so a project component file named
 // `tests-page.tsx` (no slash) still gets checked.
 const NON_FAST_REFRESH_PATH_SEGMENTS: ReadonlyArray<string> = [
   "/test/",
   "/tests/",
   "/__tests__/",
+  "/__test__/",
   "/__fixtures__/",
   "/fixtures/",
   "/__mocks__/",
@@ -285,6 +287,15 @@ const NON_FAST_REFRESH_PATH_SEGMENTS: ReadonlyArray<string> = [
   "/cypress/",
   "/.storybook/",
   "/stories/",
+  "/__stories__/",
+  "/playground/",
+  "/playgrounds/",
+  "/examples/",
+  "/example/",
+  "/demo/",
+  "/demos/",
+  "/sandbox/",
+  "/sandboxes/",
 ];
 
 // File basenames that conventionally are application entry points —
@@ -306,6 +317,34 @@ const ENTRY_POINT_BASENAMES: ReadonlySet<string> = new Set([
   "client.jsx",
   "server.tsx",
   "server.jsx",
+  // Next.js App Router page boundaries — re-rendered on full reload,
+  // commonly co-export `metadata`, `generateMetadata`, `revalidate`,
+  // etc. alongside the page component.
+  "page.tsx",
+  "page.jsx",
+  "layout.tsx",
+  "layout.jsx",
+  "loading.tsx",
+  "loading.jsx",
+  "error.tsx",
+  "error.jsx",
+  "not-found.tsx",
+  "not-found.jsx",
+  "template.tsx",
+  "template.jsx",
+  "default.tsx",
+  "default.jsx",
+  "global-error.tsx",
+  "global-error.jsx",
+  "route.tsx",
+  "route.jsx",
+  // Next.js Pages Router special files
+  "_app.tsx",
+  "_app.jsx",
+  "_document.tsx",
+  "_document.jsx",
+  "_error.tsx",
+  "_error.jsx",
 ]);
 
 const isEntryPointFile = (filename: string): boolean => {
