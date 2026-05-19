@@ -275,6 +275,36 @@ interface DetectedComponent {
   isStateless: boolean;
 }
 
+// True if the node is in a top-level `export …` declaration. Walks
+// parents looking for an ExportNamedDeclaration / ExportDefaultDeclaration
+// before crossing any non-trivial scope boundary.
+const isExportedDeclaration = (node: EsTreeNode): boolean => {
+  let current: EsTreeNode | null | undefined = node.parent;
+  while (current) {
+    if (
+      isNodeOfType(current, "ExportNamedDeclaration") ||
+      isNodeOfType(current, "ExportDefaultDeclaration")
+    ) {
+      return true;
+    }
+    // Stop at module-level statements that aren't exports.
+    if (isNodeOfType(current, "Program")) return false;
+    // Stop at function / class bodies — we only care about the
+    // immediate top-level binding's export-ness.
+    if (
+      isNodeOfType(current, "FunctionDeclaration") ||
+      isNodeOfType(current, "FunctionExpression") ||
+      isNodeOfType(current, "ArrowFunctionExpression") ||
+      isNodeOfType(current, "ClassDeclaration") ||
+      isNodeOfType(current, "ClassExpression")
+    ) {
+      return false;
+    }
+    current = current.parent ?? null;
+  }
+  return false;
+};
+
 // Recognizes `const Foo = <something>` shapes that look like a
 // component declaration: arrow/function returning JSX, HoC call, or
 // a function expression returning null.
@@ -516,6 +546,18 @@ export const noMultiComp = defineRule<Rule>({
         const flagged = settings.ignoreStateless
           ? visitContext.components.filter((component) => !component.isStateless)
           : visitContext.components;
+        // Barrel files (icon barrels, shadcn dropdown-menu barrels, menu-items
+        // grouping files, etc.) deliberately co-locate many small related
+        // components. Splitting each into its own file would be churn for no
+        // gain. Heuristic: if 4+ components are detected AND every one of
+        // them is an exported top-level declaration, treat the file as a
+        // barrel and don't flag.
+        const exportedCount = flagged.filter((component) =>
+          isExportedDeclaration(component.reportNode),
+        ).length;
+        const isAllExportedBarrel =
+          flagged.length >= 4 && exportedCount === flagged.length;
+        if (isAllExportedBarrel) return;
         for (const component of flagged.slice(1)) {
           context.report({ node: component.reportNode, message: buildMessage(component.name) });
         }
