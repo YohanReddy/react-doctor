@@ -68,6 +68,18 @@ const findEnclosingIteratorContext = (jsxNode: EsTreeNode): IteratorContext | nu
       isOutsideContainingFunction = true;
     } else if (isNodeOfType(parent, "ArrayExpression")) {
       if (isOutsideContainingFunction) return null;
+      // Config arrays — `description: [<>...</>]`, `messages: [<Foo />]`,
+      // `tooltip: [...]`, Map entry tuples `[[key, <X />], ...]` — aren't
+      // iterated for rendering; they're data assigned to a property.
+      // The array's elements get consumed as-is via `description[0]`,
+      // `Map.get(key)`, etc. Reconciliation only cares about keys when
+      // siblings render in a list; these aren't sibling renders.
+      const arrayParent = parent.parent;
+      if (arrayParent && isNodeOfType(arrayParent, "Property")) return null;
+      // Tuple inside another array (e.g. `Map` entries:
+      // `[[key, <Foo/>], [key, <Bar/>]]`) — the inner array is data,
+      // outer array is what gets iterated.
+      if (arrayParent && isNodeOfType(arrayParent, "ArrayExpression")) return null;
       return { kind: "array" };
     } else if (isNodeOfType(parent, "CallExpression")) {
       const callee = parent.callee;
