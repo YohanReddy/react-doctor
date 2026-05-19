@@ -598,4 +598,40 @@ describe("issue #141: oxlint config must not reference unloaded plugins", () => 
       expect(optedInConfig.rules[ruleKey]).toBe("warn");
     }
   });
+
+  // Bugbot #fa3d54f2: `RECOMMENDED_RULES` / `NEXTJS_RULES` / etc. (the
+  // ESLint flat-config presets exported by `oxlint-plugin-react-doctor`
+  // and consumed by `eslint-plugin-react-doctor`) used to include
+  // every `framework: global` rule regardless of `defaultEnabled`. The
+  // oxlint config builder honored the flag but the ESLint presets
+  // didn't, so ESLint users on the `recommended` preset would
+  // silently get every default-disabled rule. Regression test: confirm
+  // none of the default-disabled rules leak into the recommended set.
+  it("RECOMMENDED_RULES (ESLint preset) honors `defaultEnabled: false`", async () => {
+    const pluginModule = await import("oxlint-plugin-react-doctor");
+    const recommendedRuleKeys = new Set(Object.keys(pluginModule.RECOMMENDED_RULES));
+    const defaultDisabledRules = [
+      "react-doctor/react-in-jsx-scope",
+      "react-doctor/forbid-component-props",
+      "react-doctor/jsx-props-no-spreading",
+      "react-doctor/no-unescaped-entities",
+      "react-doctor/jsx-boolean-value",
+      "react-doctor/jsx-curly-brace-presence",
+      "react-doctor/self-closing-comp",
+      "react-doctor/jsx-no-useless-fragment",
+      "react-doctor/display-name",
+      "react-doctor/no-set-state",
+      "react-doctor/no-clone-element",
+      "react-doctor/hook-use-state",
+      "react-doctor/jsx-handler-names",
+      "react-doctor/prefer-function-component",
+      "react-doctor/jsx-fragments",
+      "react-doctor/state-in-constructor",
+      "react-doctor/jsx-filename-extension",
+      "react-doctor/no-react-children",
+    ];
+    for (const ruleKey of defaultDisabledRules) {
+      expect(recommendedRuleKeys.has(ruleKey)).toBe(false);
+    }
+  });
 });

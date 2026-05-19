@@ -10,8 +10,19 @@ interface RuleMapEntry {
 const toRuleMap = (rules: ReadonlyArray<RuleMapEntry>): Record<string, OxlintRuleSeverity> =>
   Object.fromEntries(rules.map((rule) => [rule.key, rule.severity]));
 
+// Skips rules with `defaultEnabled: false` — these ship in the plugin
+// for opt-in but are not part of any recommended preset. The oxlint
+// config builder in `@react-doctor/core` honors this flag via the
+// `severityControls` override path; presets exported from this package
+// (used by the ESLint `recommended` flat config) must respect it too,
+// or ESLint users would silently get every default-disabled rule.
+const isRecommendedByDefault = (rule: (typeof reactDoctorRules)[number]): boolean =>
+  rule.rule.defaultEnabled !== false;
+
 const collectReactDoctorRulesByFramework = (frameworkName: RuleFramework) =>
-  reactDoctorRules.filter((rule) => rule.framework === frameworkName);
+  reactDoctorRules.filter(
+    (rule) => rule.framework === frameworkName && isRecommendedByDefault(rule),
+  );
 
 const collectExternalRulesBySource = (source: string) =>
   EXTERNAL_RULES.filter((rule) => rule.source === source);
