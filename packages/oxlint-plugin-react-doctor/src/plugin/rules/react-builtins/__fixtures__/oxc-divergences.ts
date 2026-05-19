@@ -76,6 +76,17 @@ export const DIVERGENCES: Record<string, OxcDivergence> = {
     failSkips: [9, 10, 11, 12],
     reason: "Intentional: skip intrinsic HTML elements (no memo concern).",
   },
+  "jsx-no-jsx-as-prop": {
+    // OXC flags any JSX passed as a prop. We skip well-known "slot"
+    // prop names (`icon`, `tooltip`, `header`, `fallback`, `render*`,
+    // etc.) because these props are designed to receive single JSX
+    // elements — every design system (shadcn, Radix, MUI, Mantine,
+    // Chakra) has them, and the inline-JSX form is the canonical
+    // usage. fail[4] (`<IconButton icon={Icon}/>`) exercises the
+    // `icon` slot.
+    failSkips: [4],
+    reason: "Intentional: skip known slot-prop names (icon, tooltip, fallback, render*, etc.).",
+  },
   "style-prop-object": {
     // OXC flags `style="..."` on any JSX element. We only flag it on
     // intrinsic HTML/SVG elements because custom components own their

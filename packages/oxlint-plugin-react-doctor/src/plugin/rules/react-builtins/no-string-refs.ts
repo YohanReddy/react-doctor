@@ -3,6 +3,7 @@ import type { EsTreeNode } from "../../utils/es-tree-node.js";
 import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 import { getParentComponent } from "../../utils/get-parent-component.js";
 import { isNodeOfType } from "../../utils/is-node-of-type.js";
+import { isTestlikeFilename } from "../../utils/is-testlike-filename.js";
 import type { Rule } from "../../utils/rule.js";
 
 const STRING_IN_REF_MESSAGE = "Using a string literal in a `ref` attribute is deprecated.";
@@ -59,13 +60,22 @@ export const noStringRefs = defineRule<Rule>({
     "Use a callback ref (`ref={(node) => { this.foo = node }}`) or `useRef` instead of string refs.",
   create: (context) => {
     const { noTemplateLiterals = false } = resolveSettings(context.settings);
+    // Test files routinely use library-specific JSX DSLs whose `ref`
+    // attribute means something other than React's deprecated string
+    // refs (e.g. tldraw's `createShapesFromJsx([<TL.geo ref="boxA"/>])`
+    // where the string identifies a shape in the test, not a React ref).
+    // Skip those — string-ref-deprecation warnings only matter for
+    // production React code, where the test corpus showed zero hits.
+    const isTestlikeFile = isTestlikeFilename(context.getFilename?.());
     return {
       JSXAttribute(node: EsTreeNodeOfType<"JSXAttribute">) {
+        if (isTestlikeFile) return;
         if (isStringLiteralRefAttribute(node, noTemplateLiterals)) {
           context.report({ node, message: STRING_IN_REF_MESSAGE });
         }
       },
       MemberExpression(node: EsTreeNodeOfType<"MemberExpression">) {
+        if (isTestlikeFile) return;
         if (!isNodeOfType(node.object, "ThisExpression")) return;
         if (!isNodeOfType(node.property, "Identifier") || node.property.name !== "refs") return;
         const enclosingComponent: EsTreeNode | null = getParentComponent(node);

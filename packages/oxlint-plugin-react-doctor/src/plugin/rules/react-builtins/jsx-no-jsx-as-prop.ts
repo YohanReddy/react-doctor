@@ -12,6 +12,79 @@ import type { Rule } from "../../utils/rule.js";
 const MESSAGE =
   "JSX prop receives JSX created on every render — extract it or memoize to avoid re-renders.";
 
+// Prop names that conventionally receive single JSX elements (icons,
+// slot content, fallbacks, render props). For these the inline JSX
+// IS the canonical pattern — every shadcn / Radix / MUI / Mantine /
+// Chakra / tldraw / Excalidraw component has an `icon`, `tooltip`,
+// `header`, `fallback`, etc. slot. Flagging them creates massive
+// noise for design-system consumers without any actionable signal.
+const KNOWN_SLOT_PROP_NAMES: ReadonlySet<string> = new Set([
+  // Icon slots
+  "icon",
+  "Icon",
+  "iconLeft",
+  "iconRight",
+  "leftIcon",
+  "rightIcon",
+  "startIcon",
+  "endIcon",
+  "prefixIcon",
+  "suffixIcon",
+  "iconBefore",
+  "iconAfter",
+  // Generic content slots
+  "prefix",
+  "suffix",
+  "before",
+  "after",
+  "header",
+  "footer",
+  "title",
+  "subtitle",
+  "description",
+  "caption",
+  "label",
+  "tooltip",
+  "trigger",
+  "triggerContent",
+  "content",
+  "body",
+  "action",
+  "actions",
+  "controls",
+  "placeholder",
+  "endAdornment",
+  "startAdornment",
+  "leftSection",
+  "rightSection",
+  "addonBefore",
+  "addonAfter",
+  "selectButton",
+  // Fallback / error slots
+  "fallback",
+  "fallbackRender",
+  "FallbackComponent",
+  "ErrorFallback",
+  "loadingFallback",
+  "loader",
+  "errorElement",
+  // Common render-prop conventions
+  "render",
+  "renderItem",
+  "renderRow",
+  "renderCell",
+  "renderEmpty",
+  "renderError",
+  "renderLoading",
+  "renderHeader",
+  "renderFooter",
+  "renderItemActions",
+  "renderName",
+  "renderContent",
+  "renderTrigger",
+  "renderOption",
+]);
+
 const isJsxProducingExpression = (expression: EsTreeNode): boolean => {
   const stripped = stripParenExpression(expression);
   if (isNodeOfType(stripped, "JSXElement") || isNodeOfType(stripped, "JSXFragment")) return true;
@@ -68,6 +141,14 @@ export const jsxNoJsxAsProp = defineRule<Rule>({
         // passed as a prop on them is unactionable. See
         // `jsx-no-new-function-as-prop` for the full rationale.
         if (isJsxAttributeOnIntrinsicHtmlElement(node)) return;
+        // Known slot prop names (icon, tooltip, fallback, header, etc.)
+        // are designed to receive JSX. Flagging them is unactionable.
+        if (
+          isNodeOfType(node.name, "JSXIdentifier") &&
+          KNOWN_SLOT_PROP_NAMES.has(node.name.name)
+        ) {
+          return;
+        }
         if (!isInsideFunctionScope(node)) return;
         const value = node.value;
         if (!value || !isNodeOfType(value, "JSXExpressionContainer")) return;

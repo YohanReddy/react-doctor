@@ -27,6 +27,59 @@ import { isNodeOfType } from "../../utils/is-node-of-type.js";
 
 // 1:1 port of upstream `src/rules/no-pass-data-to-parent.js`.
 
+// Method names that are clearly NOT "callbacks that pass data to a
+// parent" even when called on a prop value — JS prototype iterators,
+// observer-pattern subscriptions, promise chaining, native Set/Map/
+// EventEmitter methods. The rule's intent is to catch
+// `props.onDataLoaded(data)` style callbacks; `props.items.forEach(fn)`,
+// `props.store.subscribe(fn)`, `props.fetcher.then(fn)` aren't that.
+const ITERATOR_METHOD_NAMES: ReadonlySet<string> = new Set([
+  // Array.prototype iterators
+  "forEach",
+  "map",
+  "filter",
+  "reduce",
+  "reduceRight",
+  "flatMap",
+  "some",
+  "every",
+  "find",
+  "findIndex",
+  "findLast",
+  "findLastIndex",
+  // Observer / EventEmitter patterns
+  "subscribe",
+  "addEventListener",
+  "addListener",
+  "removeEventListener",
+  "removeListener",
+  "on",
+  "once",
+  "off",
+  // Promise
+  "then",
+  "catch",
+  "finally",
+  // Set / Map
+  "add",
+  "delete",
+  "has",
+  "get",
+  "set",
+  "clear",
+]);
+
+const getCallMethodName = (callee: EsTreeNode): string | null => {
+  if (
+    isNodeOfType(callee, "MemberExpression") &&
+    !callee.computed &&
+    isNodeOfType(callee.property, "Identifier")
+  ) {
+    return callee.property.name;
+  }
+  return null;
+};
+
 // Local mirror of upstream's inline `isUseState`/`isUseRef` checks
 // that work on the *identifier* of an upstream ref (not on a ref).
 const isUseStateIdentifier = (identifier: EsTreeNode): boolean => {
@@ -85,6 +138,17 @@ export const noPassDataToParent = defineRule<Rule>({
         if (!isSynchronous(ref.identifier as unknown as EsTreeNode, effectFn)) continue;
         const callExpr = getCallExpr(ref);
         if (!callExpr) continue;
+
+        // Skip well-known prototype/observer/promise methods —
+        // `props.items.forEach(fn)`, `props.store.subscribe(fn)`,
+        // `props.fetcher.then(fn)` are NOT "passing data to a parent
+        // via a callback", they're iteration / subscription /
+        // chaining patterns that happen to receive a callback. The
+        // rule's intent is `props.onDataLoaded(data)` style hand-back,
+        // which never uses these method names.
+        const calleeNode = (callExpr as unknown as { callee?: EsTreeNode }).callee;
+        const methodName = calleeNode ? getCallMethodName(calleeNode) : null;
+        if (methodName && ITERATOR_METHOD_NAMES.has(methodName)) continue;
 
         const argsUpstreamRefs = getArgsUpstreamRefs(analysis, ref).filter(
           (argRef) => getUpstreamRefs(analysis, argRef).length === 1,
