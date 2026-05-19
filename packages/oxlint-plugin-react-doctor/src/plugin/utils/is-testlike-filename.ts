@@ -1,9 +1,10 @@
 // Directory names that mark a file as part of a test / fixture /
-// Storybook / Cypress surface, regardless of the file's own suffix.
+// Storybook / Cypress / example surface, regardless of the file's own suffix.
 const NON_PRODUCTION_PATH_SEGMENTS: ReadonlyArray<string> = [
   "/test/",
   "/tests/",
   "/__tests__/",
+  "/__test__/",
   "/__fixtures__/",
   "/fixtures/",
   "/__mocks__/",
@@ -11,6 +12,15 @@ const NON_PRODUCTION_PATH_SEGMENTS: ReadonlyArray<string> = [
   "/cypress/",
   "/.storybook/",
   "/stories/",
+  "/__stories__/",
+  "/playground/",
+  "/playgrounds/",
+  "/examples/",
+  "/example/",
+  "/demo/",
+  "/demos/",
+  "/sandbox/",
+  "/sandboxes/",
 ];
 
 // True iff `filename` looks like test / spec / Storybook / Cypress
