@@ -69,6 +69,10 @@ const isInConstructor = (node: EsTreeNode): boolean => {
 export const stateInConstructor = defineRule<Rule>({
   id: "state-in-constructor",
   severity: "warn",
+  // Pure stylistic — class field initializers (`state = {...}`) and
+  // explicit constructor assignment are equivalent at runtime. The
+  // class-field form is idiomatic modern TypeScript. Default off.
+  defaultEnabled: false,
   recommendation:
     "Pick a single state-initialization style for class components and stick with it.",
   category: "Architecture",

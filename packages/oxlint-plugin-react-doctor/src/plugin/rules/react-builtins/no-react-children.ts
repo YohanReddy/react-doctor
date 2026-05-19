@@ -30,6 +30,11 @@ const isReactNamespaceMember = (node: EsTreeNode, contextNode: EsTreeNode): bool
 export const noReactChildren = defineRule<Rule>({
   id: "no-react-children",
   severity: "warn",
+  // `React.Children.only` / `React.Children.map` are valid React APIs
+  // still used for legitimate runtime invariants (e.g. tooltips that
+  // need exactly one child element). Discouraging them is an opinion,
+  // not a bug class. Default off.
+  defaultEnabled: false,
   recommendation:
     "Pass children as props or render them directly — see React.Children alternatives.",
   category: "Architecture",

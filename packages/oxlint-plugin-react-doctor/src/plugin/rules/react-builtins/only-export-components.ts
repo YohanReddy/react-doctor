@@ -270,6 +270,23 @@ const collectAllNodes = (programRoot: EsTreeNode): EsTreeNode[] => {
   return out;
 };
 
+// Directory names that mark a file as outside the Fast Refresh
+// surface — tests, fixtures, mocks, Cypress specs, Storybook MDX, etc.
+// We match these as path segments so a project component file named
+// `tests-page.tsx` (no slash) still gets checked.
+const NON_FAST_REFRESH_PATH_SEGMENTS: ReadonlyArray<string> = [
+  "/test/",
+  "/tests/",
+  "/__tests__/",
+  "/__fixtures__/",
+  "/fixtures/",
+  "/__mocks__/",
+  "/mocks/",
+  "/cypress/",
+  "/.storybook/",
+  "/stories/",
+];
+
 const isFileNameAllowed = (filename: string | undefined, checkJS: boolean): boolean => {
   // No filename means we're in a unit-test runner — keep the rule active
   // so the test suite still exercises the analyzer.
@@ -283,6 +300,11 @@ const isFileNameAllowed = (filename: string | undefined, checkJS: boolean): bool
     filename.includes(".stories.")
   ) {
     return false;
+  }
+  // Directories that host non-Fast-Refresh code (test fixtures, mocks,
+  // Cypress specs without `.cy.` suffix, etc.).
+  for (const segment of NON_FAST_REFRESH_PATH_SEGMENTS) {
+    if (filename.includes(segment)) return false;
   }
   // Only `.tsx` / `.jsx` (and `.js` when `checkJS` is on) modules run
   // through Fast Refresh. Pure `.ts` files — barrels, utility modules,

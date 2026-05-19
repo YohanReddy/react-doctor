@@ -61,9 +61,26 @@ const findEnclosingFunctionComponent = (
   return null;
 };
 
+// A function with an explicit TypeScript `this:` parameter is, by
+// definition, NOT a stateless functional component — the author is
+// using TS this-typing to declare a non-React calling convention
+// (webpack loaders, class-component glue, Tiptap/ProseMirror
+// extension methods, RxJS `this`-bound helpers, etc.). Skip the rule
+// for these. The `this` parameter appears as the first param with
+// `Identifier { name: "this" }`.
+const hasExplicitThisParameter = (
+  fn: EsTreeNodeOfType<"FunctionDeclaration" | "FunctionExpression" | "ArrowFunctionExpression">,
+): boolean => {
+  const firstParameter = fn.params?.[0] as EsTreeNode | undefined;
+  if (!firstParameter) return false;
+  if (!isNodeOfType(firstParameter, "Identifier")) return false;
+  return firstParameter.name === "this";
+};
+
 const looksLikeFunctionComponent = (
   fn: EsTreeNodeOfType<"FunctionDeclaration" | "FunctionExpression" | "ArrowFunctionExpression">,
 ): boolean => {
+  if (hasExplicitThisParameter(fn)) return false;
   if (isNodeOfType(fn, "FunctionDeclaration") && fn.id) {
     return isReactComponentName(fn.id.name);
   }

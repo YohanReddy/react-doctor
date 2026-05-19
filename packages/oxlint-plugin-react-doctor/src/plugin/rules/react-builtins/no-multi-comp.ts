@@ -6,6 +6,7 @@ import { isEs5Component } from "../../utils/is-es5-component.js";
 import { isEs6Component } from "../../utils/is-es6-component.js";
 import { isNodeOfType } from "../../utils/is-node-of-type.js";
 import { isReactComponentName } from "../../utils/is-react-component-name.js";
+import { isTestlikeFilename } from "../../utils/is-testlike-filename.js";
 import type { Rule } from "../../utils/rule.js";
 import type { ScopeAnalysis, SymbolDescriptor } from "../../semantic/scope-analysis.js";
 import { stripParenExpression } from "../../utils/strip-paren-expression.js";
@@ -448,8 +449,14 @@ export const noMultiComp = defineRule<Rule>({
   category: "Architecture",
   create: (context) => {
     const settings = resolveSettings(context.settings);
+    const isTestlikeFile = isTestlikeFilename(context.getFilename?.());
     return {
       Program(node: EsTreeNodeOfType<"Program">) {
+        // Test / story / Cypress files routinely declare several tiny
+        // throwaway components in a single file to exercise different
+        // scenarios — that's the point of fixture co-location, not a
+        // bug. Skip them.
+        if (isTestlikeFile) return;
         const visitContext: VisitContext = {
           components: [],
           componentDepth: 0,

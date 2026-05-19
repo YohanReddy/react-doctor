@@ -11,6 +11,7 @@ import { isInteractiveElement } from "../../utils/is-interactive-element.js";
 import { isInteractiveRole } from "../../utils/is-interactive-role.js";
 import { isNodeOfType } from "../../utils/is-node-of-type.js";
 import { isReactComponentName } from "../../utils/is-react-component-name.js";
+import { isTestlikeFilename } from "../../utils/is-testlike-filename.js";
 import type { Rule } from "../../utils/rule.js";
 
 const MESSAGE =
@@ -43,19 +44,11 @@ const DEFAULT_LABELLING_PROPS: ReadonlyArray<string> = ["alt", "aria-label", "ar
 const DEFAULT_DEPTH = 5;
 const MAX_DEPTH = 25;
 
-// Test, story, and Cypress files don't participate in production
+// Test / story / Cypress files don't participate in production
 // accessibility audits — they exercise component shapes, not user
 // flows. Skipping them removes a steady stream of FPs (test fixtures
-// rendering bare `<input ref={...}/>` without labels).
-const isTestlikeFilename = (filename: string | undefined): boolean => {
-  if (!filename) return false;
-  return (
-    filename.includes(".test.") ||
-    filename.includes(".spec.") ||
-    filename.includes(".cy.") ||
-    filename.includes(".stories.")
-  );
-};
+// rendering bare `<input ref={...}/>` without labels). Shared helper
+// is in `utils/is-testlike-filename.ts`.
 
 const resolveSettings = (
   settings: Readonly<Record<string, unknown>> | undefined,

@@ -65,4 +65,15 @@ export const DIVERGENCES: Record<string, OxcDivergence> = {
     failSkips: [20, 21, 22, 23, 26, 27, 28, 30, 31, 32, 40, 41],
     reason: "Intentional: default allowAsProps=true to allow render-prop components.",
   },
+  "jsx-no-new-function-as-prop": {
+    // OXC flags inline-handler-as-prop on any JSX element. We skip
+    // intrinsic HTML elements (`<button>`, `<a>`, ...) because
+    // neither React nor the browser memoizes DOM event listeners,
+    // so a "new function per render" on intrinsic elements has zero
+    // measurable cost. fail[9-12] all exercise the
+    // `<button onClick={...}/>` / `<a onClick={...}/>` shape on
+    // intrinsic elements.
+    failSkips: [9, 10, 11, 12],
+    reason: "Intentional: skip intrinsic HTML elements (no memo concern).",
+  },
 };

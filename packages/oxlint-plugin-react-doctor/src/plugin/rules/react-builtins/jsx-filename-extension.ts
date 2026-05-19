@@ -73,6 +73,10 @@ const containsJsx = (root: EsTreeNode): boolean => {
 export const jsxFilenameExtension = defineRule<Rule>({
   id: "jsx-filename-extension",
   severity: "warn",
+  // Pure file-naming convention — Next.js / Docusaurus / Vite all
+  // accept JSX in `.js` files out of the box. Forcing `.jsx` /
+  // `.tsx` is a project-specific style choice. Default off.
+  defaultEnabled: false,
   recommendation:
     "Use `.jsx` / `.tsx` (or your project's chosen extension) for files containing JSX.",
   category: "Architecture",

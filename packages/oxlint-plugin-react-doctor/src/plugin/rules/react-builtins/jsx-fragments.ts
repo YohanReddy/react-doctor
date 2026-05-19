@@ -29,6 +29,9 @@ const resolveSettings = (
 export const jsxFragments = defineRule<Rule>({
   id: "jsx-fragments",
   severity: "warn",
+  // Pure stylistic — `<>` vs `<Fragment>` is a formatter concern,
+  // not a bug class. Default off.
+  defaultEnabled: false,
   recommendation: "Pick one fragment style across the codebase.",
   category: "Architecture",
   create: (context) => {

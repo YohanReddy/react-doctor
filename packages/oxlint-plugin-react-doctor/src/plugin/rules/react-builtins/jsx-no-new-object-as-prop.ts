@@ -3,7 +3,9 @@ import type { EsTreeNode } from "../../utils/es-tree-node.js";
 import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 import { findVariableInitializer } from "../../utils/find-variable-initializer.js";
 import { isInsideFunctionScope } from "../../utils/is-inside-function-scope.js";
+import { isJsxAttributeOnIntrinsicHtmlElement } from "../../utils/is-on-intrinsic-html-element.js";
 import { isNodeOfType } from "../../utils/is-node-of-type.js";
+import { isTestlikeFilename } from "../../utils/is-testlike-filename.js";
 import { stripParenExpression } from "../../utils/strip-paren-expression.js";
 import type { Rule } from "../../utils/rule.js";
 
@@ -103,23 +105,31 @@ export const jsxNoNewObjectAsProp = defineRule<Rule>({
   disabledBy: ["react-compiler"],
   recommendation: "Memoize the object (`useMemo`) or hoist it outside the component.",
   category: "Performance",
-  create: (context) => ({
-    JSXAttribute(node: EsTreeNodeOfType<"JSXAttribute">) {
-      if (!isInsideFunctionScope(node)) return;
-      if (!isNodeOfType(node.name, "JSXIdentifier")) return;
-      if (ALWAYS_FRESH_OBJECT_PROPS.has(node.name.name)) return;
-      const value = node.value;
-      if (!value || !isNodeOfType(value, "JSXExpressionContainer")) return;
-      const expression = value.expression;
-      if (!expression || expression.type === "JSXEmptyExpression") return;
-      const expressionNode = expression as EsTreeNode;
-      if (
-        !isObjectProducingExpression(expressionNode) &&
-        !followsRenderLocalObjectBinding(expressionNode, node)
-      ) {
-        return;
-      }
-      context.report({ node, message: MESSAGE });
-    },
-  }),
+  create: (context) => {
+    const isTestlikeFile = isTestlikeFilename(context.getFilename?.());
+    return {
+      JSXAttribute(node: EsTreeNodeOfType<"JSXAttribute">) {
+        if (isTestlikeFile) return;
+        // Intrinsic HTML elements aren't memoized; flagging inline
+        // object literals on them is unactionable. See the same skip
+        // in `jsx-no-new-function-as-prop` for the full rationale.
+        if (isJsxAttributeOnIntrinsicHtmlElement(node)) return;
+        if (!isInsideFunctionScope(node)) return;
+        if (!isNodeOfType(node.name, "JSXIdentifier")) return;
+        if (ALWAYS_FRESH_OBJECT_PROPS.has(node.name.name)) return;
+        const value = node.value;
+        if (!value || !isNodeOfType(value, "JSXExpressionContainer")) return;
+        const expression = value.expression;
+        if (!expression || expression.type === "JSXEmptyExpression") return;
+        const expressionNode = expression as EsTreeNode;
+        if (
+          !isObjectProducingExpression(expressionNode) &&
+          !followsRenderLocalObjectBinding(expressionNode, node)
+        ) {
+          return;
+        }
+        context.report({ node, message: MESSAGE });
+      },
+    };
+  },
 });

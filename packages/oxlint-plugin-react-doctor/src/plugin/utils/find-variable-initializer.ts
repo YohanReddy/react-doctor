@@ -160,6 +160,26 @@ const buildBindingIndex = (root: EsTreeNode): Map<string, BindingInfo[]> => {
         out.set(node.id.name, list);
       }
     }
+    // Class declarations / expressions create a binding in the
+    // enclosing scope (same shape as FunctionDeclaration). Without
+    // this branch, `class Foo {}` is invisible to lookups — e.g.
+    // `jsx-no-undef` reports `<Foo/>` as undefined even when
+    // `class Foo extends Component {}` sits in the same file.
+    if (
+      (isNodeOfType(node, "ClassDeclaration") || isNodeOfType(node, "ClassExpression")) &&
+      node.id
+    ) {
+      const enclosing = node.parent ? findScopeOwner(node.parent) : null;
+      if (enclosing) {
+        const list = out.get(node.id.name) ?? [];
+        list.push({
+          bindingIdentifier: node.id as EsTreeNode,
+          initializer: node,
+          scopeOwner: enclosing,
+        });
+        out.set(node.id.name, list);
+      }
+    }
     if (
       isNodeOfType(node, "FunctionDeclaration") ||
       isNodeOfType(node, "FunctionExpression") ||

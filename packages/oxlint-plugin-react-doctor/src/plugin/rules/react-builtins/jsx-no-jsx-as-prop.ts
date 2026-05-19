@@ -3,7 +3,9 @@ import type { EsTreeNode } from "../../utils/es-tree-node.js";
 import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 import { findVariableInitializer } from "../../utils/find-variable-initializer.js";
 import { isInsideFunctionScope } from "../../utils/is-inside-function-scope.js";
+import { isJsxAttributeOnIntrinsicHtmlElement } from "../../utils/is-on-intrinsic-html-element.js";
 import { isNodeOfType } from "../../utils/is-node-of-type.js";
+import { isTestlikeFilename } from "../../utils/is-testlike-filename.js";
 import { stripParenExpression } from "../../utils/strip-paren-expression.js";
 import type { Rule } from "../../utils/rule.js";
 
@@ -57,21 +59,29 @@ export const jsxNoJsxAsProp = defineRule<Rule>({
   disabledBy: ["react-compiler"],
   recommendation: "Hoist the inner JSX outside the render or memoize via `useMemo`.",
   category: "Performance",
-  create: (context) => ({
-    JSXAttribute(node: EsTreeNodeOfType<"JSXAttribute">) {
-      if (!isInsideFunctionScope(node)) return;
-      const value = node.value;
-      if (!value || !isNodeOfType(value, "JSXExpressionContainer")) return;
-      const expression = value.expression;
-      if (!expression || expression.type === "JSXEmptyExpression") return;
-      const expressionNode = expression as EsTreeNode;
-      if (
-        !isJsxProducingExpression(expressionNode) &&
-        !followsRenderLocalJsxBinding(expressionNode, node)
-      ) {
-        return;
-      }
-      context.report({ node, message: MESSAGE });
-    },
-  }),
+  create: (context) => {
+    const isTestlikeFile = isTestlikeFilename(context.getFilename?.());
+    return {
+      JSXAttribute(node: EsTreeNodeOfType<"JSXAttribute">) {
+        if (isTestlikeFile) return;
+        // Intrinsic HTML elements aren't memoized; flagging inline JSX
+        // passed as a prop on them is unactionable. See
+        // `jsx-no-new-function-as-prop` for the full rationale.
+        if (isJsxAttributeOnIntrinsicHtmlElement(node)) return;
+        if (!isInsideFunctionScope(node)) return;
+        const value = node.value;
+        if (!value || !isNodeOfType(value, "JSXExpressionContainer")) return;
+        const expression = value.expression;
+        if (!expression || expression.type === "JSXEmptyExpression") return;
+        const expressionNode = expression as EsTreeNode;
+        if (
+          !isJsxProducingExpression(expressionNode) &&
+          !followsRenderLocalJsxBinding(expressionNode, node)
+        ) {
+          return;
+        }
+        context.report({ node, message: MESSAGE });
+      },
+    };
+  },
 });

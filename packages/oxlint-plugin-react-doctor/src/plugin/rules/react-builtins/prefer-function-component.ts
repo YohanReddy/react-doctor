@@ -79,6 +79,11 @@ const containsJsx = (root: EsTreeNode): boolean => {
 export const preferFunctionComponent = defineRule<Rule>({
   id: "prefer-function-component",
   severity: "warn",
+  // Class components are still valid React — required for error
+  // boundaries (no hook equivalent), used widely in legacy code and
+  // third-party libraries. Forcing rewrites by default is too
+  // opinionated. Off by default.
+  defaultEnabled: false,
   recommendation: "Re-write the class component as a function component using hooks.",
   category: "Architecture",
   create: (context) => {

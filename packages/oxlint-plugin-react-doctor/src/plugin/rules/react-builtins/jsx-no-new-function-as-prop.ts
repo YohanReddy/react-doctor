@@ -3,7 +3,9 @@ import type { EsTreeNode } from "../../utils/es-tree-node.js";
 import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 import { findVariableInitializer } from "../../utils/find-variable-initializer.js";
 import { isInsideFunctionScope } from "../../utils/is-inside-function-scope.js";
+import { isJsxAttributeOnIntrinsicHtmlElement } from "../../utils/is-on-intrinsic-html-element.js";
 import { isNodeOfType } from "../../utils/is-node-of-type.js";
+import { isTestlikeFilename } from "../../utils/is-testlike-filename.js";
 import { stripParenExpression } from "../../utils/strip-paren-expression.js";
 import type { Rule } from "../../utils/rule.js";
 
@@ -80,21 +82,32 @@ export const jsxNoNewFunctionAsProp = defineRule<Rule>({
   disabledBy: ["react-compiler"],
   recommendation: "Memoize the callback (`useCallback`) or hoist it outside the component.",
   category: "Performance",
-  create: (context) => ({
-    JSXAttribute(node: EsTreeNodeOfType<"JSXAttribute">) {
-      if (!isInsideFunctionScope(node)) return;
-      const value = node.value;
-      if (!value || !isNodeOfType(value, "JSXExpressionContainer")) return;
-      const expression = value.expression;
-      if (!expression || expression.type === "JSXEmptyExpression") return;
-      const expressionNode = expression as EsTreeNode;
-      if (
-        !isFunctionProducingExpression(expressionNode) &&
-        !followsRenderLocalFunctionBinding(expressionNode, node)
-      ) {
-        return;
-      }
-      context.report({ node, message: MESSAGE });
-    },
-  }),
+  create: (context) => {
+    const isTestlikeFile = isTestlikeFilename(context.getFilename?.());
+    return {
+      JSXAttribute(node: EsTreeNodeOfType<"JSXAttribute">) {
+        if (isTestlikeFile) return;
+        // Intrinsic HTML elements (`<button onClick={...}>`) aren't
+        // memoized — neither the browser nor React caches DOM event
+        // listeners, so a new function per render has no measurable
+        // cost. Flagging them is unactionable noise. The rule still
+        // fires on custom-component props where downstream `React.memo`
+        // bails on the new reference.
+        if (isJsxAttributeOnIntrinsicHtmlElement(node)) return;
+        if (!isInsideFunctionScope(node)) return;
+        const value = node.value;
+        if (!value || !isNodeOfType(value, "JSXExpressionContainer")) return;
+        const expression = value.expression;
+        if (!expression || expression.type === "JSXEmptyExpression") return;
+        const expressionNode = expression as EsTreeNode;
+        if (
+          !isFunctionProducingExpression(expressionNode) &&
+          !followsRenderLocalFunctionBinding(expressionNode, node)
+        ) {
+          return;
+        }
+        context.report({ node, message: MESSAGE });
+      },
+    };
+  },
 });
