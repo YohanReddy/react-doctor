@@ -258,6 +258,12 @@ const detectVariableComponent = (
   // Strip parens / TS wrappers so `(0, arrow)` and similar shapes
   // expose their SequenceExpression / arrow inner.
   init = stripParenExpression(init);
+  // Passthrough arrow / function (`const Foo = (props) => <X {...props} />`)
+  // is a thin wrapper, not a separate component — skip for the same
+  // reason HoC passthroughs are skipped (shadcn / Radix barrels).
+  if (isPassthroughArrow(init) || isPassthroughFunction(init)) {
+    return null;
+  }
   // `expressionContainsJsx` walks into an arrow/function body — used
   // for shapes like `const Foo = () => <div/>` (init IS the arrow).
   if (expressionContainsJsx(init) || isFunctionReturningNull(init)) {
@@ -324,9 +330,17 @@ const walkComponentSearch = (node: EsTreeNode, context: VisitContext): void => {
   }
 
   // Named function declaration / expression with JSX (matches OXC's
-  // visit_function which handles BOTH).
+  // visit_function which handles BOTH). Passthrough wrappers — a single
+  // return of `<X {...props} />` — aren't real components for the
+  // "multiple components per file" purpose; they're thin re-exports,
+  // common in shadcn / Radix-style barrel files and icon barrels.
   if (isNodeOfType(node, "FunctionDeclaration") || isNodeOfType(node, "FunctionExpression")) {
-    if (node.id && isReactComponentName(node.id.name) && containsJsx(node as EsTreeNode)) {
+    if (
+      node.id &&
+      isReactComponentName(node.id.name) &&
+      containsJsx(node as EsTreeNode) &&
+      !isPassthroughFunction(node as EsTreeNode)
+    ) {
       recordComponent(context, node.id.name, node.id as EsTreeNode, true);
       context.componentDepth += 1;
       walkChildren(node, context);
