@@ -118,18 +118,23 @@ const isTrivialPassthroughChild = (child: EsTreeNode): boolean => {
   return false;
 };
 
-// A simple JSX passthrough: <PascalCaseComponent {...spread} ?one-other-attr />
-// with no composed React-component children. Used by `is_passthrough_*` to
-// recognize `(props, ref) => <Foo {...props} ref={ref} />` style "trampoline"
-// wrappers and shadcn / icon-barrel re-exports. OXC's no-multi-comp doesn't
-// count those as a separate component because they only forward props.
+// A simple JSX passthrough: `<PascalCaseComponent {...spread} default1
+// default2 …/>` with no composed React-component children. Used by
+// `is_passthrough_*` to recognize `(props, ref) => <Foo {...props} ref={ref} />`
+// style trampolines AND shadcn / icon-barrel re-exports that wrap a single
+// element with a few default props + a spread. The attrs cap (6) is tuned
+// for the typical shadcn shape: data-slot + className with `cn()` + 1-3
+// default values + spread. OXC's no-multi-comp doesn't count these as
+// separate components because they only forward.
+const MAX_PASSTHROUGH_ATTRS = 6;
+
 const isSimpleJsxPassthrough = (expression: EsTreeNode): boolean => {
   if (!isNodeOfType(expression, "JSXElement")) return false;
   const opening = expression.openingElement;
   if (!isNodeOfType(opening.name, "JSXIdentifier")) return false;
   if (!isReactComponentName(opening.name.name)) return false;
   const attrs = opening.attributes;
-  if (attrs.length > 2) return false;
+  if (attrs.length > MAX_PASSTHROUGH_ATTRS) return false;
   const hasSpread = attrs.some((attr) =>
     isNodeOfType(attr as EsTreeNode, "JSXSpreadAttribute"),
   );
