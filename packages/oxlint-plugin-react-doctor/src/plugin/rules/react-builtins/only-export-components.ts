@@ -38,7 +38,11 @@ const resolveSettings = (
       : {};
   return {
     allowExportNames: ruleSettings.allowExportNames ?? [],
-    allowConstantExport: ruleSettings.allowConstantExport ?? false,
+    // Default `true` because exported constants are stable references —
+    // Fast Refresh can hot-swap them without forcing a full reload.
+    // Matches the recommended configuration in
+    // `eslint-plugin-react-refresh` for Vite projects.
+    allowConstantExport: ruleSettings.allowConstantExport ?? true,
     customHOCs: ruleSettings.customHOCs ?? [],
     checkJS: ruleSettings.checkJS ?? false,
   };
@@ -267,7 +271,11 @@ const collectAllNodes = (programRoot: EsTreeNode): EsTreeNode[] => {
 };
 
 const isFileNameAllowed = (filename: string | undefined, checkJS: boolean): boolean => {
-  if (!filename) return true; // default allow when filename unknown (test fixtures).
+  // No filename means we're in a unit-test runner — keep the rule active
+  // so the test suite still exercises the analyzer.
+  if (!filename) return true;
+  // Test / Storybook / Cypress files don't participate in Fast Refresh,
+  // so a mixed-export shape there can't break it.
   if (
     filename.includes(".test.") ||
     filename.includes(".spec.") ||
@@ -276,15 +284,23 @@ const isFileNameAllowed = (filename: string | undefined, checkJS: boolean): bool
   ) {
     return false;
   }
+  // Only `.tsx` / `.jsx` (and `.js` when `checkJS` is on) modules run
+  // through Fast Refresh. Pure `.ts` files — barrels, utility modules,
+  // server code — can't break it no matter what they export, so the
+  // rule has nothing to enforce there.
   if (filename.endsWith(".tsx") || filename.endsWith(".jsx")) return true;
   if (checkJS && filename.endsWith(".js")) return true;
-  return true; // permissive default for unit tests
+  return false;
 };
 
-// Port of `oxc_linter::rules::react::only_export_components`.
+// Port of `oxc_linter::rules::react::only_export_components`. Defaults
+// are tuned for Fast Refresh: only fires in `.tsx`/`.jsx` (and `.js`
+// when `checkJS` is on) — pure `.ts` files don't participate in HMR
+// and can't break it. `allowConstantExport: true` by default because
+// stable constants alongside components don't break Fast Refresh.
 export const onlyExportComponents = defineRule<Rule>({
   id: "only-export-components",
-  severity: "warn",
+  severity: "error",
   recommendation: "Move non-component exports out of files that export components.",
   category: "Architecture",
   create: (context) => {

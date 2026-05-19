@@ -50,6 +50,12 @@ const flattenJsxName = (node: EsTreeNode): string | null => {
 export const jsxPropsNoSpreading = defineRule<Rule>({
   id: "jsx-props-no-spreading",
   severity: "warn",
+  // Default off because `{...props}` is the canonical composition
+  // pattern: forwardRef wrappers, shadcn-ui components, Radix /
+  // Headless UI consumers, polymorphic components, etc. all spread.
+  // Opt in via config when a project wants to enforce explicit prop
+  // lists on its component boundaries.
+  defaultEnabled: false,
   recommendation: "List each prop explicitly so consumers can see what's being passed.",
   category: "Architecture",
   create: (context) => {

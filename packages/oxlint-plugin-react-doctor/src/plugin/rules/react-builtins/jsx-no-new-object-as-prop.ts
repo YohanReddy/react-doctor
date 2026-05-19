@@ -10,6 +10,16 @@ import type { Rule } from "../../utils/rule.js";
 const MESSAGE =
   "JSX prop receives a new Object on every render — extract it or memoize to avoid re-renders.";
 
+// Props that ALWAYS receive a fresh object by React's API contract —
+// flagging them is unactionable noise. `dangerouslySetInnerHTML` MUST be
+// `{ __html: ... }`; `style` is the documented React inline-style API
+// and inlining is idiomatic for one-shot components where memo perf is
+// irrelevant. Suppress both regardless of the wrapping component.
+const ALWAYS_FRESH_OBJECT_PROPS: ReadonlySet<string> = new Set([
+  "dangerouslySetInnerHTML",
+  "style",
+]);
+
 const OBJECT_CONSTRUCTOR_NAMES = new Set(["Object"]);
 const OBJECT_PRODUCING_METHODS = new Set([
   "assign",
@@ -88,11 +98,16 @@ const followsRenderLocalObjectBinding = (
 export const jsxNoNewObjectAsProp = defineRule<Rule>({
   id: "jsx-no-new-object-as-prop",
   severity: "warn",
+  // React Compiler auto-memoizes prop allocations, so the perf footgun
+  // this rule guards against doesn't exist in compiler-enabled projects.
+  disabledBy: ["react-compiler"],
   recommendation: "Memoize the object (`useMemo`) or hoist it outside the component.",
   category: "Performance",
   create: (context) => ({
     JSXAttribute(node: EsTreeNodeOfType<"JSXAttribute">) {
       if (!isInsideFunctionScope(node)) return;
+      if (!isNodeOfType(node.name, "JSXIdentifier")) return;
+      if (ALWAYS_FRESH_OBJECT_PROPS.has(node.name.name)) return;
       const value = node.value;
       if (!value || !isNodeOfType(value, "JSXExpressionContainer")) return;
       const expression = value.expression;

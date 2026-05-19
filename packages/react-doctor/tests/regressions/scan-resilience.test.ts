@@ -538,4 +538,64 @@ describe("issue #141: oxlint config must not reference unloaded plugins", () => 
       expect(config.rules[`react-doctor/${ruleId}`]).toBeUndefined();
     }
   });
+
+  // The four `jsx-no-new-*-as-prop` perf rules guard against a footgun
+  // (new array/object/function/JSX as a prop breaks downstream
+  // `React.memo`) that React Compiler auto-fixes at compile time. When
+  // RC is in scope they're unactionable noise, so they ship with
+  // `disabledBy: ["react-compiler"]` and the gate must drop them.
+  it("disables react-compiler-redundant perf rules when React Compiler is detected", () => {
+    const reactCompilerGatedRules = [
+      "react-doctor/jsx-no-new-object-as-prop",
+      "react-doctor/jsx-no-new-array-as-prop",
+      "react-doctor/jsx-no-new-function-as-prop",
+      "react-doctor/jsx-no-jsx-as-prop",
+    ];
+
+    const withoutCompiler = createOxlintConfig({
+      pluginPath: "/tmp/react-doctor-plugin.js",
+      project: buildTestProject({ rootDirectory: "/tmp/test", hasReactCompiler: false }),
+    });
+    for (const ruleKey of reactCompilerGatedRules) {
+      expect(withoutCompiler.rules[ruleKey]).toBe("warn");
+    }
+
+    const withCompiler = createOxlintConfig({
+      pluginPath: "/tmp/react-doctor-plugin.js",
+      project: buildTestProject({ rootDirectory: "/tmp/test", hasReactCompiler: true }),
+    });
+    for (const ruleKey of reactCompilerGatedRules) {
+      expect(withCompiler.rules[ruleKey]).toBeUndefined();
+    }
+  });
+
+  // The three noisy upstream rules ship `defaultEnabled: false` —
+  // they're imported and runnable, but the default config skips them.
+  // Users opt in via `severityControls.rules`.
+  it("default-disabled rules are off until explicitly enabled via severityControls", () => {
+    const defaultDisabledRules = [
+      "react-doctor/react-in-jsx-scope",
+      "react-doctor/forbid-component-props",
+      "react-doctor/jsx-props-no-spreading",
+    ];
+
+    const defaultConfig = createOxlintConfig({
+      pluginPath: "/tmp/react-doctor-plugin.js",
+      project: buildTestProject({ rootDirectory: "/tmp/test" }),
+    });
+    for (const ruleKey of defaultDisabledRules) {
+      expect(defaultConfig.rules[ruleKey]).toBeUndefined();
+    }
+
+    const optedInConfig = createOxlintConfig({
+      pluginPath: "/tmp/react-doctor-plugin.js",
+      project: buildTestProject({ rootDirectory: "/tmp/test" }),
+      severityControls: {
+        rules: Object.fromEntries(defaultDisabledRules.map((ruleKey) => [ruleKey, "warn"])),
+      },
+    });
+    for (const ruleKey of defaultDisabledRules) {
+      expect(optedInConfig.rules[ruleKey]).toBe("warn");
+    }
+  });
 });

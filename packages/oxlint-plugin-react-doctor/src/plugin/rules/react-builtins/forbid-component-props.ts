@@ -120,6 +120,12 @@ const buildMessage = (propName: string, message: string | null): string =>
 export const forbidComponentProps = defineRule<Rule>({
   id: "forbid-component-props",
   severity: "warn",
+  // Default off because the upstream-default forbidden list `["className",
+  // "style"]` flags the canonical Tailwind/shadcn/Radix customization
+  // pattern (`<Component className="..." />`) — which is how most modern
+  // React UIs are written. Opt in via config when you want to enforce a
+  // strict design-system API on a specific component.
+  defaultEnabled: false,
   recommendation:
     "Configure forbidden props per component via the `forbidComponentProps.forbid` setting.",
   category: "Architecture",

@@ -98,6 +98,9 @@ const followsRenderLocalArrayBinding = (
 export const jsxNoNewArrayAsProp = defineRule<Rule>({
   id: "jsx-no-new-array-as-prop",
   severity: "warn",
+  // React Compiler auto-memoizes prop allocations. The perf footgun this
+  // rule guards against doesn't exist in compiler-enabled projects.
+  disabledBy: ["react-compiler"],
   recommendation: "Memoize the array (`useMemo`) or hoist it outside the component.",
   category: "Performance",
   create: (context) => ({

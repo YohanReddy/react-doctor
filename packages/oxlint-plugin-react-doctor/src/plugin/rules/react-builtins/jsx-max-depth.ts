@@ -9,6 +9,13 @@ import type { Rule } from "../../utils/rule.js";
 const buildMessage = (depth: number, max: number): string =>
   `JSX nesting depth ${depth} exceeds maximum ${max}.`;
 
+// Default depth threshold: 10. OXC's `max: 2` default is far too strict
+// for real-world React UIs — a routine shadcn Card already exceeds it
+// (`<Card><CardHeader><CardTitle/></CardHeader></Card>` = depth 3).
+// 10 catches genuinely-unreadable trees without flagging idiomatic
+// composition. Tunable per project via `jsxMaxDepth.max`.
+const DEFAULT_MAX_DEPTH = 10;
+
 interface JsxMaxDepthSettings {
   max?: number;
 }
@@ -21,7 +28,7 @@ const resolveSettings = (
     typeof reactDoctor === "object" && reactDoctor !== null
       ? ((reactDoctor as { jsxMaxDepth?: JsxMaxDepthSettings }).jsxMaxDepth ?? {})
       : {};
-  return { max: ruleSettings.max ?? 2 };
+  return { max: ruleSettings.max ?? DEFAULT_MAX_DEPTH };
 };
 
 const isLeafJsxNode = (node: EsTreeNode): boolean => {

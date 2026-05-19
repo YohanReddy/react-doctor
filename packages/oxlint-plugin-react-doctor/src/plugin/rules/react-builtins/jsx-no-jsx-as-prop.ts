@@ -52,6 +52,9 @@ const followsRenderLocalJsxBinding = (
 export const jsxNoJsxAsProp = defineRule<Rule>({
   id: "jsx-no-jsx-as-prop",
   severity: "warn",
+  // React Compiler auto-memoizes inline JSX. The perf footgun this rule
+  // guards against doesn't exist in compiler-enabled projects.
+  disabledBy: ["react-compiler"],
   recommendation: "Hoist the inner JSX outside the render or memoize via `useMemo`.",
   category: "Performance",
   create: (context) => ({

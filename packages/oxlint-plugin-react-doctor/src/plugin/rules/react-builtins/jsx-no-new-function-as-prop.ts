@@ -75,6 +75,9 @@ const followsRenderLocalFunctionBinding = (
 export const jsxNoNewFunctionAsProp = defineRule<Rule>({
   id: "jsx-no-new-function-as-prop",
   severity: "warn",
+  // React Compiler auto-memoizes inline callbacks. The perf footgun this
+  // rule guards against doesn't exist in compiler-enabled projects.
+  disabledBy: ["react-compiler"],
   recommendation: "Memoize the callback (`useCallback`) or hoist it outside the component.",
   category: "Performance",
   create: (context) => ({

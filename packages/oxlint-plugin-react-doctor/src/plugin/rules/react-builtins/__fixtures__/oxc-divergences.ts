@@ -16,18 +16,31 @@ export interface OxcDivergence {
 }
 
 export const DIVERGENCES: Record<string, OxcDivergence> = {
-  // OXC's `from_configuration(None)` path produces a default config
-  // where every bool is FALSE (Rust's Default), while the same struct
-  // serde-deserialized from `[{}]` uses `default_true` for each bool.
-  // The pass[23] fixture passes no options at all and so OXC silently
-  // disables warnOnDuplicates — we keep our defaults aligned with
-  // production OXC where these flags are enabled.
-  // OXC's jsx-pascal-case uses `fast_glob` for the `ignore` setting,
-  // which supports brace-alternation patterns like
-  // `*_*[DEPRECATED,IGNORED]`. Our matcher implements only `*` (any
-  // sequence) — a `fast_glob` parity would mean importing a full glob
-  // library for one fixture's worth of value.
-  // only-export-components: covers basic named/default export
-  // shapes; OXC's port handles 'export type', 'export interface',
-  // and HoC-aware component detection that we don't.
+  "jsx-no-new-object-as-prop": {
+    // OXC flags `style={{...}}` as an inline-object-prop allocation.
+    // We exempt `style` (and `dangerouslySetInnerHTML`) because both
+    // are React-mandated object-shape APIs and the perf footgun is
+    // unactionable on non-memoized components, where almost every
+    // real hit lives. See `ALWAYS_FRESH_OBJECT_PROPS` in the rule.
+    failSkips: [5],
+    reason: "Intentional: skip `style` / `dangerouslySetInnerHTML` to suppress FP noise.",
+  },
+  "jsx-max-depth": {
+    // OXC's default `max: 2` flags JSX trees that depth past 2 levels,
+    // which is far too strict for real React UIs (any shadcn Card
+    // exceeds it). We default `max: 10` instead and the fail[6]
+    // fixture (`<div>{<div><div><span/></div></div>}</div>`, depth 4)
+    // no longer exceeds the threshold.
+    failSkips: [6],
+    reason: "Intentional: default max raised from 2 → 10 to suppress idiomatic-React FPs.",
+  },
+  "only-export-components": {
+    // OXC defaults `allowConstantExport: false`, which flags any
+    // primitive-constant export alongside a component. We default
+    // `allowConstantExport: true` because exported constants are
+    // stable references that don't break Fast Refresh — matches the
+    // recommended config in `eslint-plugin-react-refresh`.
+    failSkips: [3, 4, 10, 14],
+    reason: "Intentional: default allowConstantExport=true to suppress shadcn-style FPs.",
+  },
 };

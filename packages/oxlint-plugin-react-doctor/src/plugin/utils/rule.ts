@@ -38,10 +38,23 @@ export interface Rule {
   // for the rule to be enabled. Omit for rules that always apply once
   // their framework gate is met.
   requires?: ReadonlyArray<string>;
+  // Inverse of `requires`: list of capability tokens whose presence
+  // DISABLES the rule. Used for rules that become irrelevant when a
+  // project ships with React Compiler (auto-memoization makes the four
+  // `jsx-no-new-*-as-prop` perf rules unnecessary, for example). If
+  // ANY listed capability is present the rule is skipped.
+  disabledBy?: ReadonlyArray<string>;
   // Behavioral tags (e.g. `"test-noise"`, `"design"`) consumed by
   // `--ignore-tag` / `shouldEnableRule` to opt families of rules in
   // or out of a scan independently of the framework gate.
   tags?: ReadonlyArray<string>;
+  // When `false`, the rule is registered in the plugin (importable,
+  // configurable, testable) but NOT enabled by default — users must
+  // opt in via `severityControls.rules["react-doctor/<id>"]`. Used for
+  // ports of upstream rules whose defaults produce massive noise on
+  // modern React codebases (`react-in-jsx-scope` post-React-17,
+  // `forbid-component-props` flagging `className`, etc.).
+  defaultEnabled?: boolean;
   recommendation?: string;
   create: (context: RuleContext) => RuleVisitors;
 }

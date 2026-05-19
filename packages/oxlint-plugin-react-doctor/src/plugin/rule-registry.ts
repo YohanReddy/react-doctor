@@ -3047,7 +3047,7 @@ export const reactDoctorRules = [
     originallyExternal: true,
     framework: "global",
     category: "Architecture",
-    severity: "warn",
+    severity: "error",
     rule: {
       ...onlyExportComponents,
       framework: "global",

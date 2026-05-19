@@ -28,6 +28,12 @@ const findProgramRoot = (node: EsTreeNode): EsTreeNode | null => {
 export const reactInJsxScope = defineRule<Rule>({
   id: "react-in-jsx-scope",
   severity: "warn",
+  // Default off because the rule is obsolete for any project on React 17+
+  // with the automatic JSX runtime (`jsx: "react-jsx"` in tsconfig, or
+  // `runtime: "automatic"` in Babel/SWC) — which is the configuration
+  // every modern React tool ships out of the box. Opt in via config if
+  // you're stuck on the classic transform.
+  defaultEnabled: false,
   recommendation:
     "If you're on React 17+ with the new JSX transform, disable this rule. Otherwise import `React` at the top of the file.",
   create: (context) => {

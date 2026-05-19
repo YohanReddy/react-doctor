@@ -73,12 +73,18 @@ export const createOxlintConfig = ({
     // skip everything ported 1:1 from upstream OXC plugins.
     if (customRulesOnly && registryEntry.originallyExternal) continue;
     if (rule.framework !== "global" && !rule.requires) continue;
-    if (!shouldEnableRule(rule.requires, rule.tags, capabilities, ignoredTags)) continue;
-    const severity =
-      resolveRuleSeverityOverride(
-        { ruleKey: registryEntry.key, category: rule.category },
-        severityControls,
-      ) ?? rule.severity;
+    if (!shouldEnableRule(rule.requires, rule.tags, capabilities, ignoredTags, rule.disabledBy))
+      continue;
+    const explicitSeverity = resolveRuleSeverityOverride(
+      { ruleKey: registryEntry.key, category: rule.category },
+      severityControls,
+    );
+    // `defaultEnabled: false` opts a rule out of the default config —
+    // it ships in the plugin but only activates when a user explicitly
+    // turns it on via `severityControls`. Users can still get the rule
+    // by setting its severity to `"warn"` or `"error"` in config.
+    if (rule.defaultEnabled === false && explicitSeverity === undefined) continue;
+    const severity = explicitSeverity ?? rule.severity;
     if (severity === "off") continue;
     enabledReactDoctorRules[registryEntry.key] = severity;
   }
