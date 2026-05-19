@@ -546,20 +546,26 @@ export const noMultiComp = defineRule<Rule>({
         const flagged = settings.ignoreStateless
           ? visitContext.components.filter((component) => !component.isStateless)
           : visitContext.components;
-        // Barrel files (icon barrels, shadcn dropdown-menu barrels, menu-items
-        // grouping files, etc.) deliberately co-locate many small related
-        // components. Splitting each into its own file would be churn for no
-        // gain. Heuristic: if 4+ components are detected AND 75%+ are
-        // exported top-level declarations, treat the file as a barrel and
-        // don't flag. The 75% threshold permits a handful of private helpers
-        // (e.g. `function DistributeMenuGroup()` used only by an exported
-        // sibling) without losing the barrel exemption.
+        // Two exemption shapes, both informed by the corpus:
+        //
+        //   1. BARREL: 4+ components, 75%+ exported — icon barrels, menu
+        //      groups, shadcn re-export files. Splitting would be churn.
+        //
+        //   2. PAGE-WITH-HELPERS: exactly ONE exported component plus N
+        //      private helpers (`function FooHelper() { ... }` only used
+        //      by the exported page). This is the canonical "feature
+        //      module" shape — `<SettingsAdminNewAiProvider>` with a
+        //      couple internal subcomponents — and forcing the user to
+        //      split each helper into its own file would only fragment
+        //      tightly-coupled UI.
         const exportedCount = flagged.filter((component) =>
           isExportedDeclaration(component.reportNode),
         ).length;
         const isBarrelLikeFile =
           flagged.length >= 4 && exportedCount >= Math.ceil(flagged.length * 0.75);
         if (isBarrelLikeFile) return;
+        const isPageWithHelpers = exportedCount === 1;
+        if (isPageWithHelpers) return;
         for (const component of flagged.slice(1)) {
           context.report({ node: component.reportNode, message: buildMessage(component.name) });
         }
