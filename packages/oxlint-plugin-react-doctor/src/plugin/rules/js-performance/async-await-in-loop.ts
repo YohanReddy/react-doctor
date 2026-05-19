@@ -32,7 +32,9 @@ const findFirstAwaitOutsideNestedFunctions = (block: EsTreeNode): EsTreeNode | n
 // HACK: heuristics to reduce false positives in the asyncAwaitInLoop
 // rule. Polling loops (`while (true) { await sleep(1000); ... }`) and
 // paginated fetches (`while (hasMore) { page = await fetch(cursor); cursor = page.next; }`)
-// are intentionally sequential and should not be flagged.
+// are intentionally sequential and should not be flagged. Same applies
+// to database / file-system / process operations where serialization is
+// required for transactions, FK constraints, mutation ordering, etc.
 const SLEEP_LIKE_FUNCTION_NAMES = new Set([
   "sleep",
   "delay",
@@ -40,6 +42,53 @@ const SLEEP_LIKE_FUNCTION_NAMES = new Set([
   "setTimeout",
   "pause",
   "throttle",
+  "debounce",
+  "tick",
+  "nextTick",
+  // Database / ORM operations
+  "query",
+  "execute",
+  "exec",
+  "raw",
+  "transaction",
+  "$transaction",
+  "$executeRaw",
+  "$queryRaw",
+  "$executeRawUnsafe",
+  "$queryRawUnsafe",
+  "begin",
+  "commit",
+  "rollback",
+  "savepoint",
+  "lock",
+  "unlock",
+  // File-system mutations
+  "mkdir",
+  "rmdir",
+  "rename",
+  "rm",
+  "unlink",
+  "writeFile",
+  "appendFile",
+  "copyFile",
+  // Process spawning
+  "spawn",
+  "spawnSync",
+  "execSync",
+  "execFile",
+  "execFileSync",
+  "fork",
+  // Browser automation (playwright / puppeteer)
+  "navigate",
+  "goto",
+  "waitForNavigation",
+  "waitForURL",
+  "waitForLoadState",
+  "waitForResponse",
+  "waitForRequest",
+  "waitForSelector",
+  "waitForFunction",
+  "waitForEvent",
 ]);
 
 const isAwaitingSleepLikeCall = (awaitNode: EsTreeNode): boolean => {
