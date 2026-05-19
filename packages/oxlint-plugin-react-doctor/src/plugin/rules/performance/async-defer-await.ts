@@ -81,6 +81,51 @@ interface AwaitWindow {
   guardCandidateIndex: number;
 }
 
+// `await Y(); if (cancelled) return;` is the cancellation-check
+// idiom — the await isn't there for its value, it's there to yield
+// control so an outer flag (a captured `cancelled`/`isMounted`
+// variable, or an `AbortSignal.aborted`) can flip during the
+// suspension. Moving the await *after* the check defeats the entire
+// pattern; the check would race instead of see the cancellation.
+const CANCELLATION_GUARD_NAMES: ReadonlySet<string> = new Set([
+  "cancelled",
+  "canceled",
+  "isCancelled",
+  "isCanceled",
+  "aborted",
+  "isAborted",
+  "disposed",
+  "isDisposed",
+  "destroyed",
+  "isDestroyed",
+  "stopped",
+  "isStopped",
+  "mounted",
+  "isMounted",
+  "unmounted",
+  "isUnmounted",
+  "active",
+  "isActive",
+  "stale",
+  "isStale",
+  "signal",
+  "abortSignal",
+  "abortController",
+]);
+
+const isCancellationGuardTest = (test: EsTreeNode | null): boolean => {
+  if (!test) return false;
+  const referenced = new Set<string>();
+  collectReferenceIdentifierNames(test, referenced);
+  if (referenced.size === 0) return false;
+  // Match either a bare identifier reference (`cancelled`, `!cancelled`)
+  // or a property access on one (`controller.signal.aborted`).
+  for (const name of referenced) {
+    if (CANCELLATION_GUARD_NAMES.has(name)) return true;
+  }
+  return false;
+};
+
 // Walks forward from `startIndex` collecting an "await preamble" — the
 // originating awaited statement plus any contiguous bare-await statements
 // or VariableDeclarations whose declarators introduce their own await OR
@@ -146,6 +191,10 @@ export const asyncDeferAwait = defineRule<Rule>({
         const testIdentifierNames = new Set<string>();
         collectReferenceIdentifierNames(guardStatement.test, testIdentifierNames);
         if (hasAnyIdentifierName(testIdentifierNames, window.awaitedBindingNames)) {
+          statementIndex = window.guardCandidateIndex - 1;
+          continue;
+        }
+        if (isCancellationGuardTest(guardStatement.test)) {
           statementIndex = window.guardCandidateIndex - 1;
           continue;
         }
