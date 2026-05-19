@@ -564,8 +564,16 @@ export const noMultiComp = defineRule<Rule>({
         const isBarrelLikeFile =
           flagged.length >= 4 && exportedCount >= Math.ceil(flagged.length * 0.75);
         if (isBarrelLikeFile) return;
-        const isPageWithHelpers = exportedCount === 1;
-        if (isPageWithHelpers) return;
+        // Feature module: 1-2 exported components + N private helpers.
+        // The "1 or 2 exported" allowance covers the common shape where a
+        // file exports both `<FeatureScene />` and its `<FeatureSceneHeader />`
+        // as a deliberate two-piece public API (the header is sometimes
+        // composed by a parent layout while the scene handles the body).
+        // More than 2 exported = likely needs splitting; require the
+        // file's exported components to be the minority.
+        const isFeatureModule =
+          exportedCount > 0 && exportedCount <= 2 && exportedCount < flagged.length;
+        if (isFeatureModule) return;
         for (const component of flagged.slice(1)) {
           context.report({ node: component.reportNode, message: buildMessage(component.name) });
         }
