@@ -97,11 +97,32 @@ const symbolMapsToHoc = (symbol: SymbolDescriptor): boolean => {
   return false;
 };
 
+// A child is "trivial" — doesn't compose another React component into the
+// passthrough wrapper. Intrinsic HTML (`<path>`, `<svg>`), JSX text, and
+// expression containers (`{children}`, conditionals, etc.) all count.
+// PascalCase JSX children would mean the wrapper is actually composing
+// structure, not just forwarding — those disqualify the passthrough.
+const isTrivialPassthroughChild = (child: EsTreeNode): boolean => {
+  if (child.type === "JSXText") return true;
+  if (child.type === "JSXExpressionContainer") return true;
+  if (child.type === "JSXFragment") return true;
+  if (isNodeOfType(child, "JSXElement")) {
+    const open = child.openingElement;
+    if (isNodeOfType(open.name, "JSXIdentifier")) {
+      const first = open.name.name.charCodeAt(0);
+      // Lowercase first char = intrinsic HTML — OK.
+      return first < 65 || first > 90;
+    }
+    return false;
+  }
+  return false;
+};
+
 // A simple JSX passthrough: <PascalCaseComponent {...spread} ?one-other-attr />
-// Used by `is_passthrough_*` to recognize `(props, ref) =>
-// <Foo {...props} ref={ref} />` style "trampoline" wrappers — OXC's
-// no-multi-comp doesn't count those as a separate component because
-// they only forward props.
+// with no composed React-component children. Used by `is_passthrough_*` to
+// recognize `(props, ref) => <Foo {...props} ref={ref} />` style "trampoline"
+// wrappers and shadcn / icon-barrel re-exports. OXC's no-multi-comp doesn't
+// count those as a separate component because they only forward props.
 const isSimpleJsxPassthrough = (expression: EsTreeNode): boolean => {
   if (!isNodeOfType(expression, "JSXElement")) return false;
   const opening = expression.openingElement;
@@ -109,7 +130,14 @@ const isSimpleJsxPassthrough = (expression: EsTreeNode): boolean => {
   if (!isReactComponentName(opening.name.name)) return false;
   const attrs = opening.attributes;
   if (attrs.length > 2) return false;
-  return attrs.some((attr) => isNodeOfType(attr as EsTreeNode, "JSXSpreadAttribute"));
+  const hasSpread = attrs.some((attr) =>
+    isNodeOfType(attr as EsTreeNode, "JSXSpreadAttribute"),
+  );
+  if (!hasSpread) return false;
+  for (const child of expression.children ?? []) {
+    if (!isTrivialPassthroughChild(child as EsTreeNode)) return false;
+  }
+  return true;
 };
 
 const isSingleReturnPassthrough = (statements: ReadonlyArray<EsTreeNode>): boolean => {
