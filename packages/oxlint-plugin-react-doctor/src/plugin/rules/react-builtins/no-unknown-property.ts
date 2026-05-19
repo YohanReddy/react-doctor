@@ -73,6 +73,38 @@ const UNKNOWN_PROP_GENERIC = "Unknown property — remove it.";
 //   - Tag-restricted attrs (`fetchPriority`, `viewBox`, `download`, …)
 //     are flagged on tags outside their allowed set.
 // Custom elements (`<my-elem>`, anything with `is="..."`) are skipped.
+// Non-React JSX dialects that use raw HTML attribute names (`class`,
+// `for`, `tabindex`, etc.) — flagging them as "use React-cased prop"
+// would be wrong because the file isn't React. Detected by an import
+// from the dialect's runtime package.
+const NON_REACT_JSX_DIALECT_PACKAGES: ReadonlySet<string> = new Set([
+  "solid-js",
+  "solid-js/web",
+  "solid-js/store",
+  "solid-js/h",
+  "@builder.io/qwik",
+  "@builder.io/qwik-city",
+]);
+
+const fileImportsNonReactJsxDialect = (program: EsTreeNodeOfType<"Program">): boolean => {
+  for (const statement of program.body) {
+    if (!isNodeOfType(statement as EsTreeNodeOfType<"ImportDeclaration">, "ImportDeclaration")) {
+      continue;
+    }
+    const source = (statement as EsTreeNodeOfType<"ImportDeclaration">).source;
+    if (
+      source &&
+      typeof (source as { value?: unknown }).value === "string" &&
+      NON_REACT_JSX_DIALECT_PACKAGES.has(
+        (source as { value: string }).value,
+      )
+    ) {
+      return true;
+    }
+  }
+  return false;
+};
+
 export const noUnknownProperty = defineRule<Rule>({
   id: "no-unknown-property",
   severity: "warn",
@@ -81,9 +113,14 @@ export const noUnknownProperty = defineRule<Rule>({
   create: (context) => {
     const { ignore = [], requireDataLowercase = false } = resolveSettings(context.settings);
     const ignoreSet = new Set(ignore);
+    let fileIsNonReactJsx = false;
 
     return {
+      Program(node: EsTreeNodeOfType<"Program">) {
+        fileIsNonReactJsx = fileImportsNonReactJsxDialect(node);
+      },
       JSXOpeningElement(node: EsTreeNodeOfType<"JSXOpeningElement">) {
+        if (fileIsNonReactJsx) return;
         if (!isNodeOfType(node.name, "JSXIdentifier")) return;
         const elementType = node.name.name;
         const firstCharacter = elementType.charCodeAt(0);
