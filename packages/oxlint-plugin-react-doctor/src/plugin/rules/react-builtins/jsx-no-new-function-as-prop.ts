@@ -329,16 +329,33 @@ const followsRenderLocalFunctionBinding = (
   return isFunctionProducingExpression(binding.initializer);
 };
 
-// `() => fn(arg1, arg2, …)` — a zero-arg arrow whose ENTIRE body is a
-// single call to a stable callee with stable arguments (literals,
-// identifier refs, or member accesses; no nested closures / arrays /
-// objects). The wrapper exists purely to bind arguments — and the user
-// CAN'T `useCallback` it (the closure must close over the outer
-// `arg1`/`arg2` references that vary across renders). Flagging it is
-// unactionable: the only "fix" is restructuring the data flow (`<X arg=
-// {…} />` instead of `onClick={() => fn(arg)}`), which is a major
-// refactor for a tiny perf gain that doesn't materialize on
-// non-memoized consumers.
+// `(…params) => fn(arg1, arg2, …)` — an arrow whose ENTIRE body is a
+// single call (or method invocation) where every argument is a stable
+// value (literal, identifier, member access, the arrow's own param, or
+// a chain expression of those). The wrapper exists purely to adapt the
+// caller's signature to the inner call's argument list — and the user
+// CAN'T `useCallback` it: the closure MUST capture the outer scope's
+// identifier references (which themselves often aren't stable). The
+// only "fix" would be restructuring the data flow (`<X arg={…} />`
+// instead of `onClick={(e) => fn(arg, e)}`), which is a major refactor
+// for a tiny perf gain that only materializes on `React.memo` consumers
+// — most internal app components aren't memo'd, so the cost is zero.
+//
+// Covered shapes (all skipped):
+//   () => fn()
+//   () => fn(literal, outerIdentifier)
+//   (e) => fn(e)
+//   (e) => e.stopPropagation()
+//   (value) => onChange?.(value)
+//   (x) => x?.foo.bar
+//   (a, b) => fn(a, b)
+//   (e) => e.key === 'Enter' && saveProperty()
+//
+// NOT covered (still flagged):
+//   () => fn({ ... })       — inline object construction is per-render
+//   () => fn([...x, ...])   — inline array
+//   () => { setA(); setB(); } — multiple statements (real work)
+//   () => () => fn()        — returns a function (HoC-style)
 const isStableArgumentValue = (node: EsTreeNode): boolean => {
   if (isNodeOfType(node, "Literal")) return true;
   if (isNodeOfType(node, "TemplateLiteral")) {
@@ -357,14 +374,58 @@ const isStableArgumentValue = (node: EsTreeNode): boolean => {
   return false;
 };
 
+const isStableCallExpression = (node: EsTreeNode): boolean => {
+  let inner = node;
+  if (isNodeOfType(inner, "ChainExpression")) inner = inner.expression as EsTreeNode;
+  if (!isNodeOfType(inner, "CallExpression")) return false;
+  const callee = inner.callee;
+  if (
+    !isNodeOfType(callee, "Identifier") &&
+    !isNodeOfType(callee, "MemberExpression")
+  )
+    return false;
+  for (const argument of inner.arguments ?? []) {
+    if (!isStableArgumentValue(argument as EsTreeNode)) return false;
+  }
+  return true;
+};
+
+const isLightweightBodyExpression = (body: EsTreeNode): boolean => {
+  // Direct call: `(e) => fn(e)`, `(e) => e.method()`, `(v) => fn?.(v)`
+  if (isStableCallExpression(body)) return true;
+  if (isNodeOfType(body, "ChainExpression")) {
+    return isLightweightBodyExpression(body.expression as EsTreeNode);
+  }
+  // Short-circuit guard: `(e) => e.key === 'Enter' && saveProperty()`
+  // — accepted only when at least one side is a real call (the
+  // wrapper exists to invoke something, not return a static value).
+  if (
+    isNodeOfType(body, "LogicalExpression") &&
+    (body.operator === "&&" || body.operator === "||" || body.operator === "??")
+  ) {
+    const leftLightweight = isLightweightBodyExpression(body.left as EsTreeNode);
+    const rightLightweight = isLightweightBodyExpression(body.right as EsTreeNode);
+    if (!leftLightweight || !rightLightweight) return false;
+    const leftIsCall =
+      isNodeOfType(body.left as EsTreeNode, "CallExpression") ||
+      (isNodeOfType(body.left as EsTreeNode, "ChainExpression") &&
+        isNodeOfType((body.left as EsTreeNodeOfType<"ChainExpression">).expression as EsTreeNode, "CallExpression"));
+    const rightIsCall =
+      isNodeOfType(body.right as EsTreeNode, "CallExpression") ||
+      (isNodeOfType(body.right as EsTreeNode, "ChainExpression") &&
+        isNodeOfType((body.right as EsTreeNodeOfType<"ChainExpression">).expression as EsTreeNode, "CallExpression"));
+    return leftIsCall || rightIsCall;
+  }
+  // Pure-value or no-call bodies (`() => true`, `(x) => x.length`) get
+  // flagged — these can be trivially hoisted (`const T = () => true`).
+  return false;
+};
+
 const isParameterBindingWrapper = (expression: EsTreeNode): boolean => {
   const stripped = stripParenExpression(expression);
   if (!isNodeOfType(stripped, "ArrowFunctionExpression")) return false;
-  // Wrapper takes no arguments — it's bridging the caller's no-arg
-  // signature to the inner call's argument list.
-  if ((stripped.params?.length ?? 0) !== 0) return false;
-  // Body is either `fn(...)` directly (expression body) or
-  // `{ return fn(...); }` / `{ fn(...); }` (single-statement block).
+  // Body is either expression-form, single `return expr;`, or single
+  // expression statement. Multi-statement blocks are real work; flag those.
   let body = stripped.body as EsTreeNode;
   if (isNodeOfType(body, "BlockStatement")) {
     const statements = body.body ?? [];
@@ -379,19 +440,7 @@ const isParameterBindingWrapper = (expression: EsTreeNode): boolean => {
       return false;
     }
   }
-  if (!isNodeOfType(body, "CallExpression")) return false;
-  // Callee must be a plain Identifier (likely a stable hook setter or
-  // top-level function) or a MemberExpression (method call).
-  const callee = body.callee;
-  if (!isNodeOfType(callee, "Identifier") && !isNodeOfType(callee, "MemberExpression")) {
-    return false;
-  }
-  // Every argument must be stable — literals / identifiers / member
-  // accesses, NOT inline objects/arrays/arrows.
-  for (const argument of body.arguments ?? []) {
-    if (!isStableArgumentValue(argument as EsTreeNode)) return false;
-  }
-  return true;
+  return isLightweightBodyExpression(body);
 };
 
 // Port of `oxc_linter::rules::react_perf::jsx_no_new_function_as_prop`.
