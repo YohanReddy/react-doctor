@@ -237,6 +237,15 @@ const isObjectProducingExpression = (expression: EsTreeNode): boolean => {
     return false;
   }
   if (isNodeOfType(stripped, "LogicalExpression")) {
+    // `value ?? {}` / `value || {}` — the empty object on the right
+    // is a fallback that only allocates on the rare null/undefined
+    // path. Short-circuit semantics: `{}` isn't evaluated when
+    // `value` is defined. Same reasoning as the array variant —
+    // forcing a hoisted `EMPTY_OBJECT` const for a non-existent cost
+    // is pure noise.
+    if (stripped.operator === "??" || stripped.operator === "||") {
+      return isObjectProducingExpression(stripped.left);
+    }
     return (
       isObjectProducingExpression(stripped.left) || isObjectProducingExpression(stripped.right)
     );

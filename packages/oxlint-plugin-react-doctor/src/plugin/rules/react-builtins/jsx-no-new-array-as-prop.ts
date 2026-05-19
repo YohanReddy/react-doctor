@@ -226,6 +226,14 @@ const isArrayProducingExpression = (expression: EsTreeNode): boolean => {
     return false;
   }
   if (isNodeOfType(stripped, "LogicalExpression")) {
+    // `value ?? []` / `value || []` — the empty array on the right is
+    // a fallback that only allocates on the rare null/undefined path.
+    // Short-circuit semantics: `[]` isn't evaluated when `value` is
+    // defined. Flagging it would force the user to hoist an
+    // `EMPTY_ARRAY` const just to dodge a non-existent re-render cost.
+    if (stripped.operator === "??" || stripped.operator === "||") {
+      return isArrayProducingExpression(stripped.left);
+    }
     return isArrayProducingExpression(stripped.left) || isArrayProducingExpression(stripped.right);
   }
   if (isNodeOfType(stripped, "ConditionalExpression")) {
