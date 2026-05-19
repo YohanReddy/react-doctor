@@ -1,6 +1,7 @@
 import { defineRule } from "../../utils/define-rule.js";
 import { createRelativeImportSource } from "../../utils/create-relative-import-source.js";
 import { isBarrelIndexModule } from "../../utils/is-barrel-index-module.js";
+import { isTestlikeFilename } from "../../utils/is-testlike-filename.js";
 import { resolveBarrelExportFilePath } from "../../utils/resolve-barrel-export-file-path.js";
 import { resolveRelativeImportPath } from "../../utils/resolve-relative-import-path.js";
 import type { Rule } from "../../utils/rule.js";
@@ -65,9 +66,13 @@ export const noBarrelImport = defineRule<Rule>({
     "Import from the direct path: `import { Button } from './components/Button'` instead of `./components`",
   create: (context: RuleContext) => {
     let didReportForFile = false;
+    // Stories / tests / playground / examples aren't shipped to users —
+    // barrel imports there don't expand the production bundle.
+    const isTestlikeFile = isTestlikeFilename(context.getFilename?.());
 
     return {
       ImportDeclaration(node: EsTreeNodeOfType<"ImportDeclaration">) {
+        if (isTestlikeFile) return;
         if (didReportForFile) return;
 
         const source = node.source?.value;

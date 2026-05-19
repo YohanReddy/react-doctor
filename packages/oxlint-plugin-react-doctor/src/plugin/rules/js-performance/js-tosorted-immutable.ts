@@ -1,5 +1,6 @@
 import { defineRule } from "../../utils/define-rule.js";
 import { isMemberProperty } from "../../utils/is-member-property.js";
+import { isTestlikeFilename } from "../../utils/is-testlike-filename.js";
 import type { Rule } from "../../utils/rule.js";
 import type { RuleContext } from "../../utils/rule-context.js";
 import { isNodeOfType } from "../../utils/is-node-of-type.js";
@@ -10,21 +11,25 @@ export const jsTosortedImmutable = defineRule<Rule>({
   severity: "warn",
   recommendation:
     "Use `array.toSorted()` (ES2023) instead of `[...array].sort()` for immutable sorting without the spread allocation",
-  create: (context: RuleContext) => ({
-    CallExpression(node: EsTreeNodeOfType<"CallExpression">) {
-      if (!isMemberProperty(node.callee, "sort")) return;
+  create: (context: RuleContext) => {
+    const isTestlikeFile = isTestlikeFilename(context.getFilename?.());
+    return {
+      CallExpression(node: EsTreeNodeOfType<"CallExpression">) {
+        if (isTestlikeFile) return;
+        if (!isMemberProperty(node.callee, "sort")) return;
 
-      const receiver = node.callee.object;
-      if (
-        isNodeOfType(receiver, "ArrayExpression") &&
-        receiver.elements?.length === 1 &&
-        isNodeOfType(receiver.elements[0], "SpreadElement")
-      ) {
-        context.report({
-          node,
-          message: "[...array].sort() — use array.toSorted() for immutable sorting (ES2023)",
-        });
-      }
-    },
-  }),
+        const receiver = node.callee.object;
+        if (
+          isNodeOfType(receiver, "ArrayExpression") &&
+          receiver.elements?.length === 1 &&
+          isNodeOfType(receiver.elements[0], "SpreadElement")
+        ) {
+          context.report({
+            node,
+            message: "[...array].sort() — use array.toSorted() for immutable sorting (ES2023)",
+          });
+        }
+      },
+    };
+  },
 });
