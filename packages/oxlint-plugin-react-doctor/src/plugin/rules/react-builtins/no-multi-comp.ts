@@ -279,7 +279,14 @@ interface DetectedComponent {
 // parents looking for an ExportNamedDeclaration / ExportDefaultDeclaration
 // before crossing any non-trivial scope boundary.
 const isExportedDeclaration = (node: EsTreeNode): boolean => {
+  // The component's reportNode is the binding identifier (e.g.
+  // `Foo` inside `export function Foo()`). To detect export-ness we
+  // walk up through AT MOST one function/class layer (the binding
+  // node itself) so `export function Foo()` and `export const Foo =`
+  // both resolve correctly, while a function nested INSIDE another
+  // function still bails before climbing out of its host.
   let current: EsTreeNode | null | undefined = node.parent;
+  let didCrossOneBindingLayer = false;
   while (current) {
     if (
       isNodeOfType(current, "ExportNamedDeclaration") ||
@@ -287,10 +294,7 @@ const isExportedDeclaration = (node: EsTreeNode): boolean => {
     ) {
       return true;
     }
-    // Stop at module-level statements that aren't exports.
     if (isNodeOfType(current, "Program")) return false;
-    // Stop at function / class bodies — we only care about the
-    // immediate top-level binding's export-ness.
     if (
       isNodeOfType(current, "FunctionDeclaration") ||
       isNodeOfType(current, "FunctionExpression") ||
@@ -298,7 +302,8 @@ const isExportedDeclaration = (node: EsTreeNode): boolean => {
       isNodeOfType(current, "ClassDeclaration") ||
       isNodeOfType(current, "ClassExpression")
     ) {
-      return false;
+      if (didCrossOneBindingLayer) return false;
+      didCrossOneBindingLayer = true;
     }
     current = current.parent ?? null;
   }
