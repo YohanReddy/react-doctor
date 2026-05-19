@@ -45,6 +45,41 @@ const ONE_SHOT_LIFECYCLE_HANDLER_NAMES: ReadonlySet<string> = new Set([
   "onDismiss",
   "onCancel",
   "onConfirm",
+  // Save / submit / commit / remove / delete — intent-class callbacks
+  // that fire at most once per user action (not per render or per
+  // pointer-move). New function reference per render has no measurable
+  // perf impact: the handler doesn't run in any hot path.
+  "onSave",
+  "onSubmit",
+  "onCommit",
+  "onApply",
+  "onRemove",
+  "onDelete",
+  "onDuplicate",
+  "onReset",
+  "onRetry",
+  "onRefresh",
+  "onAdd",
+  "onCreate",
+  "onUpdate",
+  // Compound action-button conventions (`onConfirmClick`, `onAcceptClick`)
+  "onConfirmClick",
+  "onAcceptClick",
+  "onCancelClick",
+  "onSaveClick",
+  // Outside-click / press-enter / escape / context-menu — sparse user
+  // intent, not per-render or per-pointer-move events.
+  "onClickOutside",
+  "onPressEnter",
+  "onEnter",
+  "onEscape",
+  "onLeave",
+  // Drag / drop — fires on action completion, not per-frame; consumers
+  // don't memo on these refs.
+  "onDragStart",
+  "onDragEnd",
+  "onDrop",
+  "onSort",
   // Render-prop / customization slots — accept a function that's
   // either called once (fallback) or used by the parent to render
   // subviews. Real perf hits flow through the children, not the
