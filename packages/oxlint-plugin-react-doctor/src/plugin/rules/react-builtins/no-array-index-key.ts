@@ -31,7 +31,39 @@ const THIRD_INDEX_METHODS: ReadonlySet<string> = new Set(["reduce", "reduceRight
 // In each of these the array's identity-vs-position is fixed by the
 // source string/length — reordering can't happen, so using the index
 // as the key is semantically right.
+const isAllLiteralArrayExpression = (node: EsTreeNode): boolean => {
+  if (!isNodeOfType(node, "ArrayExpression")) return false;
+  const elements = node.elements ?? [];
+  if (elements.length < 1) return false;
+  for (const element of elements) {
+    if (!element) return false;
+    if (!isNodeOfType(element, "Literal")) return false;
+    const value = (element as { value: unknown }).value;
+    if (
+      typeof value !== "string" &&
+      typeof value !== "number" &&
+      typeof value !== "boolean"
+    )
+      return false;
+  }
+  return true;
+};
+
 const isPositionallyStableIterationReceiver = (receiver: EsTreeNode): boolean => {
+  // `[lit, lit, lit].map(...)` — fixed-shape literal array, order is stable.
+  if (isAllLiteralArrayExpression(receiver)) return true;
+  // `[...Array(N)].map(...)` or `[...Array.from(...)].map(...)` — spread
+  // of an array constructor; the result has a fixed positional shape.
+  if (
+    isNodeOfType(receiver, "ArrayExpression") &&
+    receiver.elements?.length === 1
+  ) {
+    const only = receiver.elements[0];
+    if (only && isNodeOfType(only, "SpreadElement")) {
+      const arg = only.argument as EsTreeNode | null;
+      if (arg && isPositionallyStableIterationReceiver(arg)) return true;
+    }
+  }
   if (!isNodeOfType(receiver, "CallExpression")) return false;
   const callee = receiver.callee;
   // Array.from({ length: N })  /  Array.from({ length: N }, ...)
@@ -67,6 +99,59 @@ const isPositionallyStableIterationReceiver = (receiver: EsTreeNode): boolean =>
     return isPositionallyStableIterationReceiver(callee.object as EsTreeNode);
   }
   return false;
+};
+
+// True when a key template literal mixes the index with a member of the
+// iteration variable (`${item.id}-${index}`). The user is defensively
+// composing identity + index — the composite key IS stable for that
+// iteration, even though it mentions the index.
+const templateHasIteratorMember = (
+  templateLiteral: EsTreeNodeOfType<"TemplateLiteral">,
+  iteratorName: string,
+): boolean => {
+  for (const expression of templateLiteral.expressions ?? []) {
+    if (isNodeOfType(expression, "Identifier") && expression.name === iteratorName)
+      return true;
+    if (
+      isNodeOfType(expression, "MemberExpression") &&
+      isNodeOfType(expression.object, "Identifier") &&
+      expression.object.name === iteratorName
+    )
+      return true;
+  }
+  return false;
+};
+
+// Walk up from the JSX opening element to find the iteration callback's
+// FIRST parameter (the per-item value, e.g. `item` in `arr.map((item, i) => …)`).
+// Returns null if not inside a known iterator callback.
+const findIteratorItemName = (node: EsTreeNode): string | null => {
+  let current: EsTreeNode | null | undefined = node;
+  while (current) {
+    if (
+      isNodeOfType(current, "ArrowFunctionExpression") ||
+      isNodeOfType(current, "FunctionExpression")
+    ) {
+      const parent = current.parent;
+      if (parent && isNodeOfType(parent, "CallExpression")) {
+        const callee = parent.callee;
+        const isFirstArg = parent.arguments[0] === current;
+        if (
+          isFirstArg &&
+          isNodeOfType(callee, "MemberExpression") &&
+          isNodeOfType(callee.property, "Identifier") &&
+          SECOND_INDEX_METHODS.has(callee.property.name)
+        ) {
+          const first = current.params[0];
+          if (first && isNodeOfType(first, "Identifier")) return first.name;
+          return null;
+        }
+      }
+      return null;
+    }
+    current = current.parent ?? null;
+  }
+  return null;
 };
 
 // Find the iteration callback's index parameter binding (Identifier
@@ -192,9 +277,15 @@ export const noArrayIndexKey = defineRule<Rule>({
       if (expression.type === "JSXEmptyExpression") return;
       const indexBinding = findIndexParameterBinding(node as EsTreeNode);
       if (!indexBinding) return;
-      if (expressionUsesIndex(expression, indexBinding.name)) {
-        context.report({ node: keyAttribute, message: MESSAGE });
+      if (!expressionUsesIndex(expression, indexBinding.name)) return;
+      // Composite key with iterator member identity: `${item.id}-${index}`
+      // — the index is just a defensive uniqueness fallback, the real
+      // identity is `item.id`. Skip.
+      if (isNodeOfType(expression, "TemplateLiteral")) {
+        const itemName = findIteratorItemName(node as EsTreeNode);
+        if (itemName && templateHasIteratorMember(expression, itemName)) return;
       }
+      context.report({ node: keyAttribute, message: MESSAGE });
     },
     CallExpression(node: EsTreeNodeOfType<"CallExpression">) {
       if (!isReactCloneElement(node)) return;
