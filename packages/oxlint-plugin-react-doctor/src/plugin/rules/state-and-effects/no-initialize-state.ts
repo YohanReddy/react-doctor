@@ -28,6 +28,7 @@ import { stringifyExpressionSnippet } from "./utils/effect/stringify-expression-
 export const noInitializeState = defineRule<Rule>({
   id: "no-initialize-state",
   severity: "warn",
+  tags: ["test-noise"],
   recommendation:
     "Pass the initial value directly to useState() instead of setting it from a mount-only useEffect. For SSR hydration, prefer useSyncExternalStore().",
   create: (context: RuleContext) => ({

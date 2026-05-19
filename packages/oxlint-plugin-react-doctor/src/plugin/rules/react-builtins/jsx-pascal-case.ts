@@ -151,6 +151,7 @@ const matchesIgnoreGlob = (
 export const jsxPascalCase = defineRule<Rule>({
   id: "jsx-pascal-case",
   severity: "warn",
+  tags: ["test-noise"],
   recommendation: "Rename custom JSX components to PascalCase.",
   category: "Architecture",
   create: (context) => {
