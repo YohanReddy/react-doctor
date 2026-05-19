@@ -102,17 +102,136 @@ const ONE_SHOT_LIFECYCLE_HANDLER_NAMES: ReadonlySet<string> = new Set([
   "renderItemActions",
   "children",
   "useCustom",
+  // PascalCase render-slot props (`Icon={() => <X/>}`, `Trigger={…}`,
+  // etc.) — by convention these receive a render function whose output
+  // is inserted directly into the tree. Identity doesn't matter.
+  "Icon",
+  "Trigger",
+  "Header",
+  "Footer",
+  "Label",
+  "Content",
+  "Adornment",
+  "Indicator",
+  "Tooltip",
+  "Badge",
+  "Panel",
+  "Overlay",
+  "Section",
+  "Button",
+  "Action",
+  // Radix / Headless UI controlled-state callbacks — fire on user
+  // interaction, not per render, and library consumers don't memoize
+  // by their identity.
+  "onValueChange",
+  "onCheckedChange",
+  "onOpenChange",
+  "onSelectionChange",
+  "onPressedChange",
+  "onToggleChange",
+  "onSearch",
+  "onSearchChange",
+  "onClear",
+  "onReset",
+  "onCopy",
+  "onPaste",
+  "onPick",
+  "onActiveChange",
+  "onExpandedChange",
+  "onSortChange",
+  "onFilterChange",
+  "onSelectChange",
+  // Generic intent / action callbacks (per-action, not per-render)
+  "action",
+  "onEdit",
+  "onView",
+  "onApprove",
+  "onReject",
+  "onArchive",
+  "onUnarchive",
+  "onPin",
+  "onUnpin",
+  "onShare",
+  "onDownload",
+  "onUpload",
+  "onPrint",
+  "onExport",
+  "onImport",
+  "onMove",
+  "onRename",
+  // Table-row callbacks (antd / data-table style) — per-row, not per-render
+  "rowKey",
+  "onRow",
+  "onCell",
+  "onHeader",
+  "onHeaderRow",
+  "onHeaderCell",
+  "onPageChange",
+  "onTabChange",
+  // Form field common per-action callbacks
+  "onNameChange",
+  "onDescriptionChange",
+  "onInputChange",
+  "onLabelChange",
+  "onValueCommit",
+  "onCommit",
 ]);
 
-// Render-prop suffix conventions — `render*`, `*Render`, `*Renderer`,
-// `*Slot`, `*Component`, `*Element` props receiving callable values.
+// Render-prop / slot / customization suffix conventions — `render*`,
+// `*Render`, `*Renderer`, `*Slot`, `*Component`, `*Element`, plus
+// PascalCase-suffix slot props (`actionButton`, `closeIcon`, etc.).
 const ONE_SHOT_HANDLER_SUFFIXES: ReadonlyArray<string> = [
   "Render",
   "Renderer",
   "Slot",
   "Component",
   "Element",
+  "Icon",
+  "Trigger",
+  "Header",
+  "Footer",
+  "Label",
+  "Content",
+  "Adornment",
+  "Indicator",
+  "Tooltip",
+  "Badge",
+  "Panel",
+  "Overlay",
+  "Section",
+  "Button",
+  "Action",
+  "Override",
+  "Fallback",
 ];
+
+// `get*`, `format*`, `parse*`, `validate*`, `is*`, `should*`, `match*`,
+// `select*`, `to*` — pure-ish accessor / predicate / formatter function
+// props called on demand, not on every render. New identity is OK.
+const ACCESSOR_PREDICATE_PREFIXES: ReadonlyArray<string> = [
+  "get",
+  "format",
+  "parse",
+  "validate",
+  "is",
+  "should",
+  "match",
+  "select",
+  "filter",
+  "compare",
+];
+
+const isAccessorPredicateName = (propName: string): boolean => {
+  for (const prefix of ACCESSOR_PREDICATE_PREFIXES) {
+    if (propName.length <= prefix.length) continue;
+    if (!propName.startsWith(prefix)) continue;
+    const nextChar = propName.charCodeAt(prefix.length);
+    // require uppercase after the prefix (so `get` doesn't false-match
+    // `gather`, `should` doesn't match `shouldery`, etc.)
+    if (nextChar >= 65 && nextChar <= 90) return true;
+  }
+  return false;
+};
 
 const isOneShotHandlerName = (propName: string): boolean => {
   if (ONE_SHOT_LIFECYCLE_HANDLER_NAMES.has(propName)) return true;
@@ -121,6 +240,7 @@ const isOneShotHandlerName = (propName: string): boolean => {
     // `render<X>` where X is uppercase A-Z = render-prop convention
     if (fourthCharCode >= 65 && fourthCharCode <= 90) return true;
   }
+  if (isAccessorPredicateName(propName)) return true;
   for (const suffix of ONE_SHOT_HANDLER_SUFFIXES) {
     if (propName.length > suffix.length && propName.endsWith(suffix)) return true;
   }
