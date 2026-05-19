@@ -11,6 +11,7 @@ import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 export const noOutlineNone = defineRule<Rule>({
   id: "no-outline-none",
   severity: "warn",
+  tags: ["test-noise"],
   category: "Accessibility",
   recommendation:
     "Use `:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px }` to show focus only for keyboard users while hiding it for mouse clicks",

@@ -12,6 +12,7 @@ import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 export const noWideLetterSpacing = defineRule<Rule>({
   id: "no-wide-letter-spacing",
   severity: "warn",
+  tags: ["test-noise"],
   recommendation:
     "Reserve wide tracking (letter-spacing > 0.05em) for short uppercase labels, navigation items, and buttons — not body text",
   create: (context: RuleContext) => ({

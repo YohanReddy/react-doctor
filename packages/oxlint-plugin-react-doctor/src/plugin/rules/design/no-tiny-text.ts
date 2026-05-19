@@ -11,6 +11,7 @@ import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 export const noTinyText = defineRule<Rule>({
   id: "no-tiny-text",
   severity: "warn",
+  tags: ["test-noise"],
   category: "Accessibility",
   recommendation:
     "Use at least 12px for body content, 16px is ideal. Small text is hard to read, especially on high-DPI mobile screens",

@@ -10,6 +10,7 @@ import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 export const noInlineExhaustiveStyle = defineRule<Rule>({
   id: "no-inline-exhaustive-style",
   severity: "warn",
+  tags: ["test-noise"],
   recommendation:
     "Move styles to a CSS class, CSS module, Tailwind utilities, or a styled component — inline objects with many properties hurt readability and create new references every render",
   create: (context: RuleContext) => ({

@@ -8,6 +8,7 @@ import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 export const noDisabledZoom = defineRule<Rule>({
   id: "no-disabled-zoom",
   severity: "error",
+  tags: ["test-noise"],
   category: "Accessibility",
   recommendation:
     "Remove `user-scalable=no` and `maximum-scale` from the viewport meta tag. If your layout breaks at 200% zoom, fix the layout — don't punish users with disabilities",

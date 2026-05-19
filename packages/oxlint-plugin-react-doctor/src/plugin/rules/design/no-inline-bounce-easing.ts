@@ -29,6 +29,7 @@ const hasBounceAnimationName = (value: string): boolean => {
 export const noInlineBounceEasing = defineRule<Rule>({
   id: "no-inline-bounce-easing",
   severity: "warn",
+  tags: ["test-noise"],
   category: "Performance",
   recommendation:
     "Use `cubic-bezier(0.16, 1, 0.3, 1)` (ease-out-expo) for natural deceleration — objects in the real world don't bounce",
