@@ -87,6 +87,47 @@ const STRING_TYPED_PROPERTY_NAMES: ReadonlySet<string> = new Set([
   "prefix",
 ]);
 
+// Identifier suffix conventions whose binding is overwhelmingly a
+// string: `*Text` (`spanText`, `labelText`), `*Path` (`lowerPath`,
+// `filePath`), `*Url` / `*Uri` / `*Href`, `*Name` (when paired with
+// `.includes('literal')`), `*Pattern`, `*Tag`.
+const STRING_TYPED_IDENTIFIER_SUFFIXES: ReadonlyArray<string> = [
+  "Text",
+  "Path",
+  "Url",
+  "Uri",
+  "Href",
+  "Pattern",
+  "Suffix",
+  "Prefix",
+  "String",
+  "Source",
+  "Source",
+  "Locale",
+  "Codepoint",
+  "Char",
+  "Word",
+  "Markdown",
+  "HTML",
+  "Html",
+  "Css",
+  "Xml",
+  "Json",
+  "Yaml",
+  "Sql",
+  "Query",
+  "Line",
+  "Filename",
+  "Filepath",
+];
+
+const hasStringTypedSuffix = (name: string): boolean => {
+  for (const suffix of STRING_TYPED_IDENTIFIER_SUFFIXES) {
+    if (name.length > suffix.length && name.endsWith(suffix)) return true;
+  }
+  return false;
+};
+
 // HACK: identifier names that overwhelmingly bind to strings.
 const STRING_TYPED_IDENTIFIER_NAMES: ReadonlySet<string> = new Set([
   "text",
@@ -176,8 +217,12 @@ const isLikelyStringReceiver = (receiver: EsTreeNode | null | undefined): boolea
   ) {
     return true;
   }
-  if (isNodeOfType(receiver, "Identifier") && STRING_TYPED_IDENTIFIER_NAMES.has(receiver.name)) {
-    return true;
+  if (isNodeOfType(receiver, "Identifier")) {
+    if (STRING_TYPED_IDENTIFIER_NAMES.has(receiver.name)) return true;
+    if (hasStringTypedSuffix(receiver.name)) return true;
+  }
+  if (isNodeOfType(receiver, "MemberExpression") && isNodeOfType(receiver.property, "Identifier")) {
+    if (hasStringTypedSuffix(receiver.property.name)) return true;
   }
   return false;
 };
