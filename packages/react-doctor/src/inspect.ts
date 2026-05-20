@@ -2,6 +2,7 @@ import { performance } from "node:perf_hooks";
 import {
   OXLINT_NODE_REQUIREMENT,
   calculateScore,
+  calculateScoreLocally,
   combineDiagnostics,
   computeJsxIncludePaths,
   filterDiagnosticsForSurface,
@@ -207,24 +208,16 @@ const runInspect = async (
   if (didLintFail) skippedChecks.push("lint");
   const hasSkippedChecks = skippedChecks.length > 0;
 
-  // HACK: --offline opts out of the score API entirely; without a
-  // local fallback (intentional — scoring lives on the server) we
-  // simply skip the score in offline mode and the renderer shows the
-  // "score unavailable" branch. The message distinguishes the two
-  // null sources — `--offline` (user-requested) vs API failure (the
-  // network round-trip didn't return a usable score) — so the
-  // renderer doesn't claim offline mode when the user is online but
-  // the API was unreachable.
-  //
   // Pre-filter diagnostics through the `score` surface so weak-signal
   // rule families (e.g. `design`) stay out of scoring by default and
   // don't dilute the headline number. Surface-included diagnostics
   // still flow through `result.diagnostics` for CLI/JSON consumers.
   const scoreDiagnostics = filterDiagnosticsForSurface(diagnostics, "score", userConfig);
-  const scoreResult = options.offline ? null : await calculateScore(scoreDiagnostics);
-  const noScoreMessage = options.offline
-    ? "Score unavailable in offline mode."
-    : "Score unavailable (could not reach the score API).";
+  const apiScoreResult = options.offline ? null : await calculateScore(scoreDiagnostics);
+  // Fall back to local scoring when offline or when the API is unreachable / returns an error
+  // (e.g. 413 on large projects). The local algorithm mirrors the server-side formula exactly.
+  const scoreResult = apiScoreResult ?? calculateScoreLocally(scoreDiagnostics);
+  const noScoreMessage = "";
 
   const skippedCheckReasons: Record<string, string> = {};
   if (didLintFail && lintFailureReason !== null) {
