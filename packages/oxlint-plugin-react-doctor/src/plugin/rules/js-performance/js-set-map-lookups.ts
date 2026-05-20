@@ -128,6 +128,21 @@ const STRING_TYPED_IDENTIFIER_NAMES: ReadonlySet<string> = new Set([
   "search",
   "haystack",
   "needle",
+  // Common string-typed naming conventions in addition to the above
+  "suffix",
+  "prefix",
+  "extension",
+  "ext",
+  "tableSuffix",
+  "tablePrefix",
+  "filenameSuffix",
+  "filenamePrefix",
+  "moduleSuffix",
+  "modulePrefix",
+  "declaration",
+  "expression",
+  "statement",
+  "literal",
 ]);
 
 // HACK: returns true when the receiver of `.includes()` / `.indexOf()`
