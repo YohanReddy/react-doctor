@@ -100,7 +100,21 @@ export const noEventHandler = defineRule<Rule>({
         );
       });
 
-      for (const ref of ifTestRefs) {
+      // Dedupe by identifier identity — `getUpstreamRefs` returns
+      // EVERY reference to the same binding (including unrelated
+      // call sites and the destructuring location). Without this
+      // gate, a single effect that uses `enabled` once would emit a
+      // diagnostic at the destructure (line 53) AND at every other
+      // place `enabled` appears in the file.
+      const seenIdentifiers = new Set<EsTreeNode>();
+      const dedupedRefs = ifTestRefs.filter((ref) => {
+        const identifier = ref.identifier as unknown as EsTreeNode;
+        if (!identifier || seenIdentifiers.has(identifier)) return false;
+        seenIdentifiers.add(identifier);
+        return true;
+      });
+
+      for (const ref of dedupedRefs) {
         if (isState(analysis, ref)) {
           context.report({
             node: ref.identifier as unknown as EsTreeNode,
@@ -109,7 +123,7 @@ export const noEventHandler = defineRule<Rule>({
           });
         }
       }
-      for (const ref of ifTestRefs) {
+      for (const ref of dedupedRefs) {
         if (isProp(analysis, ref)) {
           context.report({
             node: ref.identifier as unknown as EsTreeNode,
