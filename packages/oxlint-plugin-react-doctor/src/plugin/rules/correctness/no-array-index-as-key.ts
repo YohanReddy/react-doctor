@@ -8,6 +8,40 @@ import type { EsTreeNodeOfType } from "../../utils/es-tree-node-of-type.js";
 
 const STRING_COERCION_FUNCTIONS = new Set(["String", "Number"]);
 
+// Mirror of `no-array-index-key`'s pure-SVG-primitive list — these
+// hold no DOM state, so an index-key misidentification has no
+// observable consequence.
+const PURE_SVG_PRIMITIVE_TAGS: ReadonlySet<string> = new Set([
+  "circle",
+  "ellipse",
+  "g",
+  "line",
+  "path",
+  "polygon",
+  "polyline",
+  "rect",
+  "stop",
+  "text",
+  "tspan",
+  "defs",
+  "use",
+  "mask",
+  "marker",
+  "linearGradient",
+  "radialGradient",
+  "clipPath",
+  "filter",
+  "feGaussianBlur",
+  "feOffset",
+  "feMerge",
+  "feMergeNode",
+  "feColorMatrix",
+  "feFlood",
+  "feComposite",
+  "title",
+  "desc",
+]);
+
 const extractIndexName = (node: EsTreeNode): string | null => {
   if (isNodeOfType(node, "Identifier") && INDEX_PARAMETER_NAMES.has(node.name)) return node.name;
 
@@ -297,12 +331,15 @@ export const noArrayIndexAsKey = defineRule<Rule>({
 
       // Fragment / React.Fragment has no DOM identity or state — even
       // when the key is the index, a misidentification has no
-      // observable consequence (there's nothing to lose).
+      // observable consequence (there's nothing to lose). Same for
+      // pure SVG primitives (`<g>`, `<path>`, …) which only re-diff
+      // attributes on reorder.
       const openingElement = node.parent;
       if (openingElement && isNodeOfType(openingElement, "JSXOpeningElement")) {
         const elementName = openingElement.name as EsTreeNode;
-        if (isNodeOfType(elementName, "JSXIdentifier") && elementName.name === "Fragment") {
-          return;
+        if (isNodeOfType(elementName, "JSXIdentifier")) {
+          if (elementName.name === "Fragment") return;
+          if (PURE_SVG_PRIMITIVE_TAGS.has(elementName.name)) return;
         }
         if (
           isNodeOfType(elementName, "JSXMemberExpression") &&

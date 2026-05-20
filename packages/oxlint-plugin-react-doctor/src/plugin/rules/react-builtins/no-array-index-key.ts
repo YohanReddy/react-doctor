@@ -260,6 +260,48 @@ const isReactCloneElement = (callExpression: EsTreeNodeOfType<"CallExpression">)
   return isNodeOfType(callee.object, "Identifier") && callee.object.name === "React";
 };
 
+// Pure-presentational SVG primitives — no DOM state, no event-bound
+// identity to corrupt on reorder. `<g>`, `<path>`, `<line>`, etc.
+// just draw pixels; React will diff the new attributes regardless of
+// reconciliation order, and there's nothing to "lose" if React maps
+// the wrong index to the wrong element. Real-world icon / chart code
+// uses index keys here as the natural choice.
+const PURE_SVG_PRIMITIVE_TAGS: ReadonlySet<string> = new Set([
+  "circle",
+  "ellipse",
+  "g",
+  "line",
+  "path",
+  "polygon",
+  "polyline",
+  "rect",
+  "stop",
+  "text",
+  "tspan",
+  "defs",
+  "use",
+  "mask",
+  "marker",
+  "linearGradient",
+  "radialGradient",
+  "clipPath",
+  "filter",
+  "feGaussianBlur",
+  "feOffset",
+  "feMerge",
+  "feMergeNode",
+  "feColorMatrix",
+  "feFlood",
+  "feComposite",
+  "title",
+  "desc",
+]);
+
+const isPureSvgPrimitiveJsxName = (jsxOpeningName: EsTreeNode): boolean => {
+  if (!isNodeOfType(jsxOpeningName, "JSXIdentifier")) return false;
+  return PURE_SVG_PRIMITIVE_TAGS.has(jsxOpeningName.name);
+};
+
 // Recognises `<React.Fragment>` / `<Fragment>` / shorthand `<>` —
 // fragments carry no DOM identity and no internal state, so an index
 // key has no reordering hazard. (React would warn loudly if a key
@@ -300,6 +342,9 @@ export const noArrayIndexKey = defineRule<Rule>({
       // children at the same position, and a fragment misidentification
       // has no observable consequence.
       if (isFragmentJsxName(node.name as EsTreeNode)) return;
+      // SVG primitives (`<g>`, `<path>`, `<line>`, …) have no DOM
+      // state to corrupt; reorders just re-diff attributes.
+      if (isPureSvgPrimitiveJsxName(node.name as EsTreeNode)) return;
       const indexBinding = findIndexParameterBinding(node as EsTreeNode);
       if (!indexBinding) return;
       if (!expressionUsesIndex(expression, indexBinding.name)) return;
