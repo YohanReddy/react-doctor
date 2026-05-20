@@ -601,13 +601,17 @@ export const noMultiComp = defineRule<Rule>({
         ).length;
         // BARREL: many components, most exported. Two band-tightnesses
         // (tuned against the corpus):
-        //   - 4+ components, 75 %+ exported  → tight shadcn-style barrel
-        //   - 8+ components, 60 %+ exported  → bigger feature module
+        //   - 4+ components, 70 %+ exported  → tight shadcn-style barrel
+        //     (uses `Math.floor` so 11/15 = 73 % counts; the strictly-
+        //     ceil version excluded `WebAnalyticsTile.tsx`-style files
+        //     that are clearly a tile module by structure)
+        //   - 8+ components, 50 %+ exported  → bigger feature module
         //     where a handful of private helpers (`PreferencesToggle*`
-        //     style) sit alongside the public exports.
+        //     / `Cell` / `SortableCell` style) sit alongside the
+        //     public exports
         const isBarrelLikeFile =
-          (flagged.length >= 4 && exportedCount >= Math.ceil(flagged.length * 0.75)) ||
-          (flagged.length >= 8 && exportedCount >= Math.ceil(flagged.length * 0.6));
+          (flagged.length >= 4 && exportedCount >= Math.floor(flagged.length * 0.7)) ||
+          (flagged.length >= 8 && exportedCount >= Math.floor(flagged.length * 0.5));
         if (isBarrelLikeFile) return;
         // Feature module: small exported surface + N private helpers
         // making up the bulk of the file. Two band-tightnesses:
